@@ -1,6 +1,4 @@
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
-import { getVaultRoot } from './vault.js';
+import * as vault from './vault.js';
 import { getSettings, updateSettings } from './settings.js';
 
 /**
@@ -28,10 +26,8 @@ export interface InstalledPlugin extends PluginManifest {
   dir: string; // vault-relative
 }
 
-async function pluginsDir(): Promise<string> {
-  const root = await getVaultRoot();
-  return path.join(root, '.obsidian', 'plugins');
-}
+/** Vault-relative plugins folder. All access goes through the storage facade. */
+const PLUGINS_DIR = '.obsidian/plugins';
 
 /**
  * A plugin id becomes a path segment under `.obsidian/plugins/`, both when
@@ -47,28 +43,25 @@ function assertSafeId(id: string): string {
 }
 
 export async function listInstalled(): Promise<InstalledPlugin[]> {
-  const dir = await pluginsDir();
   const s = await getSettings();
   let entries: string[] = [];
   try {
-    entries = (await fs.readdir(dir, { withFileTypes: true }))
-      .filter((e) => e.isDirectory())
-      .map((e) => e.name);
+    entries = (await vault.listDir(PLUGINS_DIR)).filter((e) => e.isDir).map((e) => e.name);
   } catch {
     return [];
   }
   const out: InstalledPlugin[] = [];
   for (const id of entries) {
     try {
-      const manifestRaw = await fs.readFile(path.join(dir, id, 'manifest.json'), 'utf8');
+      const manifestRaw = await vault.readFileText(`${PLUGINS_DIR}/${id}/manifest.json`);
       const manifest = JSON.parse(manifestRaw) as PluginManifest;
-      const hasStyles = await fileExists(path.join(dir, id, 'styles.css'));
+      const hasStyles = await vault.exists(`${PLUGINS_DIR}/${id}/styles.css`);
       out.push({
         ...manifest,
         id: manifest.id || id,
         enabled: s.plugins.enabled.includes(manifest.id || id),
         hasStyles,
-        dir: `.obsidian/plugins/${id}`,
+        dir: `${PLUGINS_DIR}/${id}`,
       });
     } catch {
       /* skip invalid plugin dir */
@@ -82,8 +75,7 @@ export async function getPluginAsset(
   asset: 'main.js' | 'styles.css' | 'manifest.json',
 ): Promise<string> {
   assertSafeId(id);
-  const dir = await pluginsDir();
-  return fs.readFile(path.join(dir, id, asset), 'utf8');
+  return vault.readFileText(`${PLUGINS_DIR}/${id}/${asset}`);
 }
 
 export async function setEnabled(id: string, enabled: boolean): Promise<void> {
@@ -115,13 +107,12 @@ export async function installFromGithub(repo: string): Promise<InstalledPlugin> 
   // id comes from a REMOTE manifest — validate before it becomes a path segment
   // (a crafted `../../..` would otherwise write main.js outside the plugins dir).
   const id = assertSafeId(manifest.id || clean.split('/')[1]);
-  const dir = await pluginsDir();
-  const target = path.join(dir, id);
-  await fs.mkdir(target, { recursive: true });
-  await fs.writeFile(path.join(target, 'manifest.json'), JSON.stringify(manifest, null, 2));
-  await fs.writeFile(path.join(target, 'main.js'), await fetchText(assets['main.js']));
+  const target = `${PLUGINS_DIR}/${id}`;
+  await vault.createFolder(target);
+  await vault.writeFileText(`${target}/manifest.json`, JSON.stringify(manifest, null, 2));
+  await vault.writeFileText(`${target}/main.js`, await fetchText(assets['main.js']));
   if (assets['styles.css']) {
-    await fs.writeFile(path.join(target, 'styles.css'), await fetchText(assets['styles.css']));
+    await vault.writeFileText(`${target}/styles.css`, await fetchText(assets['styles.css']));
   }
   await updateSettings((d) => {
     if (!d.plugins.installed.includes(id)) d.plugins.installed.push(id);
@@ -136,13 +127,4 @@ async function fetchText(url: string): Promise<string> {
   const r = await fetch(url, { headers: { 'User-Agent': 'WebObsidian' } });
   if (!r.ok) throw new Error(`Download failed: ${url} (${r.status})`);
   return r.text();
-}
-
-async function fileExists(p: string): Promise<boolean> {
-  try {
-    await fs.access(p);
-    return true;
-  } catch {
-    return false;
-  }
 }

@@ -226,7 +226,6 @@ publicSharesRouter.get(
       return;
     }
     // Stream with Range support so shared <video>/<audio> can seek.
-    const abs = await vault.resolveInVault(target);
-    await sendFileWithRange(req, res, abs, mimeFor(target), { 'Cache-Control': 'private, max-age=300' });
+    await sendFileWithRange(req, res, await vault.openFile(target), mimeFor(target), { 'Cache-Control': 'private, max-age=300' });
   }),
 );

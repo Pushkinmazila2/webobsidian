@@ -8,7 +8,6 @@ import { fileURLToPath } from 'node:url';
 import { promises as fs } from 'node:fs';
 import http from 'node:http';
 import { WebSocketServer } from 'ws';
-import chokidar from 'chokidar';
 
 import { config } from './config.js';
 import { loadSettings, getSettings, setPasswordIfInitial } from './bootstrap.js';
@@ -30,7 +29,7 @@ import { initSearch, qmd } from './services/search.js';
 import { buildLinkGraph, updateLinkGraphForFile } from './services/links.js';
 import { buildFileIndex, indexFile, unindexFile } from './services/fileindex.js';
 import { setBroadcaster, broadcast } from './services/realtime.js';
-import { getVaultRoot, ensureVault, invalidateStat } from './services/vault.js';
+import { ensureVault, watchVault } from './services/vault.js';
 import { startAutoSync } from './services/autosync.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -203,57 +202,14 @@ function bearerToken(header: string | undefined): string | undefined {
   return header?.startsWith('Bearer ') ? header.slice(7) : undefined;
 }
 
-// --- chokidar watcher: reflect external changes (git pull, direct edits) ---
+// --- change feed: reflect external changes (git pull, direct edits) ---
+// The storage driver decides *how* changes are detected (local: chokidar with an
+// automatic polling fallback; remote drivers: polling the remote). We only react.
 async function setupWatcher() {
-  const root = await getVaultRoot();
-  // WEBOBSIDIAN_WATCH: 'auto' (default) = native inotify with automatic polling
-  // fallback when the host watch limit is exceeded; 'polling' = force polling.
-  const forcePolling = (process.env.WEBOBSIDIAN_WATCH ?? 'auto').toLowerCase() === 'polling';
-  startWatcher(root, forcePolling);
-}
-
-function startWatcher(root: string, usePolling: boolean) {
-  const watcher = chokidar.watch(root, {
-    // Ignore VCS/dep/trash dirs AND `.obsidian` — the desktop Obsidian app
-    // rewrites its workspace/state files constantly, which otherwise floods the
-    // server with events (→ broadcasts → full tree refetches) and pins the CPU.
-    ignored: (p) => /(^|[/\\])(\.git|\.obsidian|node_modules|\.trash)([/\\]|$)/.test(p),
-    ignoreInitial: true,
-    persistent: true,
-    usePolling,
-    interval: 1000,
-    binaryInterval: 3000,
-    awaitWriteFinish: { stabilityThreshold: 300, pollInterval: 100 },
-  });
-
-  // On a fresh VPS the kernel's `fs.inotify.max_user_watches` is often far below
-  // the file count of a large vault, so native watching fails with ENOSPC/EMFILE.
-  // Self-heal by transparently switching to polling (no inotify), and tell the
-  // operator how to restore native (cheaper) watching.
-  let degraded = false;
-  watcher.on('error', (err) => {
-    const code = (err as NodeJS.ErrnoException)?.code;
-    if (!usePolling && !degraded && (code === 'ENOSPC' || code === 'EMFILE')) {
-      degraded = true;
-      console.warn(
-        `[watcher] native file watching hit ${code} (host inotify limit too low ` +
-        `for this vault). Falling back to polling. For lower CPU, raise the limit: ` +
-        `sudo sysctl -w fs.inotify.max_user_watches=524288`,
-      );
-      watcher.close().catch(() => {});
-      startWatcher(root, true);
-      return;
-    }
-    console.error('[watcher] error:', err);
-  });
-
-  const onChange = async (absPath: string, type: string) => {
-    const rel = path.relative(root, absPath).split(path.sep).join('/');
+  await watchVault(async ({ type, path: rel }) => {
     // keep the attachment/file index in sync for embed resolution
     if (type === 'add') indexFile(rel);
     else if (type === 'unlink') unindexFile(rel);
-    // Drop the cached mtime/ctime so the next listTree re-stats just this file.
-    invalidateStat(rel);
     if (/\.(md|markdown)$/i.test(rel)) {
       // Update only the changed file in the search + link indexes (O(1)) — a full
       // buildLinkGraph() re-reads every note in the vault and was the main CPU sink
@@ -267,13 +223,7 @@ function startWatcher(root: string, usePolling: boolean) {
       }
     }
     broadcast({ type: 'fs', event: type, path: rel });
-  };
-  watcher
-    .on('add', (p) => onChange(p, 'add'))
-    .on('change', (p) => onChange(p, 'change'))
-    .on('unlink', (p) => onChange(p, 'unlink'))
-    .on('addDir', (p) => onChange(p, 'addDir'))
-    .on('unlinkDir', (p) => onChange(p, 'unlinkDir'));
+  });
 }
 
 async function dirExists(p: string): Promise<boolean> {

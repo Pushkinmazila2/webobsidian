@@ -1,6 +1,4 @@
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
-import { getVaultRoot, toRel } from './vault.js';
+import { listFiles } from './vault.js';
 
 /**
  * Vault-wide file index for Obsidian-style attachment resolution: an embed like
@@ -8,8 +6,6 @@ import { getVaultRoot, toRel } from './vault.js';
  * the vault (commonly an Attachments folder). We index every file by basename
  * and resolve by shortest path when a link doesn't include an explicit folder.
  */
-
-const IGNORED = new Set(['.git', 'node_modules']);
 
 let byBasename = new Map<string, string>();
 let byBasenameNoExt = new Map<string, string>();
@@ -28,23 +24,8 @@ function record(maps: { b: Map<string, string>; bn: Map<string, string> }, rel: 
 }
 
 export async function buildFileIndex(): Promise<void> {
-  const root = await getVaultRoot();
   const maps = { b: new Map<string, string>(), bn: new Map<string, string>() };
-  async function walk(dir: string) {
-    let entries;
-    try {
-      entries = await fs.readdir(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const e of entries) {
-      if (IGNORED.has(e.name) || e.name.startsWith('.')) continue;
-      const abs = path.join(dir, e.name);
-      if (e.isDirectory()) await walk(abs);
-      else if (e.isFile()) record(maps, toRel(root, abs));
-    }
-  }
-  await walk(root);
+  for (const rel of await listFiles()) record(maps, rel);
   byBasename = maps.b;
   byBasenameNoExt = maps.bn;
 }

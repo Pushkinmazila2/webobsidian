@@ -1,6 +1,4 @@
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
-import { getVaultRoot } from './vault.js';
+import * as vault from './vault.js';
 
 /**
  * Obsidian stores per-vault property type assignments in `.obsidian/types.json`
@@ -9,13 +7,11 @@ import { getVaultRoot } from './vault.js';
  * property types interoperate with the Obsidian app.
  */
 
-async function typesFile(): Promise<string> {
-  return path.join(await getVaultRoot(), '.obsidian', 'types.json');
-}
+const TYPES_FILE = '.obsidian/types.json';
 
 export async function readPropertyTypes(): Promise<Record<string, string>> {
   try {
-    const raw = await fs.readFile(await typesFile(), 'utf8');
+    const raw = await vault.readFileText(TYPES_FILE);
     const data = JSON.parse(raw);
     return data && typeof data.types === 'object' ? (data.types as Record<string, string>) : {};
   } catch {
@@ -24,16 +20,14 @@ export async function readPropertyTypes(): Promise<Record<string, string>> {
 }
 
 export async function setPropertyType(key: string, type: string): Promise<Record<string, string>> {
-  const file = await typesFile();
   let data: { types: Record<string, string> } = { types: {} };
   try {
-    const parsed = JSON.parse(await fs.readFile(file, 'utf8'));
+    const parsed = JSON.parse(await vault.readFileText(TYPES_FILE));
     if (parsed && typeof parsed === 'object') data = { ...parsed, types: { ...(parsed.types ?? {}) } };
   } catch {
     /* no existing file */
   }
   data.types[key] = type;
-  await fs.mkdir(path.dirname(file), { recursive: true });
-  await fs.writeFile(file, JSON.stringify(data, null, 2));
+  await vault.writeFileText(TYPES_FILE, JSON.stringify(data, null, 2));
   return data.types;
 }

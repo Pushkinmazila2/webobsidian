@@ -54,8 +54,7 @@ filesRouter.get(
       res.json({ path: rel, content: await vault.readFileText(rel), encoding: 'utf8' });
     } else {
       // Stream with Range support so embedded <video>/<audio> can seek.
-      const abs = await vault.resolveInVault(rel);
-      await sendFileWithRange(req, res, abs, mimeFor(rel));
+      await sendFileWithRange(req, res, await vault.openFile(rel), mimeFor(rel));
     }
   }),
 );

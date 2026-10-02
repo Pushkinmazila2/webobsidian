@@ -1,21 +1,23 @@
-import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
 import type { Request, Response } from 'express';
+import type { ReadHandle } from '../storage/types.js';
 
 /**
  * Serve a binary file with HTTP Range support so embedded `<video>`/`<audio>`
  * can seek: browsers (Safari especially) request `Range: bytes=…` and need a
  * 206 partial response, otherwise the scrubber and playback break. Streams the
  * file instead of buffering it — vault media can be hundreds of MB.
+ *
+ * Storage-agnostic: takes a `ReadHandle` (from `vault.openFile`) rather than a
+ * disk path, so it works for any storage driver.
  */
 export async function sendFileWithRange(
   req: Request,
   res: Response,
-  absPath: string,
+  file: ReadHandle,
   mime: string,
   extraHeaders: Record<string, string> = {},
 ): Promise<void> {
-  const { size } = await stat(absPath);
+  const { size } = file;
   res.setHeader('Content-Type', mime);
   res.setHeader('Accept-Ranges', 'bytes');
   for (const [k, v] of Object.entries(extraHeaders)) res.setHeader(k, v);
@@ -31,9 +33,9 @@ export async function sendFileWithRange(
     res.status(206);
     res.setHeader('Content-Range', `bytes ${start}-${end}/${size}`);
     res.setHeader('Content-Length', String(end - start + 1));
-    createReadStream(absPath, { start, end }).pipe(res);
+    file.createReadStream({ start, end }).pipe(res);
     return;
   }
   res.setHeader('Content-Length', String(size));
-  createReadStream(absPath).pipe(res);
+  file.createReadStream().pipe(res);
 }
