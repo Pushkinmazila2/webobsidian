@@ -4,7 +4,7 @@
 > Quy ước: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 > Cập nhật file này **mỗi khi** một mục thay đổi trạng thái.
 
-Cập nhật lần cuối: 2026-06-27 (security fix — chặn leo thang quyền token share; merge fix F-03 rate-limit, giữ `trust proxy` mặc định bật)
+Cập nhật lần cuối: 2026-10-12 (FR-14 — storage driver: interface `VaultStorage` + `GitHubStorage` read-only)
 
 ---
 
@@ -428,6 +428,23 @@ Cập nhật lần cuối: 2026-06-27 (security fix — chặn leo thang quyền
       GitHub Release draft, `GH_TOKEN`, `CSC_IDENTITY_AUTO_DISCOVERY=false`). `ci.yml` thêm typecheck + build
       bundle desktop. Root scripts `desktop`/`desktop:dist`/`desktop:publish`; `.gitignore` thêm `desktop/.gen`,
       `desktop/release`.
+
+## Phase 31 — Storage driver: vault trong GitHub qua API — FR-14, PRD 1.6 (theo yêu cầu người dùng)
+- [x] M31.1 Interface `VaultStorage` + `LocalFsStorage` (port nguyên logic `vault.ts`); `vault.ts` thành facade; watcher chuyển vào driver
+- [x] M31.2 Bỏ rò rỉ fs: `resolveInVault` không còn export, `sendFileWithRange` nhận `ReadHandle`, `fileindex`/`plugins`/`propertytypes` đi qua facade
+- [x] M31.3 `settings.storage` (driver, github, cache, rules) + che token trong `redactSettings`; env `WEBOBSIDIAN_GITHUB_TOKEN`
+- [x] M31.4 Client GitHub API: ETag/304, theo dõi rate limit, retry/backoff, map lỗi (401/403 → 502, rate limit → 429)
+- [x] M31.5 Cache theo blob sha (RAM / đĩa, LRU, pin mirror) + TTL cache cho `remote`; rules glob `mirror|lazy|remote` + `index`
+- [x] M31.6 Prefetch bằng tarball (ghép theo git-blob sha, pax header) khi nhiều file; fallback blob từng file
+- [x] M31.7 `GitHubStorage` đọc: tree snapshot (+ fallback khi `truncated`), `basePath`, đọc/stream (Range cắt cục bộ), phát hiện LFS pointer
+- [x] M31.8 Watcher bằng poll ref (ETag) + diff cây → sự kiện cho search/links/WebSocket; git sync cục bộ bị vô hiệu ở driver `github`
+- [x] M31.9 Test: contract ghi (20) + contract đọc dùng chung cho `local` và `github`, mock GitHub API, e2e server+mock, smoke 50 bước chứng minh chế độ local không đổi, kiểm tra thật trên repo (chỉ GET)
+- [ ] M31.10 `GitHubStorage` ghi: queue tuần tự, write-behind, Git Data API (blobs→tree→commit→ref), rename/copy/xoá thư mục nguyên tử, trash, xung đột non-fast-forward
+- [ ] M31.11 History per-file qua Commits API (thay `routes/git.ts` ở chế độ github), `mtime`/`ctime` lười, trash có thời gian xoá
+- [x] M31.12 Cờ `index` của rules được áp dụng: file `index: false` không vào search/backlinks/graph và không bị tải khi khởi động (`VaultStorage.isIndexed`, `listIndexedMarkdownFiles`)
+- [x] M31.15 Index search không ghi/đọc `qmd-index.json` ở driver remote (luôn dựng lại từ cache nội dung khi khởi động) → với `cache.persist: memory` không có text note nào trên đĩa server; test e2e kiểm tra `DATA_DIR`
+- [ ] M31.13 UI Settings: chọn driver, repo/branch/basePath, bảng rules, chỉ báo thay đổi chưa đồng bộ
+- [ ] M31.14 Git LFS qua Batch API; fallback GraphQL chỉ lấy `.md` cho repo có nhiều binary ngoài LFS
 
 ### Nhật ký tiến độ
 - 2026-06-27 (security fix — leo thang quyền qua token share): `verifyToken()` (server/src/services/auth.ts)
@@ -1266,3 +1283,11 @@ Cập nhật lần cuối: 2026-06-27 (security fix — chặn leo thang quyền
   icon globe màu accent cạnh tên. Icon `globe` thêm vào bộ Lucide. Verify headless Chrome qua CDP
   (MCP bị phiên khác giữ): badge hiện đúng note share + màu accent, menu có "Share…", dialog mở đủ
   controls (URL đúng token, toggle on, Set password…, Delete). Typecheck + build sạch.
+- 2026-10-12: Phase 31 (FR-14, PRD 1.6) — storage driver. (1) Giai đoạn 1: interface `VaultStorage` + `LocalFsStorage`,
+  `vault.ts` thành facade; chạy smoke 50 bước (tree/read/write/search/Range/rename/copy/trash/plugins/share/agent API/sửa
+  file ngoài) trước và sau refactor → transcript giống hệt; 20 contract test (đã mutation-test). (2) Giai đoạn 3 (chỉ đọc):
+  `GitHubStorage` + client (ETag/rate limit/retry), cache theo sha, rules mirror/lazy/remote, prefetch tarball, poll ref
+  thay chokidar. 67 test xanh (mock GitHub API in-process; e2e chạy server thật; mutation test các invariant chính: pin
+  mirror, 401→502, LFS, ETag, traversal, diff `change`, upsert index). Kiểm tra thật trên repo thử (chỉ GET): 88 file,
+  init ≈ 1.9s với 6 loại request, 80 note khớp sha 100%, đọc note từ cache 0 request, file lazy lần 2 = 0 request,
+  poll rảnh = 0 rate limit. Cờ `index` được áp dụng cho search/graph/watcher; index search không còn ghi xuống đĩa ở driver github (có mutation test cho cả hai). Chưa làm: ghi (M31.10), history/mtime, UI, LFS.

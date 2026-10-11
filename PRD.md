@@ -1,7 +1,15 @@
 # PRD — WebObsidian
 
 > Product Requirements Document
-> Phiên bản: 1.5 · Cập nhật: 2026-06-22 · Trạng thái: Draft
+> Phiên bản: 1.6 · Cập nhật: 2026-10-12 · Trạng thái: Draft
+> Changelog 1.6 (FR-14 — Storage driver: vault lưu trong GitHub qua API, theo yêu cầu người dùng): bổ sung **FR-14**.
+> Mọi I/O của vault đi qua interface **`VaultStorage`** (`server/src/storage/`), `vault.ts` chỉ còn là facade. Hai driver:
+> `LocalFsStorage` (thư mục trên đĩa — hành vi cũ, không đổi) và **`GitHubStorage`** (vault = một branch, tuỳ chọn một
+> thư mục con của repo GitHub, truy cập qua REST API — không cần `git` hay bản clone). Mỗi đường dẫn có **rule**
+> `mirror` / `lazy` / `remote` (+ `index`) quyết định có tải về, cache hay chỉ lấy khi cần; cache theo blob sha, mặc định
+> chỉ trong RAM (`cache.persist: memory`) nên có thể không để lại gì trên đĩa server. Thay chokidar bằng **poll branch**
+> (ETag → 304 không tốn rate limit) + diff cây. Giai đoạn này **chỉ đọc**; ghi/rename/xoá/trash trả 501, sẽ làm ở giai đoạn sau.
+> Thêm `settings.storage` (§6) và env `WEBOBSIDIAN_GITHUB_TOKEN`. Git sync cục bộ (FR-4) chỉ áp dụng cho driver `local`.
 > Changelog 1.5 (FR-13 — Desktop app Electron đa nền tảng, theo yêu cầu người dùng): bổ sung **FR-13** —
 > đóng gói WebObsidian thành **app cài đặt** macOS/Windows/Linux (arm64/x64/ia32). Workspace mới `desktop/`
 > là **Electron shell** spawn đúng server Express hiện có như tiến trình con (qua `ELECTRON_RUN_AS_NODE`,
@@ -409,6 +417,48 @@ Express + SPA hiện có (không fork code, không đổi kiến trúc) — nên
 - **Phạm vi (non-goals)**: chưa auto-update (người dùng tải bản mới thủ công); chưa ký số; không nhúng git
   portable; không chạy nhiều cửa sổ/vault song song trong 1 instance (single-instance lock).
 
+### FR-14 · Storage driver (vault trong GitHub qua API)
+
+Mục tiêu: dùng WebObsidian với vault nằm **hoàn toàn trong GitHub**, không cần tải cả repo về server; người dùng chọn
+loại file nào được tải/cache, phần còn lại chỉ lấy từ GitHub khi mở (chậm hơn nhưng không lưu gì trên server).
+
+- **Interface `VaultStorage`** (`storage/types.ts`): list/tree, read (text/buffer/stream có Range), write, mkdir, rename,
+  copy, remove, trash, `watch()`. Đường dẫn luôn vault-relative, POSIX. Driver tự chặn path traversal và `.git`
+  (lỗi `status=400`) và ẩn dotfile / `node_modules` khỏi listing. `settings.storage.driver` chọn driver (`local` mặc định).
+  Đổi driver cần restart.
+- **`LocalFsStorage`**: logic cũ của `vault.ts` (symlink guard, trash `.trash`, resolve thư mục không phân biệt hoa-thường,
+  stat cache, chokidar với fallback polling). Git sync (FR-4) chỉ chạy ở chế độ này.
+- **`GitHubStorage`** (hiện **read-only**):
+  * Cây thư mục: 1 request `GET /git/trees/{sha}?recursive=1`, giữ snapshot trong RAM; nếu GitHub trả `truncated`
+    thì duyệt từng thư mục. Git không có thư mục rỗng — thư mục tồn tại khi chứa file. `basePath` biến một thư mục con
+    của repo thành vault root (các file ngoài không hiển thị).
+  * Nội dung lấy theo blob sha (`/git/blobs/{sha}`), cache **bất biến** theo sha (không cần invalidate). Khi cần
+    prefetch nhiều file mirror (> `tarballThreshold`, mặc định 30) dùng **một** `GET /tarball` thay vì N request; tar được
+    ghép với cây bằng git-blob sha (không dựa vào tên entry) nên đúng với đường dẫn dài/Unicode (pax header) và tự kiểm
+    tra toàn vẹn.
+  * **Rules** (`storage.rules`, khớp đầu tiên thắng, glob không phân biệt hoa-thường, mặc định `lazy`):
+    `mirror` = prefetch + pin, không bị evict (ghi chú, `.obsidian/**` — plugin cần chạy); `lazy` = tải khi dùng, nằm trong
+    LRU có giới hạn `cache.maxMB`; `remote` = không cache, chỉ giữ trong RAM ~60 giây (gom các request lặp, vd Range của
+    `<video>`). `index: true|false` quyết định file có vào search/backlinks/graph hay không (mặc định: true với `mirror`).
+    Tắt index → tìm kiếm không thấy file đó (chấp nhận, thuộc về người dùng).
+  * **Cache**: `persist: memory` (không ghi gì xuống đĩa server) hoặc `disk` (`<DATA_DIR>/cache`, nhanh hơn khi khởi động lại).
+    Index search (`qmd-index.json`) chỉ được ghi/đọc ở driver `local`; ở driver remote nó **luôn được dựng lại** khi khởi động
+    từ cache nội dung (không để text note trên đĩa, và không tin một index có thể đã cũ sau thời gian server tắt).
+  * **Range**: Contents/Blobs API **không hỗ trợ Range** (đã kiểm chứng) — file được tải đủ một lần rồi cắt lát cục bộ;
+    media lớn nên đặt `lazy`.
+  * **Watcher**: không có sự kiện fs → poll `GET /git/ref/heads/{branch}` mỗi `pollSec` (mặc định 30s) bằng
+    request có điều kiện (304 không tính rate limit). Có commit mới → diff hai cây → phát `add/change/unlink/addDir/unlinkDir`
+    (bỏ `.git`, `.obsidian`, `.trash`) cho cùng pipeline search/links/WebSocket như chokidar. File mirror được tải trước
+    khi sự kiện phát. Dừng poll khi gần hết rate limit.
+  * **Lỗi**: lỗi GitHub 401/403 **không bao giờ** chuyển tiếp thành 401 (web client coi 401 là hết phiên và đăng xuất);
+    map sang 502 kèm thông điệp rõ ràng; rate limit → 429; 5xx/mạng được retry có backoff. Token chỉ nằm trong header
+    `Authorization`, không vào URL/log/lỗi/`GET /api/settings`.
+  * **Git LFS**: phát hiện pointer LFS và trả 501 (chưa hỗ trợ tải qua LFS Batch API).
+  * Chưa làm (501): ghi, mkdir, rename, copy, xoá, trash/restore. Trash chỉ liệt kê được `.trash/` có sẵn trong repo.
+    `mtime`/`ctime` của file trong cây là 0 (Git không lưu mtime); sort theo thời gian cần giai đoạn sau.
+- **Token**: ưu tiên env `WEBOBSIDIAN_GITHUB_TOKEN`; hoặc `storage.github.token` trong settings (bị che `••••••••` khi trả
+  về client). Fine-grained PAT, quyền `Contents: Read` (sau này thêm `Write`) trên đúng một repo.
+
 ---
 
 ## 4. Yêu cầu phi chức năng (NFR)
@@ -496,6 +546,13 @@ GET    /api/v1/tags
               "token": "", "authorName": "", "authorEmail": "",
               "autoSync": false, "intervalSec": 300,
               "lfsPatterns": ["*.png","*.jpg","*.pdf","*.mp4"] },
+  "storage":{ "driver": "local",              // "local" | "github" (restart để đổi)
+              "github": { "owner": "", "repo": "", "branch": "", "basePath": "",
+                          "token": "", "apiUrl": "https://api.github.com", "pollSec": 30 },
+              "cache":  { "persist": "memory", "dir": "", "maxMB": 256 },
+              "rules":  [ { "match": ".obsidian/**", "mode": "mirror", "index": false },
+                          { "match": "**/*.{md,markdown,canvas}", "mode": "mirror", "index": true },
+                          { "match": "**", "mode": "lazy", "index": false } ] },
   "search": { "fuzzy": 0.2, "indexFrontmatter": true },
   "api":    { "keys": [ { "id": "...", "name": "agent1",
                           "hash": "...", "scopes": ["read","search"],
@@ -522,6 +579,9 @@ GET    /api/v1/tags
 - **Bảo mật token git/API key**: lưu trong settings.json server-side (chmod 600), khuyến nghị mount qua secret/volume riêng.
 - **File lớn**: bắt buộc Git LFS; cảnh báo khi commit file > ngưỡng mà chưa track LFS.
 - **Đồng bộ xung đột**: v1 ưu tiên thông báo + manual resolve, không auto-merge phá dữ liệu.
+- **Storage GitHub (FR-14)**: rate limit 5000 req/giờ → dùng ETag/304, tarball cho prefetch, poll thưa; GitHub API không hỗ trợ
+  Range và không có mtime từng file; cây quá lớn bị `truncated` (xử lý bằng duyệt từng thư mục); LFS chưa hỗ trợ; ghi
+  (commit gộp qua Git Data API, xử lý xung đột) là giai đoạn sau.
 
 ---
 

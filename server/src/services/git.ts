@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { simpleGit, type SimpleGit, type StatusResult } from 'simple-git';
 import { getSettings } from './settings.js';
-import { getVaultRoot } from './vault.js';
+import { getVaultRoot, getStorage } from './vault.js';
 import { redactUrlCreds } from '../lib/redact.js';
 
 /** GitHub-native sync with Git LFS support (PRD FR-4). */
@@ -389,6 +389,8 @@ async function pushImpl(): Promise<string> {
 // Debounced auto-commit (+push) after saves, when enabled in settings.
 let autoCommitTimer: NodeJS.Timeout | null = null;
 export function scheduleAutoCommitOnSave(): void {
+  // Local git only: a GitHub-backed vault has no working copy to commit.
+  if (getStorage().kind !== 'local') return;
   if (autoCommitTimer) clearTimeout(autoCommitTimer);
   autoCommitTimer = setTimeout(async () => {
     try {

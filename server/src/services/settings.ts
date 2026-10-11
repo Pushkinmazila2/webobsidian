@@ -54,6 +54,55 @@ const SettingsSchema = z.object({
         .default(['*.png', '*.jpg', '*.jpeg', '*.gif', '*.pdf', '*.mp4', '*.mov', '*.zip']),
     })
     .default({}),
+  // Where the vault lives. 'local' = a folder on disk (vault.path above);
+  // 'github' = a repository read/written through the GitHub API, with per-path
+  // rules for what is mirrored locally, fetched lazily, or never stored at all.
+  // Changes here take effect on restart.
+  storage: z
+    .object({
+      driver: z.enum(['local', 'github']).default('local'),
+      github: z
+        .object({
+          owner: z.string().default(''),
+          repo: z.string().default(''),
+          // Empty = the repository's default branch.
+          branch: z.string().default(''),
+          // Folder inside the repo that is the vault root ('' = repo root).
+          basePath: z.string().default(''),
+          // Prefer the WEBOBSIDIAN_GITHUB_TOKEN env var so the secret never sits in
+          // settings.json. Fine-grained PAT, Contents: read (+ write for editing).
+          token: z.string().default(''),
+          apiUrl: z.string().default('https://api.github.com'),
+          pollSec: z.number().min(5).default(30),
+        })
+        .default({}),
+      cache: z
+        .object({
+          // 'memory' = nothing is ever written to the server's disk.
+          persist: z.enum(['memory', 'disk']).default('memory'),
+          // Used when persist = 'disk'. Empty = <DATA_DIR>/cache.
+          dir: z.string().default(''),
+          maxMB: z.number().min(1).default(256),
+        })
+        .default({}),
+      // First match wins. mirror = prefetched + never evicted; lazy = fetched on first
+      // use, kept in the LRU cache; remote = never cached (short in-memory TTL only).
+      // `index: true` = include in search / backlinks / graph.
+      rules: z
+        .array(
+          z.object({
+            match: z.string().min(1),
+            mode: z.enum(['mirror', 'lazy', 'remote']),
+            index: z.boolean().optional(),
+          }),
+        )
+        .default([
+          { match: '.obsidian/**', mode: 'mirror', index: false },
+          { match: '**/*.{md,markdown,canvas}', mode: 'mirror', index: true },
+          { match: '**', mode: 'lazy', index: false },
+        ]),
+    })
+    .default({}),
   search: z
     .object({
       fuzzy: z.number().default(0.2),
@@ -171,6 +220,11 @@ export async function getSettings(): Promise<Settings> {
   return cache ?? (await loadSettings());
 }
 
+/** Already-loaded settings, or null before loadSettings() ran. Lets sync code pick a driver. */
+export function peekSettings(): Settings | null {
+  return cache;
+}
+
 /** Mutate settings via an updater fn, validate, persist, and refresh cache. */
 export async function updateSettings(
   mutator: (draft: Settings) => void | Promise<void>,
@@ -194,6 +248,10 @@ export function redactSettings(s: Settings) {
       hasOverridePassword: Boolean(s.auth.passwordHash),
     },
     git: { ...s.git, token: s.git.token ? '••••••••' : '' },
+    storage: {
+      ...s.storage,
+      github: { ...s.storage.github, token: s.storage.github.token ? '••••••••' : '' },
+    },
     api: {
       ...s.api,
       keys: s.api.keys.map((k) => ({

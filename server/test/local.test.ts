@@ -6,6 +6,7 @@ import { test } from 'node:test';
 import { LocalFsStorage } from '../src/storage/local.js';
 import type { StorageEvent } from '../src/storage/types.js';
 import { runStorageContract } from './storage.contract.js';
+import { runReadContract } from './storage.read.contract.js';
 
 async function makeLocal() {
   const dir = await mkdtemp(path.join(tmpdir(), 'wobs-local-'));
@@ -17,6 +18,20 @@ async function makeLocal() {
 runStorageContract('local', async () => {
   const { storage, cleanup } = await makeLocal();
   return { storage, cleanup };
+});
+
+runReadContract('local', async () => {
+  const { vault, storage, cleanup } = await makeLocal();
+  return {
+    storage,
+    seed: async (files) => {
+      for (const [rel, data] of Object.entries(files)) {
+        await mkdir(path.dirname(path.join(vault, rel)), { recursive: true });
+        await writeFile(path.join(vault, rel), data);
+      }
+    },
+    cleanup,
+  };
 });
 
 // ---- local-only behaviour -------------------------------------------------

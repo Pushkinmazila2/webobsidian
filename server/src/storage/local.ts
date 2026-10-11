@@ -87,6 +87,10 @@ export class LocalFsStorage implements VaultStorage {
     }
   }
 
+  isIndexed(_rel: string): boolean {
+    return true;
+  }
+
   // ---- lifecycle ----------------------------------------------------------
 
   async init(): Promise<void> {

@@ -10,8 +10,8 @@ import type { Readable } from 'node:stream';
  *   - hiding dotfiles / `.git` / `node_modules` from listings (like Obsidian),
  *   - keeping their own caches coherent with their own writes.
  *
- * Drivers: `LocalFsStorage` (a folder on disk). A GitHub-API driver plugs in
- * behind the same interface.
+ * Drivers: `LocalFsStorage` (a folder on disk) and `GitHubStorage` (a repository
+ * reached through the GitHub API).
  */
 
 export interface TreeNode {
@@ -67,7 +67,14 @@ export type StopWatching = () => Promise<void>;
 
 export interface VaultStorage {
   /** Driver identifier, for diagnostics and capability checks. */
-  readonly kind: 'local';
+  readonly kind: 'local' | 'github';
+
+  /**
+   * Whether `rel` takes part in search / backlinks / graph. Local vaults index
+   * everything; the GitHub driver follows the `index` flag of its storage rules, so
+   * large or private files never have to be downloaded just to be indexed.
+   */
+  isIndexed(rel: string): boolean;
 
   /** Prepare the backing store (create the vault folder, validate credentials, …). */
   init(): Promise<void>;

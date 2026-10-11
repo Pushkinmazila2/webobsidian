@@ -1,6 +1,8 @@
 import path from 'node:path';
-import { getSettings } from './settings.js';
+import { config } from '../config.js';
+import { getSettings, peekSettings } from './settings.js';
 import { LocalFsStorage } from '../storage/local.js';
+import { createGithubStorage } from '../storage/github/index.js';
 import type { VaultStorage } from '../storage/types.js';
 
 export type {
@@ -26,10 +28,12 @@ let active: VaultStorage | null = null;
 /** The active storage driver (lazily created from settings). */
 export function getStorage(): VaultStorage {
   if (!active) {
-    active = new LocalFsStorage({
-      root: async () => (await getSettings()).vault.path,
-      trashDir: async () => (await getSettings()).vault.trash,
-    });
+    const trashDir = async () => (await getSettings()).vault.trash;
+    const s = peekSettings();
+    active =
+      s?.storage.driver === 'github'
+        ? createGithubStorage(s, { dataDir: config.dataDir, trashDir })
+        : new LocalFsStorage({ root: async () => (await getSettings()).vault.path, trashDir });
   }
   return active;
 }
@@ -63,9 +67,18 @@ export const exists = (rel: string) => getStorage().exists(rel);
 /** All visible files (vault-relative) — every type, not just markdown. */
 export const listFiles = () => getStorage().listFiles();
 
-/** All markdown files (vault-relative) for indexing. */
+/** All markdown files (vault-relative), regardless of indexing rules. */
 export async function listMarkdownFiles(): Promise<string[]> {
   return (await getStorage().listFiles()).filter((f) => /\.(md|markdown)$/i.test(f));
+}
+
+/** Whether a file takes part in search / backlinks / graph (see VaultStorage.isIndexed). */
+export const isIndexed = (rel: string) => getStorage().isIndexed(rel);
+
+/** Markdown files that belong in the search index and link graph. */
+export async function listIndexedMarkdownFiles(): Promise<string[]> {
+  const st = getStorage();
+  return (await listMarkdownFiles()).filter((f) => st.isIndexed(f));
 }
 
 // content

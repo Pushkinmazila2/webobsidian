@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs';
 import MiniSearch from 'minisearch';
 import { getSettings } from './settings.js';
 import { INDEX_FILE, config } from '../config.js';
-import { listMarkdownFiles, readFileText } from './vault.js';
+import { getStorage, isIndexed, listIndexedMarkdownFiles, readFileText } from './vault.js';
 import { parseNote } from './markdown.js';
 
 /**
@@ -128,7 +128,7 @@ class QmdEngine {
   /** Full (re)build from the vault. Adds incrementally so we never hold every
    *  note's full text in a single array (keeps peak memory bounded). */
   async build(): Promise<void> {
-    const files = await listMarkdownFiles();
+    const files = await listIndexedMarkdownFiles();
     this.mini = this.newIndex();
     this.snippets.clear();
     this.tagSet.clear();
@@ -145,7 +145,7 @@ class QmdEngine {
   }
 
   async upsert(rel: string): Promise<void> {
-    if (!/\.(md|markdown)$/i.test(rel)) return;
+    if (!/\.(md|markdown)$/i.test(rel) || !isIndexed(rel)) return;
     try {
       const doc = await this.toDoc(rel);
       if (this.mini.has(rel)) this.mini.replace(doc);
@@ -309,7 +309,18 @@ class QmdEngine {
       .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
   }
 
+  /**
+   * The on-disk index is a local-vault optimisation. For a remote vault it would put
+   * note text on the server's disk (against `storage.cache.persist: memory`) and could
+   * be silently stale after downtime — so remote drivers never write or trust it and
+   * always rebuild from the content cache at startup.
+   */
+  private diskIndexAllowed(): boolean {
+    return getStorage().kind === 'local';
+  }
+
   private async persist(): Promise<void> {
+    if (!this.diskIndexAllowed()) return;
     try {
       await fs.mkdir(config.dataDir, { recursive: true });
       const payload = {
@@ -325,6 +336,7 @@ class QmdEngine {
   }
 
   async restore(): Promise<boolean> {
+    if (!this.diskIndexAllowed()) return false;
     try {
       const raw = await fs.readFile(INDEX_FILE, 'utf8');
       const payload = JSON.parse(raw);

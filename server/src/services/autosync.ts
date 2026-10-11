@@ -1,5 +1,6 @@
 import { getSettings } from './settings.js';
 import { sync } from './git.js';
+import { getStorage } from './vault.js';
 
 /** Periodic auto-sync when enabled in settings (PRD FR-4). */
 let timer: NodeJS.Timeout | null = null;
@@ -12,7 +13,7 @@ export function startAutoSync(): void {
 }
 
 async function tick(): Promise<void> {
-  if (running) return;
+  if (running || getStorage().kind !== 'local') return;
   const s = await getSettings();
   if (!s.git.enabled || !s.git.autoSync || !s.git.remote) return;
   const intervalMs = Math.max(s.git.intervalSec, 60) * 1000;
