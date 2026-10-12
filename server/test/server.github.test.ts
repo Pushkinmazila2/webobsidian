@@ -196,11 +196,11 @@ test('[server+github] routes, search, Range, writes + commit, external commits, 
     assert.equal(saved.status, 200);
     const savedText = await saved.text();
     assert.ok(!savedText.includes('ghp_from_ui_secret'), 'token echoed back');
-    assert.equal(JSON.parse(savedText).storage.github.token, '••••••••');
+    assert.equal(JSON.parse(savedText).storage.github.token, '', 'token comes from the environment here, so the UI cannot set it');
     assert.equal(JSON.parse(savedText).storage.rules.length, 2);
     await putJson('/api/settings', { storage: { github: { token: '••••••••' } } }); // masked value must not overwrite
     const onDiskSettings = JSON.parse(await readFile(path.join(dataDir, 'settings.json'), 'utf8'));
-    assert.equal(onDiskSettings.storage.github.token, 'ghp_from_ui_secret', 'real token kept, mask did not overwrite it');
+    assert.equal(onDiskSettings.storage.github.token, '', 'an env-locked token is neither overridden nor persisted');
     assert.equal((await json('/api/settings/storage/status')).restartRequired, true, 'saved settings differ from the running driver');
     assert.equal((await api('/api/files/content?path=Welcome.md')).status, 200, 'running vault is unaffected until restart');
 

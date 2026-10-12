@@ -149,12 +149,21 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
     }
   };
 
+  const locked: Record<string, string> = status?.locked ?? {};
+  const lock = (path: string) => (locked[path] ? { disabled: true, title: `Set by the ${locked[path]} environment variable` } : {});
   const remote = status?.remote;
   const pending = remote?.pending ?? 0;
 
   return (
     <div>
       <h2>Storage</h2>
+
+      {Object.keys(locked).length > 0 && (
+        <Note kind="info">
+          Some settings are fixed by environment variables ({[...new Set(Object.values(locked))].join(', ')}) and are greyed out. Remove the
+          variable and restart the server to edit them here.
+        </Note>
+      )}
 
       {status?.restartRequired && (
         <Note kind="warn">
@@ -177,7 +186,7 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
       )}
 
       <Row name="Where the vault lives" desc="Local folder on the server, or a repository reached through the GitHub API (no clone is made).">
-        <select className="text-input" style={{ width: 220 }} value={driver} onChange={(e) => setDriver(e.target.value as any)}>
+        <select className="text-input" style={{ width: 220 }} value={driver} onChange={(e) => setDriver(e.target.value as any)} {...lock('driver')}>
           <option value="local">Local folder</option>
           <option value="github">GitHub repository</option>
         </select>
@@ -187,16 +196,16 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
         <>
           <Row name="Repository" desc="Owner and name, e.g. Pushkinmazila2 / BZ">
             <div style={{ display: 'flex', gap: 6 }}>
-              <input className="text-input" style={{ width: 130 }} placeholder="owner" value={g.owner} onChange={(e) => setGh('owner', e.target.value)} />
+              <input className="text-input" style={{ width: 130 }} placeholder="owner" value={g.owner} onChange={(e) => setGh('owner', e.target.value)} {...lock('github.owner')} />
               <span style={{ alignSelf: 'center' }}>/</span>
-              <input className="text-input" style={{ width: 130 }} placeholder="repo" value={g.repo} onChange={(e) => setGh('repo', e.target.value)} />
+              <input className="text-input" style={{ width: 130 }} placeholder="repo" value={g.repo} onChange={(e) => setGh('repo', e.target.value)} {...lock('github.repo')} />
             </div>
           </Row>
           <Row name="Branch" desc="Empty = the repository's default branch">
-            <input className="text-input" style={{ width: 275 }} placeholder="(default branch)" value={g.branch} onChange={(e) => setGh('branch', e.target.value)} />
+            <input className="text-input" style={{ width: 275 }} placeholder="(default branch)" value={g.branch} onChange={(e) => setGh('branch', e.target.value)} {...lock('github.branch')} />
           </Row>
           <Row name="Folder inside the repo" desc="Use a subfolder as the vault root, e.g. docs. Empty = whole repository.">
-            <input className="text-input" style={{ width: 275 }} placeholder="(repository root)" value={g.basePath} onChange={(e) => setGh('basePath', e.target.value)} />
+            <input className="text-input" style={{ width: 275 }} placeholder="(repository root)" value={g.basePath} onChange={(e) => setGh('basePath', e.target.value)} {...lock('github.basePath')} />
           </Row>
           <Row
             name="Access token"
@@ -214,14 +223,15 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
               placeholder={g.token ? '' : 'github_pat_…'}
               value={g.token}
               onChange={(e) => setGh('token', e.target.value)}
+              {...lock('github.token')}
             />
           </Row>
           <Row name="Saving to GitHub" desc="Edits are batched into one commit after this many seconds without typing (also on Sync and on shutdown).">
-            <input className="text-input" type="number" min={1} style={{ width: 90 }} value={g.flushSec} onChange={(e) => setGh('flushSec', e.target.value)} />
+            <input className="text-input" type="number" min={1} style={{ width: 90 }} value={g.flushSec} onChange={(e) => setGh('flushSec', e.target.value)} {...lock('github.flushSec')} />
             <span style={{ marginLeft: 6, color: 'var(--text-muted)' }}>sec</span>
           </Row>
           <Row name="Check for outside changes" desc="How often GitHub is polled for commits made elsewhere (minimum 5).">
-            <input className="text-input" type="number" min={5} style={{ width: 90 }} value={g.pollSec} onChange={(e) => setGh('pollSec', e.target.value)} />
+            <input className="text-input" type="number" min={5} style={{ width: 90 }} value={g.pollSec} onChange={(e) => setGh('pollSec', e.target.value)} {...lock('github.pollSec')} />
             <span style={{ marginLeft: 6, color: 'var(--text-muted)' }}>sec</span>
           </Row>
           <div style={{ margin: '6px 0' }}>
@@ -231,7 +241,7 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
           </div>
           {showAdvanced && (
             <Row name="API URL" desc="Only change for GitHub Enterprise Server, e.g. https://github.example.com/api/v3">
-              <input className="text-input" style={{ width: 275 }} value={g.apiUrl} onChange={(e) => setGh('apiUrl', e.target.value)} />
+              <input className="text-input" style={{ width: 275 }} value={g.apiUrl} onChange={(e) => setGh('apiUrl', e.target.value)} {...lock('github.apiUrl')} />
             </Row>
           )}
 
@@ -257,9 +267,10 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
             Rules are checked top to bottom; the first match wins. Files that match nothing are fetched on demand.
           </div>
+          {locked.rules && <Note kind="info">The rules are set by the {locked.rules} environment variable and can’t be edited here.</Note>}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
             {PRESETS.map((p) => (
-              <button key={p.name} className="btn secondary" title={p.desc} onClick={() => setRules(p.rules.map((r) => ({ ...r })))}>
+              <button key={p.name} className="btn secondary" title={p.desc} disabled={!!locked.rules} onClick={() => setRules(p.rules.map((r) => ({ ...r })))}>
                 {p.name}
               </button>
             ))}
@@ -282,6 +293,7 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
                       className="text-input"
                       style={{ width: '100%', fontFamily: 'var(--font-monospace, monospace)' }}
                       value={r.match}
+                      disabled={!!locked.rules}
                       onChange={(e) => updateRule(i, { match: e.target.value })}
                     />
                   </td>
@@ -290,6 +302,7 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
                       className="text-input"
                       title={MODE_HELP[r.mode]}
                       value={r.mode}
+                      disabled={!!locked.rules}
                       onChange={(e) => {
                         const mode = e.target.value as Mode;
                         // keep the "searchable" default in step with the mode until the user decides
@@ -302,19 +315,19 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
                     </select>
                   </td>
                   <td style={{ textAlign: 'center' }}>
-                    <input type="checkbox" checked={effIndex(r)} onChange={(e) => updateRule(i, { index: e.target.checked })} />
+                    <input type="checkbox" checked={effIndex(r)} disabled={!!locked.rules} onChange={(e) => updateRule(i, { index: e.target.checked })} />
                   </td>
                   <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
-                    <button className="btn secondary" style={{ padding: '2px 6px' }} disabled={i === 0} onClick={() => moveRule(i, -1)} title="Move up">↑</button>{' '}
-                    <button className="btn secondary" style={{ padding: '2px 6px' }} disabled={i === rules.length - 1} onClick={() => moveRule(i, 1)} title="Move down">↓</button>{' '}
-                    <button className="btn secondary" style={{ padding: '2px 6px' }} onClick={() => setRules((p) => p.filter((_, j) => j !== i))} title="Remove">✕</button>
+                    <button className="btn secondary" style={{ padding: '2px 6px' }} disabled={!!locked.rules || i === 0} onClick={() => moveRule(i, -1)} title="Move up">↑</button>{' '}
+                    <button className="btn secondary" style={{ padding: '2px 6px' }} disabled={!!locked.rules || i === rules.length - 1} onClick={() => moveRule(i, 1)} title="Move down">↓</button>{' '}
+                    <button className="btn secondary" style={{ padding: '2px 6px' }} disabled={!!locked.rules} onClick={() => setRules((p) => p.filter((_, j) => j !== i))} title="Remove">✕</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
           <div style={{ marginTop: 8 }}>
-            <button className="btn secondary" onClick={() => setRules((p) => [...p, { match: '', mode: 'lazy', index: false }])}>
+            <button className="btn secondary" disabled={!!locked.rules} onClick={() => setRules((p) => [...p, { match: '', mode: 'lazy', index: false }])}>
               + Add rule
             </button>
           </div>
@@ -336,13 +349,13 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
 
           <h3 style={{ marginTop: 22 }}>Cache</h3>
           <Row name="Where kept files live" desc="In memory: nothing is ever written to the server’s disk. On disk: survives restarts, so startup is faster.">
-            <select className="text-input" style={{ width: 220 }} value={cache.persist} onChange={(e) => setCache({ ...cache, persist: e.target.value })}>
+            <select className="text-input" style={{ width: 220 }} value={cache.persist} onChange={(e) => setCache({ ...cache, persist: e.target.value })} {...lock('cache.persist')}>
               <option value="memory">Memory only (no files on disk)</option>
               <option value="disk">Disk</option>
             </select>
           </Row>
           <Row name="Size limit" desc="Least recently used files are dropped above this. Mirrored files are never dropped.">
-            <input className="text-input" type="number" min={1} style={{ width: 90 }} value={cache.maxMB} onChange={(e) => setCache({ ...cache, maxMB: e.target.value })} />
+            <input className="text-input" type="number" min={1} style={{ width: 90 }} value={cache.maxMB} onChange={(e) => setCache({ ...cache, maxMB: e.target.value })} {...lock('cache.maxMB')} />
             <span style={{ marginLeft: 6, color: 'var(--text-muted)' }}>MB</span>
           </Row>
         </>

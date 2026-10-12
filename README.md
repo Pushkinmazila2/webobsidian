@@ -193,6 +193,40 @@ Useful scripts:
 | `WEBOBSIDIAN_WATCH` | `auto` | File-watch mode: `auto` or `polling` |
 | `NODE_OPTIONS` | `--max-old-space-size=4096` | Node heap size — raise for large vaults |
 
+### Vault in a GitHub repository (no clone, configured by env)
+
+Instead of a folder on disk, the vault can live in a GitHub repository, read and written through the
+GitHub API. Set the variables below (in `.env` for docker compose, or `-e` for `docker run`) and the
+container starts straight into that repository. Each variable you set **overrides `settings.json` and is
+greyed out in Settings → Storage**; variables you leave out stay editable in the UI. Overrides are never
+written to `settings.json`. A malformed value stops the server at startup and names the variable.
+
+| Var | Default | Description |
+|-----|---------|-------------|
+| `WEBOBSIDIAN_GITHUB_REPO` | – | `owner/repo` (or a GitHub URL). Setting it selects the GitHub driver |
+| `WEBOBSIDIAN_GITHUB_TOKEN` | – | Fine-grained token for that repo, *Contents: Read and write* |
+| `WEBOBSIDIAN_STORAGE` | – | `github` or `local` — explicit driver (`local` wins over `REPO`) |
+| `WEBOBSIDIAN_GITHUB_BRANCH` | default branch | Branch to use (try a separate test branch first) |
+| `WEBOBSIDIAN_GITHUB_BASE_PATH` | repo root | Subfolder used as the vault root, e.g. `docs` |
+| `WEBOBSIDIAN_GITHUB_FLUSH_SEC` | `15` | Seconds without edits before they are saved in one commit |
+| `WEBOBSIDIAN_GITHUB_POLL_SEC` | `30` | How often to look for commits made elsewhere (min 5) |
+| `WEBOBSIDIAN_GITHUB_API_URL` | `https://api.github.com` | GitHub Enterprise Server API URL |
+| `WEBOBSIDIAN_GIT_AUTHOR_NAME` / `_EMAIL` | token owner | Commit author |
+| `WEBOBSIDIAN_STORAGE_PRESET` | `default` | `default` (notes mirrored, rest on demand) · `remote-only` (nothing kept on the server) · `mirror-all` |
+| `WEBOBSIDIAN_STORAGE_RULES` | – | Explicit rules, first match wins: `pattern=mode[:index\|:noindex];…`, modes `mirror` / `lazy` / `remote`; or a JSON array. Beats the preset |
+| `WEBOBSIDIAN_CACHE` | `memory` | `memory` (nothing on disk) or `disk` |
+| `WEBOBSIDIAN_CACHE_DIR` / `_MAX_MB` | `<DATA_DIR>/cache` / `256` | Disk cache location and size limit |
+
+```bash
+docker run -d -p 8787:8787 -v webobsidian-data:/data \
+  -e WEBOBSIDIAN_PASSWORD=change-me \
+  -e WEBOBSIDIAN_GITHUB_REPO=owner/notes \
+  -e WEBOBSIDIAN_GITHUB_TOKEN=github_pat_... \
+  -e WEBOBSIDIAN_GITHUB_BASE_PATH=docs \
+  -e 'WEBOBSIDIAN_STORAGE_RULES=Private/**=remote:noindex;**/*.md=mirror:index;**=lazy' \
+  webobsidian
+```
+
 Everything else — git remote/token, API keys, plugins, theme — is configured in the
 **Settings** UI and stored in `data/settings.json`.
 

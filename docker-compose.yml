@@ -18,6 +18,24 @@ services:
       # (limiter keys on the TCP socket addr, not X-Forwarded-For). Set "false" only
       # for a directly-exposed instance with no proxy. See .env.example.
       TRUST_PROXY: ${TRUST_PROXY:-true}
+      # --- Vault stored in a GitHub repository (optional; see .env.example) -------
+      # Any variable set here overrides settings.json and locks that field in the UI.
+      # Leave them all empty to keep using the local /vault folder.
+      WEBOBSIDIAN_GITHUB_REPO: ${WEBOBSIDIAN_GITHUB_REPO:-}
+      WEBOBSIDIAN_GITHUB_TOKEN: ${WEBOBSIDIAN_GITHUB_TOKEN:-}
+      WEBOBSIDIAN_STORAGE: ${WEBOBSIDIAN_STORAGE:-}
+      WEBOBSIDIAN_GITHUB_BRANCH: ${WEBOBSIDIAN_GITHUB_BRANCH:-}
+      WEBOBSIDIAN_GITHUB_BASE_PATH: ${WEBOBSIDIAN_GITHUB_BASE_PATH:-}
+      WEBOBSIDIAN_GITHUB_API_URL: ${WEBOBSIDIAN_GITHUB_API_URL:-}
+      WEBOBSIDIAN_GITHUB_FLUSH_SEC: ${WEBOBSIDIAN_GITHUB_FLUSH_SEC:-}
+      WEBOBSIDIAN_GITHUB_POLL_SEC: ${WEBOBSIDIAN_GITHUB_POLL_SEC:-}
+      WEBOBSIDIAN_STORAGE_PRESET: ${WEBOBSIDIAN_STORAGE_PRESET:-}
+      WEBOBSIDIAN_STORAGE_RULES: ${WEBOBSIDIAN_STORAGE_RULES:-}
+      WEBOBSIDIAN_CACHE: ${WEBOBSIDIAN_CACHE:-}
+      WEBOBSIDIAN_CACHE_DIR: ${WEBOBSIDIAN_CACHE_DIR:-}
+      WEBOBSIDIAN_CACHE_MAX_MB: ${WEBOBSIDIAN_CACHE_MAX_MB:-}
+      WEBOBSIDIAN_GIT_AUTHOR_NAME: ${WEBOBSIDIAN_GIT_AUTHOR_NAME:-}
+      WEBOBSIDIAN_GIT_AUTHOR_EMAIL: ${WEBOBSIDIAN_GIT_AUTHOR_EMAIL:-}
       VAULT_PATH: /vault
       DATA_DIR: /data
       ALLOWED_ROOTS: /vault

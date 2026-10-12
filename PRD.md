@@ -1,7 +1,8 @@
 # PRD — WebObsidian
 
 > Product Requirements Document
-> Phiên bản: 1.7 · Cập nhật: 2026-10-12 · Trạng thái: Draft
+> Phiên bản: 1.8 · Cập nhật: 2026-10-12 · Trạng thái: Draft
+> Changelog 1.8 (FR-14 — cấu hình storage bằng biến môi trường): container có thể khởi động hoàn toàn bằng env (`WEBOBSIDIAN_GITHUB_REPO/TOKEN/BRANCH/BASE_PATH/…`, `WEBOBSIDIAN_STORAGE_PRESET|RULES`, `WEBOBSIDIAN_CACHE*`, `WEBOBSIDIAN_GIT_AUTHOR_*`).
 > Changelog 1.7 (FR-14 — giai đoạn ghi): `GitHubStorage` hỗ trợ **ghi** (write-behind, một commit cho mỗi lần flush, xử lý xung đột không mất dữ liệu), thêm `storage.github.flushSec`; route `/api/git/*` ở chế độ github ánh xạ sang flush/refresh.
 > Changelog 1.6 (FR-14 — Storage driver: vault lưu trong GitHub qua API, theo yêu cầu người dùng): bổ sung **FR-14**.
 > Mọi I/O của vault đi qua interface **`VaultStorage`** (`server/src/storage/`), `vault.ts` chỉ còn là facade. Hai driver:
@@ -481,6 +482,15 @@ loại file nào được tải/cache, phần còn lại chỉ lấy từ GitHub
   và validate (owner/repo/branch/basePath/apiUrl/rules/driver; sai → 400; token `••••••••` không ghi đè; token không bao giờ
   trả về). Đổi cấu hình storage **cần restart**: `GET /api/settings/storage/status` báo `restartRequired`. Status bar hiện
   "N unsaved to GitHub" / lỗi lưu; bản conflict được liệt kê trong mục Storage.
+- **Cấu hình bằng env** (triển khai container): mỗi biến được đặt sẽ **ghi đè `settings.json` và khoá field đó trong UI**
+  (`GET /api/settings/storage/status` trả `locked: {đường dẫn → tên biến}`); biến không đặt vẫn sửa được trong UI. Override
+  chỉ nằm trong RAM, **không bao giờ ghi vào `settings.json`** (gỡ biến + restart → quay lại giá trị đã lưu); `PUT /api/settings`
+  không đổi được field bị khoá. Giá trị sai (repo, rules, số, driver…) làm server **dừng khi khởi động** với thông báo nêu tên biến,
+  không âm thầm rơi về cấu hình khác. Biến: `WEBOBSIDIAN_STORAGE` (`github|local`; chỉ cần `WEBOBSIDIAN_GITHUB_REPO` thì suy ra
+  `github`), `_GITHUB_REPO` (`owner/repo` hoặc URL) / `_OWNER`, `_GITHUB_TOKEN`, `_GITHUB_BRANCH`, `_GITHUB_BASE_PATH`,
+  `_GITHUB_API_URL`, `_GITHUB_FLUSH_SEC`, `_GITHUB_POLL_SEC`, `_STORAGE_PRESET` (`default|remote-only|mirror-all`),
+  `_STORAGE_RULES` (`pattern=mode[:index|:noindex];…` hoặc JSON; thắng preset), `_CACHE` (`memory|disk`), `_CACHE_DIR`,
+  `_CACHE_MAX_MB`, `_GIT_AUTHOR_NAME/_EMAIL`. Mẫu trong `.env.example`, `docker-compose.yml`, README.
 - **Token**: ưu tiên env `WEBOBSIDIAN_GITHUB_TOKEN`; hoặc `storage.github.token` trong settings (bị che `••••••••` khi trả
   về client). Fine-grained PAT, quyền `Contents: Read and write` trên đúng một repo (chỉ `Read` nếu dùng chế độ chỉ đọc).
 

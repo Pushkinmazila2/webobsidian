@@ -4,10 +4,11 @@ import path from 'node:path';
 import os from 'node:os';
 import { asyncHandler } from '../middleware/error.js';
 import { requireAuth } from '../middleware/auth.js';
-import { getSettings, updateSettings, redactSettings, ensureVaultBrowsable } from '../services/settings.js';
+import { getSettings, updateSettings, redactSettings, ensureVaultBrowsable, storageLockedBy } from '../services/settings.js';
 import { config } from '../config.js';
 import { getStorage, storageRestartRequired } from '../services/vault.js';
-import { GithubClient, GithubError, Rules, TOKEN_ENV } from '../storage/github/index.js';
+import { GithubClient, GithubError, TOKEN_ENV } from '../storage/github/index.js';
+import { applyStoragePatch } from '../services/storagepatch.js';
 
 export const settingsRouter = Router();
 settingsRouter.use(requireAuth);
@@ -51,76 +52,6 @@ settingsRouter.put(
   }),
 );
 
-const MASK = '••••••••';
-const str = (v: unknown, max = 300) => (typeof v === 'string' ? v.trim().slice(0, max) : undefined);
-
-function badRequest(message: string): never {
-  throw Object.assign(new Error(message), { status: 400 });
-}
-
-/** Validate + merge a `storage` patch. Throws 400 on anything malformed; the schema parse after it is the final gate. */
-export function applyStoragePatch(d: any, b: any): void {
-  if (b.driver !== undefined) {
-    if (b.driver !== 'local' && b.driver !== 'github') badRequest('storage.driver must be "local" or "github"');
-    d.driver = b.driver;
-  }
-  const g = b.github;
-  if (g && typeof g === 'object') {
-    for (const k of ['owner', 'repo'] as const) {
-      const v = str(g[k], 100);
-      if (v !== undefined) {
-        if (v && !/^[A-Za-z0-9._-]+$/.test(v)) badRequest(`storage.github.${k} has invalid characters`);
-        d.github[k] = v;
-      }
-    }
-    const branch = str(g.branch, 255);
-    if (branch !== undefined) {
-      if (/[\s~^:?*\[\\]|\.\.|^\/|\/$/.test(branch)) badRequest('storage.github.branch is not a valid branch name');
-      d.github.branch = branch;
-    }
-    const base = str(g.basePath, 500);
-    if (base !== undefined) {
-      const clean = base.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
-      if (clean.split('/').some((seg: string) => seg === '..' || seg === '.git')) badRequest('storage.github.basePath is not allowed');
-      d.github.basePath = clean;
-    }
-    const api = str(g.apiUrl, 300);
-    if (api !== undefined) {
-      if (api) {
-        let u: URL;
-        try { u = new URL(api); } catch { badRequest('storage.github.apiUrl is not a URL'); }
-        if (u!.protocol !== 'https:' && u!.protocol !== 'http:') badRequest('storage.github.apiUrl must be http(s)');
-      }
-      d.github.apiUrl = api || 'https://api.github.com';
-    }
-    if (typeof g.pollSec === 'number') d.github.pollSec = g.pollSec;
-    if (typeof g.flushSec === 'number') d.github.flushSec = g.flushSec;
-    if (typeof g.token === 'string' && g.token !== MASK) d.github.token = g.token.trim(); // empty string clears it
-  }
-  const c = b.cache;
-  if (c && typeof c === 'object') {
-    if (c.persist !== undefined) {
-      if (c.persist !== 'memory' && c.persist !== 'disk') badRequest('storage.cache.persist must be "memory" or "disk"');
-      d.cache.persist = c.persist;
-    }
-    if (typeof c.maxMB === 'number') d.cache.maxMB = c.maxMB;
-    if (typeof c.dir === 'string') d.cache.dir = c.dir.trim();
-  }
-  if (b.rules !== undefined) {
-    if (!Array.isArray(b.rules) || b.rules.length > 100) badRequest('storage.rules must be a list of at most 100 rules');
-    const rules = b.rules.map((r: any) => {
-      const match = str(r?.match, 300);
-      if (!match) badRequest('every rule needs a pattern');
-      if (!['mirror', 'lazy', 'remote'].includes(r.mode)) badRequest(`rule "${match}": mode must be mirror, lazy or remote`);
-      const out: any = { match, mode: r.mode };
-      if (typeof r.index === 'boolean') out.index = r.index;
-      return out;
-    });
-    try { new Rules(rules); } catch (e: any) { badRequest(`invalid rule: ${e?.message ?? e}`); }
-    d.rules = rules;
-  }
-}
-
 /** Token the driver will actually use: the env var wins over settings.json. */
 function tokenSource(stored: string): 'env' | 'settings' | 'none' {
   return process.env[TOKEN_ENV] ? 'env' : stored ? 'settings' : 'none';
@@ -137,6 +68,7 @@ settingsRouter.get(
       restartRequired: storageRestartRequired(s),
       tokenSource: tokenSource(s.storage.github.token),
       tokenEnvVar: TOKEN_ENV,
+      locked: storageLockedBy(), // settings path → environment variable that sets it (read-only in the UI)
       remote: st.remoteInfo?.() ?? null,
     });
   }),

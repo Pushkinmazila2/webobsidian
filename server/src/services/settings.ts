@@ -2,6 +2,8 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
+import { applyStoragePatch } from './storagepatch.js';
+import { readStorageEnv, type StorageEnv } from './storageenv.js';
 import { config, SETTINGS_FILE } from '../config.js';
 
 /** ---- Schema (PRD §6) ---------------------------------------------------- */
@@ -172,10 +174,45 @@ async function ensureDataDir(): Promise<void> {
   await fs.mkdir(config.dataDir, { recursive: true });
 }
 
+/** Storage settings as saved in settings.json (without environment overrides). */
+let fileStorage: Settings['storage'] | null = null;
+let envInfo: StorageEnv = { patch: {}, lockedBy: {} };
+
+const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
+function getPath(o: any, p: string): any {
+  return p.split('.').reduce((a, k) => a?.[k], o);
+}
+function setPath(o: any, p: string, v: any): void {
+  const parts = p.split('.');
+  let t = o;
+  for (const k of parts.slice(0, -1)) t = t[k] ??= {};
+  t[parts[parts.length - 1]] = clone(v);
+}
+
+/** Settings fields currently set by environment variables → name of the variable. */
+export function storageLockedBy(): Record<string, string> {
+  return { ...envInfo.lockedBy };
+}
+
+/** Apply WEBOBSIDIAN_* storage variables on top of the saved settings (in memory only). */
+function withStorageEnv(parsed: Settings): Settings {
+  envInfo = readStorageEnv();
+  fileStorage = clone(parsed.storage);
+  if (!Object.keys(envInfo.patch).length) return parsed;
+  const draft: Settings = clone(parsed);
+  applyStoragePatch(draft.storage, envInfo.patch);
+  try {
+    return SettingsSchema.parse(draft);
+  } catch (e: any) {
+    throw new Error(`Invalid storage environment variables: ${e?.issues?.map((i: any) => `${i.path.join('.')}: ${i.message}`).join('; ') ?? e?.message ?? e}`);
+  }
+}
+
 /** Atomic write: write to tmp then rename; keep a .bak of the previous file. */
 async function persist(s: Settings): Promise<void> {
   await ensureDataDir();
-  const json = JSON.stringify(s, null, 2);
+  // Environment overrides are never written: the file keeps what the user saved.
+  const json = JSON.stringify({ ...s, storage: fileStorage ?? s.storage }, null, 2);
   const tmp = `${SETTINGS_FILE}.tmp-${randomBytes(4).toString('hex')}`;
   await fs.writeFile(tmp, json, { mode: 0o600 });
   try {
@@ -209,10 +246,13 @@ export async function loadSettings(): Promise<Settings> {
     }
     // Heal older files whose allowedRoots predate the current vault path.
     if (ensureVaultBrowsable(parsed)) dirty = true;
-    cache = parsed;
+    cache = withStorageEnv(parsed);
     if (dirty) await persist(cache);
-  } catch {
-    cache = defaults();
+  } catch (e: any) {
+    // A malformed environment variable must stop the server, not fall back to defaults.
+    if (typeof e?.message === 'string' && /environment variable/.test(e.message)) throw e;
+    const fresh = defaults();
+    cache = withStorageEnv(fresh);
     await persist(cache);
   }
   return cache;
@@ -234,8 +274,16 @@ export async function updateSettings(
   const current = await getSettings();
   const draft: Settings = JSON.parse(JSON.stringify(current));
   await mutator(draft);
+  // Fields owned by environment variables can't be changed from here: keep both the
+  // effective (env) value in memory and the saved (file) value on disk as they were.
+  const nextFile = clone(draft.storage);
+  for (const p of Object.keys(envInfo.lockedBy)) {
+    setPath(draft.storage, p, getPath(current.storage, p));
+    if (fileStorage) setPath(nextFile, p, getPath(fileStorage, p));
+  }
   const validated = SettingsSchema.parse(draft);
   cache = validated;
+  fileStorage = SettingsSchema.shape.storage.parse(nextFile);
   await persist(validated);
   return validated;
 }

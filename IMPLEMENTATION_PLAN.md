@@ -4,7 +4,7 @@
 > Quy ước: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 > Cập nhật file này **mỗi khi** một mục thay đổi trạng thái.
 
-Cập nhật lần cuối: 2026-10-12 (FR-14 — storage driver: `VaultStorage` + `GitHubStorage` đọc & ghi write-behind)
+Cập nhật lần cuối: 2026-10-12 (FR-14 — storage driver: đọc/ghi write-behind, UI Storage, cấu hình bằng env)
 
 ---
 
@@ -443,6 +443,7 @@ Cập nhật lần cuối: 2026-10-12 (FR-14 — storage driver: `VaultStorage` 
 - [ ] M31.11 History per-file qua Commits API (thay `routes/git.ts` ở chế độ github), `mtime`/`ctime` lười, trash có thời gian xoá
 - [x] M31.12 Cờ `index` của rules được áp dụng: file `index: false` không vào search/backlinks/graph và không bị tải khi khởi động (`VaultStorage.isIndexed`, `listIndexedMarkdownFiles`)
 - [x] M31.15 Index search không ghi/đọc `qmd-index.json` ở driver remote (luôn dựng lại từ cache nội dung khi khởi động) → với `cache.persist: memory` không có text note nào trên đĩa server; test e2e kiểm tra `DATA_DIR`
+- [x] M31.17 Cấu hình storage bằng env (REPO/TOKEN/BRANCH/BASE_PATH/FLUSH/POLL/API_URL/PRESET/RULES/CACHE*/GIT_AUTHOR_*): override trong RAM + khoá UI, không ghi vào `settings.json`, lỗi giá trị dừng server nêu tên biến; compose/.env.example/README; test đơn vị + e2e (container chỉ env, restart không env, biến sai) + mutation test
 - [ ] M31.16 Kiểm tra ghi trên repo GitHub thật (nhánh thử riêng, không phải main) — thời gian, số request, quyền token
 - [x] M31.13 UI Settings (mục "Storage"): chọn driver, repo/branch/basePath/token, flush/poll, bảng rules (preset, thứ tự, index, cảnh báo rule che khuất), cache, "Test connection", banner cần restart, chỉ báo thay đổi chưa lưu + bản conflict, status bar GitHub; backend `PUT /api/settings` nhận `storage` (validate), `GET /api/settings/storage/status`, `POST /api/settings/storage/test`
 - [ ] M31.14 Git LFS qua Batch API; fallback GraphQL chỉ lấy `.md` cho repo có nhiều binary ngoài LFS
@@ -1294,3 +1295,4 @@ Cập nhật lần cuối: 2026-10-12 (FR-14 — storage driver: `VaultStorage` 
   poll rảnh = 0 rate limit. Cờ `index` được áp dụng cho search/graph/watcher; index search không còn ghi xuống đĩa ở driver github (có mutation test cho cả hai). Chưa làm: ghi (M31.10), history/mtime, UI, LFS.
 - 2026-10-12: Phase 31 giai đoạn 4 (M31.10, PRD 1.7) — GitHub ghi. Overlay thay đổi chưa lưu trong RAM + write-behind: một commit cho cả lô qua Git Data API, tái dùng blob sha cho rename/copy/nội dung trùng, `.gitkeep` cho thư mục rỗng, ghi bypass LFS, trần 100 MB/file. Xung đột không mất dữ liệu (remote giữ, bản ta → `(conflict …)`), non-fast-forward tự đọc lại và thử lại, lỗi lưu giữ nguyên thay đổi + backoff nền, SIGINT/SIGTERM flush. Mock GitHub có thêm endpoint ghi (kiểm tra fast-forward, file↔thư mục). 109 test xanh (contract ghi dùng chung cho cả hai driver, 27 test ghi riêng cho github, e2e server thật gồm flush khi SIGTERM); smoke 50 bước chế độ local giống hệt baseline; mutation test 7 invariant (6 bị bắt, 1 tương đương), sửa tính flaky của test thời gian bằng chạy tải song song 15 lần. Chưa làm: kiểm tra trên repo thật (M31.16), history/mtime, UI, LFS.
 - 2026-10-12: Phase 31 M31.13 — UI Storage. Component `StorageSettings` + status bar + ghi chú trong tab Git; backend nhận/validate `storage` (basePath `..`, apiUrl non-http, mode/driver sai → 400; token mask không ghi đè; token không bao giờ trả về), phát hiện cần restart bằng fingerprint cấu hình lúc khởi động, test kết nối không lưu gì. Test e2e bổ sung; xem UI bằng Chromium với GitHub giả. Đổi driver vẫn cần restart (chưa hot-switch).
+- 2026-10-12: Phase 31 M31.17 (PRD 1.8) — cấu hình storage bằng biến môi trường cho container. `storageenv.ts` đọc/validate (dùng chung `storagepatch.ts` với API settings), `settings.ts` phủ env lên settings trong RAM và ghi file chỉ với giá trị người dùng đã lưu, field bị khoá không đổi được qua PUT; UI làm xám field bị khoá. Mutation test 2 invariant (ghi nhầm env xuống file, bỏ khoá khi PUT) đều bị bắt.

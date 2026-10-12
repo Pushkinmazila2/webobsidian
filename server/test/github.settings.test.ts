@@ -59,3 +59,19 @@ test('[vault] driver is chosen from settings; a GitHub vault without a token fai
   assert.equal(vault.getStorage().kind, 'local');
   await rm(dataDir, { recursive: true, force: true });
 });
+
+test('[github] commit author: token owner by default; env or settings identity when configured', async () => {
+  const { createGithubStorage } = await import('../src/storage/github/index.js');
+  const base = await loadSettings();
+  const mk = (git: Partial<typeof base.git>, env: NodeJS.ProcessEnv) => {
+    const s = JSON.parse(JSON.stringify(base));
+    s.storage.github.owner = 'o';
+    s.storage.github.repo = 'r';
+    Object.assign(s.git, git);
+    return (createGithubStorage(s, { dataDir, trashDir: async () => '.trash', env: { WEBOBSIDIAN_GITHUB_TOKEN: 't', ...env } }) as any).o.author;
+  };
+  assert.equal(mk({}, {}), undefined);
+  assert.deepEqual(mk({ authorName: 'Me', authorEmail: 'me@x.org' }, {}), { name: 'Me', email: 'me@x.org' });
+  assert.deepEqual(mk({}, { WEBOBSIDIAN_GIT_AUTHOR_EMAIL: 'bot@x.org' }), { name: 'WebObsidian', email: 'bot@x.org' });
+  assert.deepEqual(mk({ authorName: 'Me', authorEmail: 'me@x.org' }, { WEBOBSIDIAN_GIT_AUTHOR_NAME: 'Bot', WEBOBSIDIAN_GIT_AUTHOR_EMAIL: 'bot@x.org' }), { name: 'Bot', email: 'bot@x.org' });
+});

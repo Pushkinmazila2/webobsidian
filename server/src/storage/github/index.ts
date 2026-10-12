@@ -13,6 +13,12 @@ export { MemoryContentCache, DiskContentCache, gitBlobSha } from './cache.js';
 /** Env var that holds the GitHub token; takes precedence over settings.json. */
 export const TOKEN_ENV = 'WEBOBSIDIAN_GITHUB_TOKEN';
 
+function commitAuthor(s: Settings, env: NodeJS.ProcessEnv): { name: string; email: string } | undefined {
+  const email = env.WEBOBSIDIAN_GIT_AUTHOR_EMAIL?.trim() || (s.git.authorEmail !== 'webobsidian@localhost' ? s.git.authorEmail : '');
+  if (!email) return undefined;
+  return { name: env.WEBOBSIDIAN_GIT_AUTHOR_NAME?.trim() || s.git.authorName || 'WebObsidian', email };
+}
+
 /** Build the GitHub driver from persisted settings. */
 export function createGithubStorage(
   s: Settings,
@@ -40,7 +46,8 @@ export function createGithubStorage(
     pollMs: g.pollSec * 1000,
     flushDelayMs: g.flushSec * 1000,
     flushMaxWaitMs: Math.max(60_000, g.flushSec * 4000),
-    // Commits are authored by the token's owner unless a custom identity was configured.
-    author: s.git.authorEmail && s.git.authorEmail !== 'webobsidian@localhost' ? { name: s.git.authorName, email: s.git.authorEmail } : undefined,
+    // Commits are authored by the token's owner unless an identity is configured
+    // (WEBOBSIDIAN_GIT_AUTHOR_NAME/EMAIL, or git.authorName/authorEmail in settings).
+    author: commitAuthor(s, opts.env ?? process.env),
   });
 }
