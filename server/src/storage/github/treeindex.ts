@@ -57,6 +57,53 @@ export class TreeIndex {
     }
   }
 
+  /** Independent copy (the pending-changes view is built from a clone of the committed snapshot). */
+  clone(): TreeIndex {
+    const c = new TreeIndex();
+    for (const [p, f] of this.files) c.files.set(p, { ...f });
+    for (const [d, kids] of this.children) c.children.set(d, new Map(kids));
+    return c;
+  }
+
+  /** Add or replace one file (creating ancestor directories). */
+  setFile(rel: string, f: FileEntry): void {
+    this.files.set(rel, f);
+    this.link(rel, false);
+    this.treeCache = null;
+  }
+
+  /** Remove one file; directories that become empty disappear (git has no empty dirs). */
+  deleteFile(rel: string): void {
+    if (!this.files.delete(rel)) return;
+    this.treeCache = null;
+    const parts = rel.split('/');
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const dir = parts.slice(0, i).join('/');
+      const kids = this.children.get(dir);
+      if (!kids) return;
+      kids.delete(parts[i]);
+      if (dir === '' || kids.size > 0) return;
+      this.children.delete(dir); // dir is now empty → remove it from its parent next round
+    }
+  }
+
+  /** Every file at or below `rel` (the file itself if `rel` is a file). Empty if it doesn't exist. */
+  filesUnder(rel: string): string[] {
+    if (this.files.has(rel)) return [rel];
+    const kids = this.children.get(rel);
+    if (!kids) return [];
+    const out: string[] = [];
+    const walk = (dir: string, entries: Map<string, boolean>): void => {
+      for (const [name, isDir] of entries) {
+        const p = dir ? `${dir}/${name}` : name;
+        if (isDir) walk(p, this.children.get(p) ?? new Map());
+        else out.push(p);
+      }
+    };
+    walk(rel, kids);
+    return out;
+  }
+
   hasFile(rel: string): boolean {
     return this.files.has(rel);
   }

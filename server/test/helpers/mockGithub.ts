@@ -102,7 +102,10 @@ export class MockGithub {
   private failures: Failure[] = [];
   private blobs = new Map<string, Buffer>();
   private trees = new Map<string, TreeEntryRaw[]>();
-  private commits = new Map<string, { tree: string; files: Files }>();
+  private commits = new Map<string, { tree: string; files: Files; parents: string[]; message: string; author?: { name: string; email: string } }>();
+  private treeFiles = new Map<string, Files>();
+  /** Commits created through the API (not via `commit()`), oldest first. */
+  apiCommits: { sha: string; message: string; parents: string[]; author?: { name: string; email: string }; changed: string[] }[] = [];
   private head = '';
   private seq = 0;
   private remaining = 5000;
@@ -135,6 +138,7 @@ export class MockGithub {
 
   /** Apply changes on top of the head commit (null deletes a file); returns the new commit sha. */
   commit(changes: Record<string, string | Buffer | null>): string {
+    const prev = this.head;
     const files: Files = new Map(this.head ? this.commits.get(this.head)!.files : []);
     for (const [p, v] of Object.entries(changes)) {
       if (v === null) files.delete(p);
@@ -142,10 +146,28 @@ export class MockGithub {
     }
     const tree = this.buildTree(files, '');
     const sha = createHash('sha1').update(`commit:${++this.seq}:${tree}`).digest('hex');
-    this.commits.set(sha, { tree, files });
+    this.commits.set(sha, { tree, files, parents: prev ? [prev] : [], message: 'external change' });
     this.head = sha;
     return sha;
   }
+
+  /** Current content of a file at head (undefined if absent). */
+  fileAtHead(p: string): Buffer | undefined {
+    return this.commits.get(this.head)?.files.get(p);
+  }
+  filesAtHead(): string[] {
+    return [...(this.commits.get(this.head)?.files.keys() ?? [])].sort();
+  }
+  failures_clear(): void {
+    this.failures = [];
+  }
+  private hooks: { key: string; fn: () => Promise<void> }[] = [];
+  /** Run `fn` the next time `key` is counted (before the response is sent). */
+  onNext(key: string, fn: () => Promise<void>): void {
+    this.hooks.push({ key, fn });
+  }
+  /** Inject a competing commit right before the next ref update (to force a non-fast-forward). */
+  racing: Record<string, string | Buffer | null> | undefined;
 
   private buildTree(files: Files, prefix: string): string {
     const entries: TreeEntryRaw[] = [];
@@ -169,7 +191,35 @@ export class MockGithub {
     entries.sort((a, b) => (a.path < b.path ? -1 : 1));
     const sha = createHash('sha1').update('tree:' + JSON.stringify(entries)).digest('hex');
     this.trees.set(sha, entries);
+    if (prefix === '') this.treeFiles.set(sha, files);
     return sha;
+  }
+
+  private readBody(req: http.IncomingMessage): Promise<any> {
+    return new Promise((resolve) => {
+      const chunks: Buffer[] = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', () => {
+        try {
+          resolve(JSON.parse(Buffer.concat(chunks).toString() || '{}'));
+        } catch {
+          resolve({});
+        }
+      });
+    });
+  }
+
+  private isAncestor(anc: string, of: string): boolean {
+    const seen = new Set<string>();
+    const stack = [of];
+    while (stack.length) {
+      const c = stack.pop()!;
+      if (c === anc) return true;
+      if (seen.has(c)) continue;
+      seen.add(c);
+      stack.push(...(this.commits.get(c)?.parents ?? []));
+    }
+    return false;
   }
 
   private flatten(treeSha: string, prefix = ''): TreeEntryRaw[] {
@@ -210,7 +260,12 @@ export class MockGithub {
     }
 
     const base = `/repos/${this.owner}/${this.repo}`;
-    const bump = (k: string) => (this.counts[k] = (this.counts[k] ?? 0) + 1);
+    const hookQueue: Promise<void>[] = [];
+    const bump = (k: string) => {
+      this.counts[k] = (this.counts[k] ?? 0) + 1;
+      const i = this.hooks.findIndex((h) => h.key === k);
+      if (i >= 0) hookQueue.push(this.hooks.splice(i, 1)[0].fn());
+    };
     let m: RegExpMatchArray | null;
 
     if (path === base) {
@@ -256,6 +311,69 @@ export class MockGithub {
       const b = this.blobs.get(m[1]);
       if (!b) return this.send(res, 404, { message: 'Not Found' });
       return this.send(res, 200, b, { 'content-type': 'application/octet-stream' });
+    }
+    if (req.method === 'POST' && path === `${base}/git/blobs`) {
+      bump('blob-create');
+      await Promise.all(hookQueue);
+      this.remaining--;
+      const b = await this.readBody(req);
+      if (b.encoding !== 'base64' || typeof b.content !== 'string') return this.send(res, 422, { message: 'bad blob' });
+      const data = Buffer.from(b.content, 'base64');
+      const sha = gitBlobSha(data);
+      this.blobs.set(sha, data);
+      return this.send(res, 201, { sha });
+    }
+    if (req.method === 'POST' && path === `${base}/git/trees`) {
+      bump('tree-create');
+      this.remaining--;
+      const b = await this.readBody(req);
+      const baseFiles = this.treeFiles.get(b.base_tree);
+      if (!baseFiles) return this.send(res, 422, { message: 'base_tree not found' });
+      const files: Files = new Map(baseFiles);
+      for (const e of b.tree ?? []) {
+        if (e.sha === null) files.delete(e.path);
+        else {
+          const data = this.blobs.get(e.sha);
+          if (!data) return this.send(res, 422, { message: `blob ${e.sha} not found` });
+          files.set(e.path, data);
+        }
+      }
+      for (const p of files.keys()) {
+        for (const q of files.keys()) {
+          if (q.startsWith(p + '/')) return this.send(res, 422, { message: `path ${p} is both a file and a directory` });
+        }
+      }
+      const sha = this.buildTree(files, '');
+      return this.send(res, 201, { sha });
+    }
+    if (req.method === 'POST' && path === `${base}/git/commits`) {
+      bump('commit-create');
+      this.remaining--;
+      const b = await this.readBody(req);
+      const files = this.treeFiles.get(b.tree);
+      if (!files) return this.send(res, 422, { message: 'tree not found' });
+      const sha = createHash('sha1').update(`commit:${++this.seq}:${b.tree}`).digest('hex');
+      const parentFiles = this.commits.get(b.parents?.[0])?.files ?? new Map();
+      const changed = [...new Set([...files.keys(), ...parentFiles.keys()])]
+        .filter((k) => !files.has(k) || !parentFiles.has(k) || Buffer.compare(files.get(k)!, parentFiles.get(k)!) !== 0)
+        .sort();
+      this.commits.set(sha, { tree: b.tree, files, parents: b.parents ?? [], message: b.message, author: b.author });
+      this.apiCommits.push({ sha, message: b.message, parents: b.parents ?? [], author: b.author, changed });
+      return this.send(res, 201, { sha, tree: { sha: b.tree } });
+    }
+    if (req.method === 'PATCH' && path === `${base}/git/refs/heads/${this.branch}`) {
+      bump('ref-update');
+      this.remaining--;
+      const b = await this.readBody(req);
+      if (this.racing) {
+        const r = this.racing;
+        this.racing = undefined;
+        this.commit(r);
+      }
+      if (!this.commits.has(b.sha)) return this.send(res, 422, { message: 'Object does not exist' });
+      if (!b.force && !this.isAncestor(this.head, b.sha)) return this.send(res, 422, { message: 'Update is not a fast forward' });
+      this.head = b.sha;
+      return this.send(res, 200, { object: { sha: b.sha } });
     }
     if ((m = path.match(new RegExp(`^${base}/tarball/([0-9a-f]{40})$`)))) {
       bump('tarball');

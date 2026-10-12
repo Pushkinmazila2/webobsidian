@@ -22,6 +22,8 @@ export class GithubError extends Error {
     message: string,
     public status: number,
     public retryAfterMs?: number,
+    /** The status GitHub actually answered with (our `status` is what we show the browser). */
+    public upstream?: number,
   ) {
     super(message);
     this.name = 'GithubError';
@@ -66,8 +68,19 @@ export interface TreeResult {
 interface RequestOpts {
   accept?: string;
   headers?: Record<string, string>;
-  /** Cache the body by ETag and revalidate with If-None-Match. */
+  /** Cache the body by ETag and revalidate with If-None-Match (GET only). */
   etag?: boolean;
+  method?: 'GET' | 'POST' | 'PATCH';
+  /** JSON body for POST/PATCH. */
+  body?: unknown;
+}
+
+/** The branch moved between our read and our ref update: re-read, re-apply, retry. */
+export class NotFastForwardError extends GithubError {
+  constructor() {
+    super('The branch was updated on GitHub in the meantime (not a fast-forward)', 409, undefined, 422);
+    this.name = 'NotFastForwardError';
+  }
 }
 
 const DEFAULT_ACCEPT = 'application/vnd.github+json';
@@ -115,6 +128,7 @@ export class GithubClient {
   /** Perform a GET with retry / rate-limit handling. Resolves with a 2xx or 304 Response. */
   private async send(path: string, o: RequestOpts): Promise<{ res: Response; cached?: Buffer }> {
     const url = this.apiUrl + path;
+    const method = o.method ?? 'GET';
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.token}`,
       Accept: o.accept ?? DEFAULT_ACCEPT,
@@ -122,7 +136,9 @@ export class GithubClient {
       'User-Agent': this.ua,
       ...o.headers,
     };
-    const cacheKey = o.etag ? `${headers.Accept}|${path}` : '';
+    const payload = o.body === undefined ? undefined : JSON.stringify(o.body);
+    if (payload !== undefined) headers['Content-Type'] = 'application/json';
+    const cacheKey = o.etag && method === 'GET' ? `${headers.Accept}|${path}` : '';
     const hit = cacheKey ? this.etags.get(cacheKey) : undefined;
     if (hit) headers['If-None-Match'] = hit.etag;
 
@@ -134,7 +150,7 @@ export class GithubClient {
 
       let res: Response;
       try {
-        res = await this.doFetch(url, { headers, redirect: 'follow' });
+        res = await this.doFetch(url, { method, headers, body: payload, redirect: 'follow' });
       } catch (e: any) {
         if (attempt < this.maxRetries) {
           await this.sleep(this.retryBaseMs * 3 ** attempt);
@@ -173,10 +189,10 @@ export class GithubClient {
         throw new GithubError(`GitHub rate limit exceeded; retry in ~${Math.ceil(wait / 1000)}s`, 429, wait);
       }
 
-      if (res.status === 401) throw new GithubError('GitHub token is invalid or expired', 502);
-      if (res.status === 403) throw new GithubError(`GitHub denied access: ${message || 'forbidden'}`, 502);
-      if (res.status === 404) throw new GithubError('Not found on GitHub (or the token has no access to it)', 404);
-      throw new GithubError(`GitHub error ${res.status}: ${message}`.trim(), 502);
+      if (res.status === 401) throw new GithubError('GitHub token is invalid or expired', 502, undefined, 401);
+      if (res.status === 403) throw new GithubError(`GitHub denied access: ${message || 'forbidden'}`, 502, undefined, 403);
+      if (res.status === 404) throw new GithubError('Not found on GitHub (or the token has no access to it)', 404, undefined, 404);
+      throw new GithubError(`GitHub error ${res.status}: ${message}`.trim(), 502, undefined, res.status);
     }
   }
 
@@ -219,7 +235,7 @@ export class GithubClient {
     return `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
   }
 
-  async getRepo(owner: string, repo: string): Promise<{ default_branch: string; private: boolean }> {
+  async getRepo(owner: string, repo: string): Promise<{ default_branch: string; private: boolean; permissions?: { push?: boolean } }> {
     return this.json(this.repoPath(owner, repo));
   }
 
@@ -242,6 +258,56 @@ export class GithubClient {
   /** Raw blob bytes (up to GitHub's 100 MB limit). */
   async getBlob(owner: string, repo: string, sha: string): Promise<Buffer> {
     return this.request(`${this.repoPath(owner, repo)}/git/blobs/${sha}`, { accept: RAW_ACCEPT });
+  }
+
+  // ---- writes (Git Data API) ----------------------------------------------
+
+  /** Upload content as a blob; returns its sha. */
+  async createBlob(owner: string, repo: string, data: Buffer): Promise<string> {
+    const r = await this.json<{ sha: string }>(`${this.repoPath(owner, repo)}/git/blobs`, {
+      method: 'POST',
+      body: { content: data.toString('base64'), encoding: 'base64' },
+    });
+    return r.sha;
+  }
+
+  /**
+   * Create a tree on top of `baseTree`. Entries use full repo paths; `sha: null`
+   * deletes the path. Returns the new tree's sha.
+   */
+  async createTree(
+    owner: string,
+    repo: string,
+    baseTree: string,
+    entries: { path: string; mode: '100644'; type: 'blob'; sha: string | null }[],
+  ): Promise<string> {
+    const r = await this.json<{ sha: string }>(`${this.repoPath(owner, repo)}/git/trees`, {
+      method: 'POST',
+      body: { base_tree: baseTree, tree: entries },
+    });
+    return r.sha;
+  }
+
+  async createCommit(
+    owner: string,
+    repo: string,
+    c: { message: string; tree: string; parents: string[]; author?: { name: string; email: string } },
+  ): Promise<string> {
+    const body: Record<string, unknown> = { message: c.message, tree: c.tree, parents: c.parents };
+    if (c.author) body.author = c.author;
+    const r = await this.json<{ sha: string }>(`${this.repoPath(owner, repo)}/git/commits`, { method: 'POST', body });
+    return r.sha;
+  }
+
+  /** Fast-forward the branch to `sha` (never forced). Throws NotFastForwardError if it moved. */
+  async updateRef(owner: string, repo: string, branch: string, sha: string): Promise<void> {
+    const ref = branch.split('/').map(encodeURIComponent).join('/');
+    try {
+      await this.json(`${this.repoPath(owner, repo)}/git/refs/heads/${ref}`, { method: 'PATCH', body: { sha, force: false } });
+    } catch (e) {
+      if (e instanceof GithubError && e.upstream === 422) throw new NotFastForwardError();
+      throw e;
+    }
   }
 
   /** Whole-repo .tar.gz as a stream (GitHub redirects to codeload). */

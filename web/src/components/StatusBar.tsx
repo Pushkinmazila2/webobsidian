@@ -38,7 +38,14 @@ export default function StatusBar() {
   const isText = activePath && /\.(md|markdown|txt)$/i.test(activePath);
   const words = isText ? content.trim().split(/\s+/).filter(Boolean).length : 0;
 
-  const gitLabel = !git?.isRepo
+  const gh = git?.driver === 'github';
+  const gitLabel = gh
+    ? git.lastError
+      ? 'GitHub: save failed — retrying'
+      : git.ahead
+        ? `${git.ahead} unsaved to GitHub`
+        : `GitHub ${git.branch} ✓`
+    : !git?.isRepo
     ? 'No vault sync'
     : git.clean
       ? `git ${git.branch}${git.ahead ? ` ↑${git.ahead}` : ''}${git.behind ? ` ↓${git.behind}` : ''}`
@@ -49,7 +56,7 @@ export default function StatusBar() {
       {dirty && <span>Saving…</span>}
       {isText && <span>{words} words</span>}
       {isText && <span>{content.length} characters</span>}
-      <span className="clickable" title="Git sync" onClick={sync}>
+      <span className="clickable" title={gh ? (git.lastError ? `Click to retry: ${git.lastError}` : 'Click to save to GitHub now') : 'Git sync'} onClick={sync}>
         <Icon name="refresh-cw" size={13} style={syncing ? { animation: 'spin 1s linear infinite' } : undefined} />
         {gitLabel}
       </span>

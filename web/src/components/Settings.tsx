@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../lib/store';
 import { api } from '../lib/api';
 import Icon from './Icon';
+import StorageSettings from './StorageSettings';
 
-type Section = 'vault' | 'git' | 'api' | 'sharing' | 'plugins' | 'appearance' | 'account' | 'about';
+type Section = 'vault' | 'storage' | 'git' | 'api' | 'sharing' | 'plugins' | 'appearance' | 'account' | 'about';
 
 export default function Settings() {
   const open = useStore((s) => s.settingsOpen);
@@ -22,7 +23,7 @@ export default function Settings() {
       <div className="modal settings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="settings-layout">
           <div className="settings-nav">
-            {(['vault', 'git', 'api', 'sharing', 'plugins', 'appearance', 'account', 'about'] as Section[]).map((s) => (
+            {(['vault', 'storage', 'git', 'api', 'sharing', 'plugins', 'appearance', 'account', 'about'] as Section[]).map((s) => (
               <button key={s} className={section === s ? 'active' : ''} onClick={() => setSection(s)}>
                 {labels[s]}
               </button>
@@ -30,6 +31,7 @@ export default function Settings() {
           </div>
           <div className="settings-content">
             {settings && section === 'vault' && <VaultSettings s={settings} reload={() => api.getSettings().then(setSettings)} />}
+            {settings && section === 'storage' && <StorageSettings s={settings} reload={() => api.getSettings().then(setSettings)} />}
             {settings && section === 'git' && <GitSettings s={settings} reload={() => api.getSettings().then(setSettings)} />}
             {section === 'api' && <ApiKeys />}
             {section === 'sharing' && <Shares />}
@@ -46,6 +48,7 @@ export default function Settings() {
 
 const labels: Record<Section, string> = {
   vault: 'Vault & Files',
+  storage: 'Storage',
   git: 'GitHub Sync',
   api: 'API Keys',
   sharing: 'Sharing',
@@ -158,6 +161,13 @@ function GitSettings({ s, reload }: { s: any; reload: () => void }) {
   return (
     <div>
       <h2>GitHub Sync</h2>
+      {s.storage?.driver === 'github' && (
+        <div style={{ border: '1px solid var(--bg-modifier-border)', borderRadius: 6, padding: '8px 10px', marginBottom: 10, fontSize: 12.5 }}>
+          The vault is stored in a GitHub repository (see <b>Storage</b>), so there is no local clone to sync. Edits are committed
+          to GitHub automatically; <b>Sync now</b> commits immediately and checks for new commits. Init, Clone, history and the
+          options below don’t apply.
+        </div>
+      )}
       <Row name="Enable git sync"><input type="checkbox" checked={g.enabled} onChange={(e) => set('enabled', e.target.checked)} /></Row>
       <Row name="Remote URL" desc="https://github.com/owner/repo.git">
         <input className="text-input" style={{ width: 260 }} value={g.remote} onChange={(e) => set('remote', e.target.value)} />

@@ -6,7 +6,7 @@ import { GitHubStorage } from './github.js';
 import { Rules } from './rules.js';
 
 export { GitHubStorage } from './github.js';
-export { GithubClient, GithubError } from './client.js';
+export { GithubClient, GithubError, NotFastForwardError } from './client.js';
 export { Rules, globToRegExp } from './rules.js';
 export { MemoryContentCache, DiskContentCache, gitBlobSha } from './cache.js';
 
@@ -38,5 +38,9 @@ export function createGithubStorage(
     cache,
     trashDir: opts.trashDir,
     pollMs: g.pollSec * 1000,
+    flushDelayMs: g.flushSec * 1000,
+    flushMaxWaitMs: Math.max(60_000, g.flushSec * 4000),
+    // Commits are authored by the token's owner unless a custom identity was configured.
+    author: s.git.authorEmail && s.git.authorEmail !== 'webobsidian@localhost' ? { name: s.git.authorName, email: s.git.authorEmail } : undefined,
   });
 }

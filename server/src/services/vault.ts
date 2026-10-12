@@ -24,12 +24,21 @@ export type {
  */
 
 let active: VaultStorage | null = null;
+/** Storage settings the running driver was built from (to tell the UI a restart is needed). */
+let bootStorageConfig = '';
+const storageFingerprint = (s: { storage: unknown }) => JSON.stringify(s.storage);
+
+/** True when the saved storage settings differ from what the running server uses. */
+export function storageRestartRequired(saved: { storage: unknown }): boolean {
+  return bootStorageConfig !== '' && bootStorageConfig !== storageFingerprint(saved);
+}
 
 /** The active storage driver (lazily created from settings). */
 export function getStorage(): VaultStorage {
   if (!active) {
     const trashDir = async () => (await getSettings()).vault.trash;
     const s = peekSettings();
+    if (s) bootStorageConfig = storageFingerprint(s);
     active =
       s?.storage.driver === 'github'
         ? createGithubStorage(s, { dataDir: config.dataDir, trashDir })
@@ -104,4 +113,9 @@ export const deleteFromTrash = (trashRel: string) => getStorage().deleteFromTras
 export const emptyTrash = () => getStorage().emptyTrash();
 
 // change feed
+/** Commit buffered changes (remote drivers). No-op for local folders. */
+export const flushStorage = async (): Promise<void> => {
+  if (active) await active.flush?.();
+};
+
 export const watchVault = (handler: Parameters<VaultStorage['watch']>[0]) => getStorage().watch(handler);

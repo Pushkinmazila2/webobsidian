@@ -74,6 +74,8 @@ const SettingsSchema = z.object({
           token: z.string().default(''),
           apiUrl: z.string().default('https://api.github.com'),
           pollSec: z.number().min(5).default(30),
+          // Edits are committed in one batch after this many quiet seconds (write-behind).
+          flushSec: z.number().min(1).default(15),
         })
         .default({}),
       cache: z

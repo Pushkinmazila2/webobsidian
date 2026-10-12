@@ -4,7 +4,7 @@
 > Quy ước: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 > Cập nhật file này **mỗi khi** một mục thay đổi trạng thái.
 
-Cập nhật lần cuối: 2026-10-12 (FR-14 — storage driver: interface `VaultStorage` + `GitHubStorage` read-only)
+Cập nhật lần cuối: 2026-10-12 (FR-14 — storage driver: `VaultStorage` + `GitHubStorage` đọc & ghi write-behind)
 
 ---
 
@@ -439,11 +439,12 @@ Cập nhật lần cuối: 2026-10-12 (FR-14 — storage driver: interface `Vaul
 - [x] M31.7 `GitHubStorage` đọc: tree snapshot (+ fallback khi `truncated`), `basePath`, đọc/stream (Range cắt cục bộ), phát hiện LFS pointer
 - [x] M31.8 Watcher bằng poll ref (ETag) + diff cây → sự kiện cho search/links/WebSocket; git sync cục bộ bị vô hiệu ở driver `github`
 - [x] M31.9 Test: contract ghi (20) + contract đọc dùng chung cho `local` và `github`, mock GitHub API, e2e server+mock, smoke 50 bước chứng minh chế độ local không đổi, kiểm tra thật trên repo (chỉ GET)
-- [ ] M31.10 `GitHubStorage` ghi: queue tuần tự, write-behind, Git Data API (blobs→tree→commit→ref), rename/copy/xoá thư mục nguyên tử, trash, xung đột non-fast-forward
+- [x] M31.10 `GitHubStorage` ghi: overlay RAM + write-behind (`flushSec`), Git Data API (blobs→tree→commit→ref, một commit/lần flush), rename/copy/xoá thư mục nguyên tử, tái dùng blob sha, trash, xung đột (giữ remote + bản `(conflict …)`), retry non-fast-forward & backoff khi lỗi, flush khi SIGINT/SIGTERM, route `/api/git/*` ánh xạ sang flush/refresh (đã kiểm chứng với mock + e2e; chưa chạy trên repo thật → M31.16)
 - [ ] M31.11 History per-file qua Commits API (thay `routes/git.ts` ở chế độ github), `mtime`/`ctime` lười, trash có thời gian xoá
 - [x] M31.12 Cờ `index` của rules được áp dụng: file `index: false` không vào search/backlinks/graph và không bị tải khi khởi động (`VaultStorage.isIndexed`, `listIndexedMarkdownFiles`)
 - [x] M31.15 Index search không ghi/đọc `qmd-index.json` ở driver remote (luôn dựng lại từ cache nội dung khi khởi động) → với `cache.persist: memory` không có text note nào trên đĩa server; test e2e kiểm tra `DATA_DIR`
-- [ ] M31.13 UI Settings: chọn driver, repo/branch/basePath, bảng rules, chỉ báo thay đổi chưa đồng bộ
+- [ ] M31.16 Kiểm tra ghi trên repo GitHub thật (nhánh thử riêng, không phải main) — thời gian, số request, quyền token
+- [x] M31.13 UI Settings (mục "Storage"): chọn driver, repo/branch/basePath/token, flush/poll, bảng rules (preset, thứ tự, index, cảnh báo rule che khuất), cache, "Test connection", banner cần restart, chỉ báo thay đổi chưa lưu + bản conflict, status bar GitHub; backend `PUT /api/settings` nhận `storage` (validate), `GET /api/settings/storage/status`, `POST /api/settings/storage/test`
 - [ ] M31.14 Git LFS qua Batch API; fallback GraphQL chỉ lấy `.md` cho repo có nhiều binary ngoài LFS
 
 ### Nhật ký tiến độ
@@ -1291,3 +1292,5 @@ Cập nhật lần cuối: 2026-10-12 (FR-14 — storage driver: interface `Vaul
   mirror, 401→502, LFS, ETag, traversal, diff `change`, upsert index). Kiểm tra thật trên repo thử (chỉ GET): 88 file,
   init ≈ 1.9s với 6 loại request, 80 note khớp sha 100%, đọc note từ cache 0 request, file lazy lần 2 = 0 request,
   poll rảnh = 0 rate limit. Cờ `index` được áp dụng cho search/graph/watcher; index search không còn ghi xuống đĩa ở driver github (có mutation test cho cả hai). Chưa làm: ghi (M31.10), history/mtime, UI, LFS.
+- 2026-10-12: Phase 31 giai đoạn 4 (M31.10, PRD 1.7) — GitHub ghi. Overlay thay đổi chưa lưu trong RAM + write-behind: một commit cho cả lô qua Git Data API, tái dùng blob sha cho rename/copy/nội dung trùng, `.gitkeep` cho thư mục rỗng, ghi bypass LFS, trần 100 MB/file. Xung đột không mất dữ liệu (remote giữ, bản ta → `(conflict …)`), non-fast-forward tự đọc lại và thử lại, lỗi lưu giữ nguyên thay đổi + backoff nền, SIGINT/SIGTERM flush. Mock GitHub có thêm endpoint ghi (kiểm tra fast-forward, file↔thư mục). 109 test xanh (contract ghi dùng chung cho cả hai driver, 27 test ghi riêng cho github, e2e server thật gồm flush khi SIGTERM); smoke 50 bước chế độ local giống hệt baseline; mutation test 7 invariant (6 bị bắt, 1 tương đương), sửa tính flaky của test thời gian bằng chạy tải song song 15 lần. Chưa làm: kiểm tra trên repo thật (M31.16), history/mtime, UI, LFS.
+- 2026-10-12: Phase 31 M31.13 — UI Storage. Component `StorageSettings` + status bar + ghi chú trong tab Git; backend nhận/validate `storage` (basePath `..`, apiUrl non-http, mode/driver sai → 400; token mask không ghi đè; token không bao giờ trả về), phát hiện cần restart bằng fingerprint cấu hình lúc khởi động, test kết nối không lưu gì. Test e2e bổ sung; xem UI bằng Chromium với GitHub giả. Đổi driver vẫn cần restart (chưa hot-switch).

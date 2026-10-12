@@ -188,6 +188,8 @@ export const api = {
   // settings
   getSettings: () => req<any>('/api/settings/'),
   putSettings: (patch: any) => req<any>('/api/settings/', { method: 'PUT', body: JSON.stringify(patch) }),
+  storageStatus: () => req<any>('/api/settings/storage/status'),
+  storageTest: (github: any) => req<any>('/api/settings/storage/test', { method: 'POST', body: JSON.stringify({ github }) }),
   browse: (dir?: string) =>
     req<{ dir: string; parent: string; roots: string[]; folders: { name: string; path: string }[] }>(
       `/api/settings/browse${dir ? `?dir=${encodeURIComponent(dir)}` : ''}`,

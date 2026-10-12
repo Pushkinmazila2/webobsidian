@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn, type ChildProcess } from 'node:child_process';
-import { mkdtemp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -17,7 +17,7 @@ const serverDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..
 const PNG = Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c6360000002000001e221bc330000000049454e44ae426082', 'hex');
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-test('[server+github] routes, search, Range, 501 on writes, external commits, no secrets', async () => {
+test('[server+github] routes, search, Range, writes + commit, external commits, shutdown flush, no secrets', async () => {
   const mock = new MockGithub();
   await mock.start();
   mock.commit({
@@ -38,7 +38,7 @@ test('[server+github] routes, search, Range, 501 on writes, external commits, no
   await mkdir(dataDir, { recursive: true });
   await writeFile(
     path.join(dataDir, 'settings.json'),
-    JSON.stringify({ storage: { driver: 'github', github: { owner: mock.owner, repo: mock.repo, basePath: 'vault', apiUrl: mock.url, pollSec: 5 },
+    JSON.stringify({ storage: { driver: 'github', github: { owner: mock.owner, repo: mock.repo, basePath: 'vault', apiUrl: mock.url, pollSec: 5, flushSec: 3600 },
         rules: [
           { match: '.obsidian/**', mode: 'mirror', index: false },
           { match: 'Private/**', mode: 'remote', index: false },
@@ -110,11 +110,33 @@ test('[server+github] routes, search, Range, 501 on writes, external commits, no
     assert.deepEqual((await json('/api/property-types')).types ?? (await json('/api/property-types')), { status: 'text' });
     assert.equal((await json('/api/files/trash')).items?.[0]?.original ?? (await json('/api/files/trash'))[0]?.original, 'Old.md');
 
-    // writes are refused clearly (and are NOT mistaken for an auth failure → not 401)
-    const put = await api('/api/files/content', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path: 'x.md', content: 'x' }) });
-    assert.equal(put.status, 501);
-    assert.match((await put.json()).error, /not implemented/i);
-    assert.equal((await api('/api/files?path=Welcome.md', { method: 'DELETE' })).status, 501);
+    // writes: instantly visible + searchable, buffered (nothing sent), then ONE commit on sync
+    const putJson = (p: string, body: object, method = 'PUT') => api(p, { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    assert.equal((await putJson('/api/files/content', { path: 'Notes/Ocelot.md', content: 'ocelots link to [[Zebras]]' })).status, 200);
+    assert.equal((await putJson('/api/files/content', { path: 'Welcome.md', content: '# Welcome\n\nedited [[Zebras]]\n' })).status, 200);
+    assert.equal((await putJson('/api/files/rename', { from: 'Работа/Заметка №1.md', to: 'Работа/Заметка №2.md' }, 'PATCH')).status, 200);
+    assert.equal((await api('/api/files?path=Notes/Zebras.md', { method: 'DELETE' })).status, 200);
+    assert.equal((await json('/api/search?q=ocelots')).hits[0]?.path, 'Notes/Ocelot.md');
+    assert.match((await json('/api/files/content?path=Welcome.md')).content, /edited/);
+    assert.equal(mock.apiCommits.length, 0, 'nothing is sent to GitHub while editing');
+    const st1 = await json('/api/git/status');
+    assert.equal(st1.driver, 'github');
+    assert.equal(st1.clean, false);
+    assert.equal(st1.ahead, 6); // 2 saves + rename (2 paths) + trash (2 paths)
+    assert.equal(st1.remote, `${mock.owner}/${mock.repo}`);
+    assert.equal((await api('/api/git/init', { method: 'POST' })).status, 400);
+    assert.equal((await api('/api/git/log?path=Welcome.md')).status, 501);
+
+    const sync = await json('/api/git/sync', { method: 'POST' });
+    assert.equal(sync.ok, true, JSON.stringify(sync));
+    assert.equal(mock.apiCommits.length, 1);
+    assert.deepEqual(mock.apiCommits[0].changed, ['vault/.trash/Notes/Zebras.md', 'vault/Notes/Ocelot.md', 'vault/Notes/Zebras.md', 'vault/Welcome.md', 'vault/Работа/Заметка №1.md', 'vault/Работа/Заметка №2.md']);
+    assert.equal(mock.fileAtHead('vault/Notes/Ocelot.md')!.toString(), 'ocelots link to [[Zebras]]');
+    assert.equal(mock.fileAtHead('outside-the-vault.md')!.toString(), 'must not be visible', 'files outside basePath untouched');
+    const st2 = await json('/api/git/status');
+    assert.equal(st2.clean, true);
+    assert.equal(st2.ahead, 0);
+    assert.equal((await api('/api/files/content?path=Welcome.md')).status, 200);
 
     // settings never expose the token (it came from the environment here)
     const settings = await api('/api/settings');
@@ -151,6 +173,46 @@ test('[server+github] routes, search, Range, 501 on writes, external commits, no
     const onDisk = (await readdir(dataDir)).sort();
     assert.ok(!onDisk.includes('qmd-index.json'), 'search index was written to disk: ' + onDisk);
     assert.ok(!onDisk.includes('cache'), 'content cache was written to disk: ' + onDisk);
+
+    // settings UI backend: status, connection test, validated saves, token never echoed
+    const stat = await json('/api/settings/storage/status');
+    assert.deepEqual([stat.active, stat.configured, stat.restartRequired, stat.tokenSource], ['github', 'github', false, 'env']);
+    assert.equal(stat.remote.repo, `${mock.owner}/${mock.repo}`);
+    const t1 = await json('/api/settings/storage/test', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ github: { basePath: 'vault' } }) });
+    assert.equal(t1.ok, true, JSON.stringify(t1));
+    assert.equal(t1.branch, 'main');
+    assert.ok(t1.files >= 5 && t1.notes >= 3 && t1.basePathFound === true);
+    const t2 = await json('/api/settings/storage/test', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ github: { repo: 'missing' } }) });
+    assert.equal(t2.ok, false);
+    assert.match(t2.error, /not found|Not Found/i);
+    const bad = (body: object) => putJson('/api/settings', body).then((r) => r.status);
+    assert.equal(await bad({ storage: { github: { basePath: '../etc' } } }), 400);
+    assert.equal(await bad({ storage: { github: { owner: 'a b' } } }), 400);
+    assert.equal(await bad({ storage: { github: { apiUrl: 'file:///etc/passwd' } } }), 400);
+    assert.equal(await bad({ storage: { rules: [{ match: '**', mode: 'bogus' }] } }), 400);
+    assert.equal(await bad({ storage: { driver: 'ftp' } }), 400);
+    assert.equal(await bad({ storage: { github: { flushSec: 0 } } }) >= 400, true, 'out-of-range numbers are rejected by the schema');
+    const saved = await putJson('/api/settings', { storage: { github: { flushSec: 30, token: 'ghp_from_ui_secret' }, rules: [{ match: '**/*.md', mode: 'mirror', index: true }, { match: '**', mode: 'remote', index: false }] } });
+    assert.equal(saved.status, 200);
+    const savedText = await saved.text();
+    assert.ok(!savedText.includes('ghp_from_ui_secret'), 'token echoed back');
+    assert.equal(JSON.parse(savedText).storage.github.token, '••••••••');
+    assert.equal(JSON.parse(savedText).storage.rules.length, 2);
+    await putJson('/api/settings', { storage: { github: { token: '••••••••' } } }); // masked value must not overwrite
+    const onDiskSettings = JSON.parse(await readFile(path.join(dataDir, 'settings.json'), 'utf8'));
+    assert.equal(onDiskSettings.storage.github.token, 'ghp_from_ui_secret', 'real token kept, mask did not overwrite it');
+    assert.equal((await json('/api/settings/storage/status')).restartRequired, true, 'saved settings differ from the running driver');
+    assert.equal((await api('/api/files/content?path=Welcome.md')).status, 200, 'running vault is unaffected until restart');
+
+    // graceful shutdown commits what is still buffered
+    assert.equal((await putJson('/api/files/content', { path: 'Last words.md', content: 'saved on SIGTERM' })).status, 200);
+    const before = mock.apiCommits.length;
+    await new Promise<void>((resolve) => {
+      proc.once('exit', () => resolve());
+      proc.kill('SIGTERM');
+    });
+    assert.equal(mock.apiCommits.length, before + 1, 'SIGTERM did not flush:\n' + log.slice(-800));
+    assert.equal(mock.fileAtHead('vault/Last words.md')!.toString(), 'saved on SIGTERM');
 
     // the token never appears in any request URL or in the server log
     assert.ok(mock.urls.every((u) => !u.includes(mock.token)));

@@ -29,7 +29,7 @@ import { initSearch, qmd } from './services/search.js';
 import { buildLinkGraph, updateLinkGraphForFile } from './services/links.js';
 import { buildFileIndex, indexFile, unindexFile } from './services/fileindex.js';
 import { setBroadcaster, broadcast } from './services/realtime.js';
-import { ensureVault, watchVault } from './services/vault.js';
+import { ensureVault, flushStorage, watchVault } from './services/vault.js';
 import { startAutoSync } from './services/autosync.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -140,6 +140,21 @@ async function main() {
   setupWebsocket(server);
   await setupWatcher();
   startAutoSync();
+
+  // Remote storage buffers edits (write-behind): commit them before the process exits.
+  let stopping = false;
+  const shutdown = (sig: string) => {
+    if (stopping) return;
+    stopping = true;
+    console.log(`[boot] ${sig}: saving buffered changes...`);
+    const done = () => process.exit(0);
+    flushStorage()
+      .catch((e) => console.error('[boot] could not save buffered changes:', e?.message ?? e))
+      .finally(done);
+    setTimeout(done, 20_000).unref();
+  };
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
 
   server.listen(config.port, config.host, () => {
     console.log(`\n  WebObsidian server → http://${config.host}:${config.port}`);

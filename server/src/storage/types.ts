@@ -65,6 +65,16 @@ export type StorageEventHandler = (event: StorageEvent) => void | Promise<void>;
 /** Stops a running watcher. */
 export type StopWatching = () => Promise<void>;
 
+/** Snapshot of a remote-backed driver's sync state (GitHub). */
+export interface RemoteInfo {
+  repo: string; // owner/repo
+  branch: string;
+  commit: string | null; // commit sha the committed view is based on
+  pending: number; // changes not yet committed
+  lastError: string | null; // last failed flush, cleared on success
+  conflicts: string[]; // conflict copies created since start
+}
+
 export interface VaultStorage {
   /** Driver identifier, for diagnostics and capability checks. */
   readonly kind: 'local' | 'github';
@@ -117,6 +127,15 @@ export interface VaultStorage {
   // --- change feed ---------------------------------------------------------
   /** Report changes made outside this process (git pull, other editors, …). */
   watch(handler: StorageEventHandler): Promise<StopWatching>;
+
+  // --- remote drivers (optional) ---------------------------------------------
+  /** Number of changes held back and not yet committed. */
+  pendingChanges?(): number;
+  /** Commit everything pending now (one commit). Resolves when done or throws. */
+  flush?(): Promise<void>;
+  /** Re-check the remote immediately. */
+  refresh?(): Promise<void>;
+  remoteInfo?(): RemoteInfo;
 
   // --- local-only escape hatch --------------------------------------------
   /**

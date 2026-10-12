@@ -1,7 +1,8 @@
 # PRD — WebObsidian
 
 > Product Requirements Document
-> Phiên bản: 1.6 · Cập nhật: 2026-10-12 · Trạng thái: Draft
+> Phiên bản: 1.7 · Cập nhật: 2026-10-12 · Trạng thái: Draft
+> Changelog 1.7 (FR-14 — giai đoạn ghi): `GitHubStorage` hỗ trợ **ghi** (write-behind, một commit cho mỗi lần flush, xử lý xung đột không mất dữ liệu), thêm `storage.github.flushSec`; route `/api/git/*` ở chế độ github ánh xạ sang flush/refresh.
 > Changelog 1.6 (FR-14 — Storage driver: vault lưu trong GitHub qua API, theo yêu cầu người dùng): bổ sung **FR-14**.
 > Mọi I/O của vault đi qua interface **`VaultStorage`** (`server/src/storage/`), `vault.ts` chỉ còn là facade. Hai driver:
 > `LocalFsStorage` (thư mục trên đĩa — hành vi cũ, không đổi) và **`GitHubStorage`** (vault = một branch, tuỳ chọn một
@@ -428,7 +429,7 @@ loại file nào được tải/cache, phần còn lại chỉ lấy từ GitHub
   Đổi driver cần restart.
 - **`LocalFsStorage`**: logic cũ của `vault.ts` (symlink guard, trash `.trash`, resolve thư mục không phân biệt hoa-thường,
   stat cache, chokidar với fallback polling). Git sync (FR-4) chỉ chạy ở chế độ này.
-- **`GitHubStorage`** (hiện **read-only**):
+- **`GitHubStorage`** (đọc + ghi write-behind):
   * Cây thư mục: 1 request `GET /git/trees/{sha}?recursive=1`, giữ snapshot trong RAM; nếu GitHub trả `truncated`
     thì duyệt từng thư mục. Git không có thư mục rỗng — thư mục tồn tại khi chứa file. `basePath` biến một thư mục con
     của repo thành vault root (các file ngoài không hiển thị).
@@ -454,10 +455,34 @@ loại file nào được tải/cache, phần còn lại chỉ lấy từ GitHub
     map sang 502 kèm thông điệp rõ ràng; rate limit → 429; 5xx/mạng được retry có backoff. Token chỉ nằm trong header
     `Authorization`, không vào URL/log/lỗi/`GET /api/settings`.
   * **Git LFS**: phát hiện pointer LFS và trả 501 (chưa hỗ trợ tải qua LFS Batch API).
-  * Chưa làm (501): ghi, mkdir, rename, copy, xoá, trash/restore. Trash chỉ liệt kê được `.trash/` có sẵn trong repo.
+  * **Ghi (write-behind)**: mọi thao tác ghi (write/mkdir/rename/copy/remove/trash/restore) áp ngay vào một **overlay trong RAM**
+    nên đọc/search thấy ngay và editor không chờ mạng; sự kiện `change/add/unlink` được phát tức thì. Overlay được commit
+    **gộp thành MỘT commit** (blobs → tree với `base_tree` → commit → `PATCH ref`, `force:false`) sau `flushSec` giây yên
+    lặng (mặc định 15; trần chờ `max(60s, 4×flushSec)`; ngay lập tức khi đệm ≥ 32 MB), khi gọi sync/commit/push, và khi
+    server nhận SIGINT/SIGTERM. Ghi nội dung giống hệt, hoặc tạo rồi xoá trước khi lưu → không thành thay đổi. Rename/copy
+    (kể cả cả thư mục) dùng lại blob sha đã có → không upload nội dung; nội dung trùng blob đã có trong repo cũng không upload
+    lại. Chỉ file dưới `basePath` bị ảnh hưởng; message commit tóm tắt (`Update 3 files (2 added, 1 modified)` + danh sách
+    A/M/D). Tác giả commit = chủ token, trừ khi `git.authorEmail` được đặt khác mặc định.
+  * **Xung đột**: trước khi commit, driver đồng bộ lên đầu nhánh mới nhất. Nếu cả hai bên cùng sửa một file → **giữ bản remote,
+    bản của ta lưu thành `<tên> (conflict YYYY-MM-DD HHMMSS).<ext>`** (không bao giờ ghi đè hay mất dữ liệu; không diff3).
+    Ta xoá file mà remote sửa → giữ bản remote; remote xoá file ta sửa → giữ bản ta; nội dung giống nhau → không xung đột.
+    Nhánh bị đẩy giữa lúc ta commit (ref update bị từ chối non-fast-forward) → đọc lại, áp lại, thử lại (tối đa 5 lần).
+  * **Lỗi khi lưu**: thay đổi **không bị mất**, vẫn nằm trong overlay và được thử lại nền với backoff luỹ thừa (trần
+    `flushRetryMaxMs`); lỗi 403 kèm gợi ý "token cần quyền Contents: Read and write". Trạng thái (`ahead` = số thay đổi chưa
+    lên GitHub, `lastError`, danh sách bản conflict) hiện ở `GET /api/git/status`, tương thích thanh trạng thái.
+  * **Giới hạn đã biết**: thay đổi chưa commit chỉ nằm trong RAM → crash/kill -9 mất tối đa cửa sổ `flushSec`…trần chờ;
+    ghi **bypass Git LFS** (file ≤ 100 MB đi thẳng thành blob; lớn hơn bị từ chối 413 ngay khi ghi); thư mục rỗng tồn tại nhờ
+    placeholder `.gitkeep` (ẩn khỏi listing); xung đột file↔thư mục với remote sẽ bị GitHub từ chối (422) và được retry;
+    `mtime`/`ctime` vẫn là 0; `/api/git/log|show` (lịch sử) trả 501, `init|clone` trả 400 ở chế độ này.
     `mtime`/`ctime` của file trong cây là 0 (Git không lưu mtime); sort theo thời gian cần giai đoạn sau.
+- **UI cấu hình** (Settings → Storage): chọn driver, repo/branch/thư mục con, token, `flushSec`/`pollSec`, bảng rules (preset
+  "Notes local, files on demand" / "Everything only in GitHub" / "Mirror everything", đổi thứ tự, cờ search), cache, nút
+  *Test connection* (không lưu gì; báo repo/branch/số file, quyền ghi nếu GitHub cho biết). `PUT /api/settings` nhận `storage`
+  và validate (owner/repo/branch/basePath/apiUrl/rules/driver; sai → 400; token `••••••••` không ghi đè; token không bao giờ
+  trả về). Đổi cấu hình storage **cần restart**: `GET /api/settings/storage/status` báo `restartRequired`. Status bar hiện
+  "N unsaved to GitHub" / lỗi lưu; bản conflict được liệt kê trong mục Storage.
 - **Token**: ưu tiên env `WEBOBSIDIAN_GITHUB_TOKEN`; hoặc `storage.github.token` trong settings (bị che `••••••••` khi trả
-  về client). Fine-grained PAT, quyền `Contents: Read` (sau này thêm `Write`) trên đúng một repo.
+  về client). Fine-grained PAT, quyền `Contents: Read and write` trên đúng một repo (chỉ `Read` nếu dùng chế độ chỉ đọc).
 
 ---
 
@@ -580,8 +605,8 @@ GET    /api/v1/tags
 - **File lớn**: bắt buộc Git LFS; cảnh báo khi commit file > ngưỡng mà chưa track LFS.
 - **Đồng bộ xung đột**: v1 ưu tiên thông báo + manual resolve, không auto-merge phá dữ liệu.
 - **Storage GitHub (FR-14)**: rate limit 5000 req/giờ → dùng ETag/304, tarball cho prefetch, poll thưa; GitHub API không hỗ trợ
-  Range và không có mtime từng file; cây quá lớn bị `truncated` (xử lý bằng duyệt từng thư mục); LFS chưa hỗ trợ; ghi
-  (commit gộp qua Git Data API, xử lý xung đột) là giai đoạn sau.
+  Range và không có mtime từng file; cây quá lớn bị `truncated` (xử lý bằng duyệt từng thư mục); LFS chưa hỗ trợ (ghi bypass LFS);
+  ghi dùng commit gộp qua Git Data API (≈ 4 + số blob mới request mỗi lần flush), conflict → bản `(conflict …)`.
 
 ---
 
