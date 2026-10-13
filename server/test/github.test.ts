@@ -30,6 +30,9 @@ interface Over {
   flushMaxWaitMs?: number;
   flushMaxBytes?: number;
   flushRetryMaxMs?: number;
+  holdMatch?: string[];
+  holdDelayMs?: number;
+  holdMaxWaitMs?: number;
   author?: { name: string; email: string };
   tarballThreshold?: number;
   token?: string;
@@ -62,6 +65,9 @@ async function setup(over: Over = {}) {
     flushMaxWaitMs: over.flushMaxWaitMs ?? 3_600_000,
     flushMaxBytes: over.flushMaxBytes,
     flushRetryMaxMs: over.flushRetryMaxMs,
+    holdMatch: over.holdMatch,
+    holdDelayMs: over.holdDelayMs,
+    holdMaxWaitMs: over.holdMaxWaitMs,
     author: over.author,
     tarballThreshold: over.tarballThreshold,
     log: () => {},
@@ -642,6 +648,87 @@ test('[github] automatic flush after the quiet period; max-wait caps a never-qui
     assert.ok(Date.now() - t0 < 5000);
   } finally {
     await storage.flush().catch(() => {});
+    await stop();
+  }
+});
+
+test('[github] held paths (plugins) wait longer: notes are saved on time and alone, plugin changes go later', async () => {
+  const { mock, storage, stop } = await setup({ flushDelayMs: 30, flushMaxWaitMs: 5000, holdMatch: ['.obsidian/**'], holdDelayMs: 400, holdMaxWaitMs: 5000 });
+  try {
+    await storage.init();
+    await storage.writeText('.obsidian/community-plugins.json', '["a"]');
+    await storage.writeText('.obsidian/plugins/a/data.json', '{"x":1}');
+    await storage.writeText('Note.md', 'hello');
+    assert.equal(storage.remoteInfo().held, 2);
+    await until(() => mock.apiCommits.length === 1 && storage.pendingChanges() === 2);
+    assert.deepEqual(mock.apiCommits[0].changed, ['Note.md'], 'the note went out without the held plugin files');
+    assert.equal(storage.remoteInfo().held, 2, 'plugin changes are still waiting');
+    // reads see them meanwhile
+    assert.equal(await storage.readText('.obsidian/plugins/a/data.json'), '{"x":1}');
+    await until(() => mock.apiCommits.length === 2 && storage.pendingChanges() === 0);
+    assert.deepEqual(mock.apiCommits[1].changed, ['.obsidian/community-plugins.json', '.obsidian/plugins/a/data.json'], 'held files saved together, later');
+  } finally {
+    await stop();
+  }
+});
+
+test('[github] a burst of plugin writes becomes one commit; the quiet period restarts on each write', async () => {
+  const { mock, storage, stop } = await setup({ flushDelayMs: 20, holdMatch: ['.obsidian/**'], holdDelayMs: 150, holdMaxWaitMs: 60_000 });
+  try {
+    await storage.init();
+    for (let i = 0; i < 8; i++) {
+      await storage.writeText('.obsidian/plugins/a/data.json', `{"n":${i}}`);
+      await sleep(60); // shorter than the hold delay → keeps postponing
+    }
+    assert.equal(mock.apiCommits.length, 0, 'still held while the plugin keeps writing');
+    await until(() => mock.apiCommits.length === 1 && storage.pendingChanges() === 0);
+    assert.equal(mock.fileAtHead('.obsidian/plugins/a/data.json')!.toString(), '{"n":7}');
+    assert.equal(mock.apiCommits.length, 1);
+  } finally {
+    await stop();
+  }
+});
+
+test('[github] hold max-wait caps a plugin that never stops writing', async () => {
+  const { mock, storage, stop } = await setup({ holdMatch: ['.obsidian/**'], holdDelayMs: 300, holdMaxWaitMs: 400 });
+  try {
+    await storage.init();
+    const t0 = Date.now();
+    let i = 0;
+    while (mock.apiCommits.length < 1 && Date.now() - t0 < 6000) {
+      await storage.writeText('.obsidian/plugins/a/data.json', `{"n":${i++}}`);
+      await sleep(50);
+    }
+    assert.ok(mock.apiCommits.length >= 1, 'saved despite continuous writes');
+  } finally {
+    await storage.flush().catch(() => {});
+    await stop();
+  }
+});
+
+test('[github] an explicit flush (Sync, shutdown) saves held changes too, in one commit', async () => {
+  const { mock, storage, stop } = await setup({ holdMatch: ['.obsidian/**'], holdDelayMs: 3_600_000, holdMaxWaitMs: 3_600_000 });
+  try {
+    await storage.init();
+    await storage.writeText('.obsidian/plugins/a/data.json', '{}');
+    await storage.writeText('Note.md', 'n');
+    await storage.flush();
+    assert.equal(mock.apiCommits.length, 1);
+    assert.deepEqual(mock.apiCommits[0].changed, ['.obsidian/plugins/a/data.json', 'Note.md']);
+    assert.equal(storage.remoteInfo().held, 0);
+  } finally {
+    await stop();
+  }
+});
+
+test('[github] without holdMatch nothing is held (notes behaviour unchanged)', async () => {
+  const { mock, storage, stop } = await setup({ flushDelayMs: 20 });
+  try {
+    await storage.init();
+    await storage.writeText('.obsidian/plugins/a/data.json', '{}');
+    await until(() => mock.apiCommits.length === 1);
+    assert.equal(storage.remoteInfo().held, 0);
+  } finally {
     await stop();
   }
 });

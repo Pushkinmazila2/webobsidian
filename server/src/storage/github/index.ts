@@ -46,6 +46,9 @@ export function createGithubStorage(
     pollMs: g.pollSec * 1000,
     flushDelayMs: g.flushSec * 1000,
     flushMaxWaitMs: Math.max(60_000, g.flushSec * 4000),
+    holdMatch: g.holdMatch,
+    holdDelayMs: g.holdSec * 1000,
+    holdMaxWaitMs: Math.max(30 * 60_000, g.holdSec * 4000),
     // Commits are authored by the token's owner unless an identity is configured
     // (WEBOBSIDIAN_GIT_AUTHOR_NAME/EMAIL, or git.authorName/authorEmail in settings).
     author: commitAuthor(s, opts.env ?? process.env),

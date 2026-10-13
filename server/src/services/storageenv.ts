@@ -126,10 +126,16 @@ export function readStorageEnv(env: Env = process.env): StorageEnv {
   for (const [name, path] of [
     ['WEBOBSIDIAN_GITHUB_POLL_SEC', 'github.pollSec'],
     ['WEBOBSIDIAN_GITHUB_FLUSH_SEC', 'github.flushSec'],
+    ['WEBOBSIDIAN_GITHUB_HOLD_SEC', 'github.holdSec'],
     ['WEBOBSIDIAN_CACHE_MAX_MB', 'cache.maxMB'],
   ] as const) {
     const v = get(name);
     if (v) set(path, name, wrap(name, () => num(name, v)));
+  }
+  // Held paths: `;`/newline separated globs, or "none" to hold nothing.
+  const hold = get('WEBOBSIDIAN_GITHUB_HOLD_MATCH');
+  if (hold) {
+    set('github.holdMatch', 'WEBOBSIDIAN_GITHUB_HOLD_MATCH', hold.toLowerCase() === 'none' ? [] : hold.split(/[;\n]/).map((x) => x.trim()).filter(Boolean));
   }
   const persist = get('WEBOBSIDIAN_CACHE');
   if (persist) set('cache.persist', 'WEBOBSIDIAN_CACHE', persist.toLowerCase());

@@ -174,6 +174,29 @@ test('[server+github] routes, search, Range, writes + commit, external commits, 
     assert.ok(!onDisk.includes('qmd-index.json'), 'search index was written to disk: ' + onDisk);
     assert.ok(!onDisk.includes('cache'), 'content cache was written to disk: ' + onDisk);
 
+    // plugins: state + settings live in the vault, held back before saving (notes are not)
+    const pj = (p: string, body?: object, method = 'PUT') => api(p, { method, headers: { 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+    const commitsBeforePlugins = mock.apiCommits.length;
+    assert.deepEqual((await json('/api/plugins')).plugins.map((p: any) => [p.id, p.enabled]), [['demo', false]]);
+    assert.equal((await pj('/api/plugins/demo/enabled', { enabled: true }, 'PATCH')).status, 200);
+    assert.deepEqual((await json('/api/plugins')).plugins.map((p: any) => [p.id, p.enabled]), [['demo', true]]);
+    assert.deepEqual((await json('/api/plugins/demo/data')).data, {}, 'no data yet');
+    assert.equal((await pj('/api/plugins/demo/data', { data: { color: 'red', n: [1, 2] } })).status, 200);
+    assert.deepEqual((await json('/api/plugins/demo/data')).data, { color: 'red', n: [1, 2] });
+    assert.equal((await pj('/api/plugins/..%2Fx/data', { data: {} })).status, 400);
+    assert.equal((await api('/api/plugins/demo/data.json')).status, 400, 'data.json is not served as a plugin asset');
+    const listed = await json('/api/plugins');
+    assert.equal(listed.unsaved, 2, 'both plugin files are being held back');
+    assert.equal(mock.apiCommits.length, commitsBeforePlugins, 'nothing committed for plugin changes yet');
+    assert.equal((await json('/api/git/status')).ahead >= 2, true);
+
+    // a note is not held back by the plugin hold (here flushSec is huge, so check the classes through pending counts instead)
+    const sync2 = await json('/api/git/sync', { method: 'POST' });
+    assert.equal(sync2.ok, true);
+    assert.equal((await json('/api/plugins')).unsaved, 0);
+    assert.deepEqual(JSON.parse(mock.fileAtHead('vault/.obsidian/community-plugins.json')!.toString()), ['demo']);
+    assert.deepEqual(JSON.parse(mock.fileAtHead('vault/.obsidian/plugins/demo/data.json')!.toString()), { color: 'red', n: [1, 2] });
+
     // settings UI backend: status, connection test, validated saves, token never echoed
     const stat = await json('/api/settings/storage/status');
     assert.deepEqual([stat.active, stat.configured, stat.restartRequired, stat.tokenSource], ['github', 'github', false, 'env']);

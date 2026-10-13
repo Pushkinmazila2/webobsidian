@@ -3,6 +3,7 @@ import { useStore } from '../lib/store';
 import { api } from '../lib/api';
 import Icon from './Icon';
 import StorageSettings from './StorageSettings';
+import { syncPlugins } from '../lib/plugins';
 
 type Section = 'vault' | 'storage' | 'git' | 'api' | 'sharing' | 'plugins' | 'appearance' | 'account' | 'about';
 
@@ -360,13 +361,14 @@ function Shares() {
 
 function Plugins() {
   const [plugins, setPlugins] = useState<any[]>([]);
+  const [unsaved, setUnsaved] = useState(0);
   const [repo, setRepo] = useState('');
   const [msg, setMsg] = useState('');
-  const load = () => api.listPlugins().then((r) => setPlugins(r.plugins)).catch(() => {});
-  useEffect(() => { load(); }, []);
+  const load = () => api.listPlugins().then((r) => { setPlugins(r.plugins); setUnsaved(r.unsaved ?? 0); }).catch(() => {});
+  useEffect(() => { load(); const id = setInterval(load, 10000); return () => clearInterval(id); }, []);
   const install = async () => {
     setMsg('Installing…');
-    try { await api.installPlugin(repo); setMsg('Installed ✓'); setRepo(''); await load(); }
+    try { await api.installPlugin(repo); setMsg('Installed ✓'); setRepo(''); await load(); await syncPlugins(); }
     catch (e: any) { setMsg(`Error: ${e.message}`); }
   };
   return (
@@ -379,6 +381,12 @@ function Plugins() {
         </span>
       </Row>
       {msg && <div style={{ color: 'var(--text-muted)', margin: '6px 0' }}>{msg}</div>}
+      {unsaved > 0 && (
+        <div style={{ border: '1px solid var(--bg-modifier-border)', borderRadius: 6, padding: '8px 10px', margin: '8px 0', fontSize: 12.5 }}>
+          {unsaved} plugin change(s) are kept on the server for a few minutes before they are saved to GitHub (plugins can change
+          often). Use <b>Sync now</b> to save them immediately.
+        </div>
+      )}
       <div style={{ marginTop: 12 }}>
         {plugins.length === 0 && <div style={{ color: 'var(--text-faint)' }}>No plugins installed in .obsidian/plugins</div>}
         {plugins.map((p) => (
@@ -388,7 +396,7 @@ function Plugins() {
               <div className="desc">{p.description}</div>
             </div>
             <label>
-              <input type="checkbox" checked={p.enabled} onChange={async (e) => { await api.setPluginEnabled(p.id, e.target.checked); load(); }} /> enabled
+              <input type="checkbox" checked={p.enabled} onChange={async (e) => { await api.setPluginEnabled(p.id, e.target.checked); await syncPlugins(); load(); }} /> enabled
             </label>
           </div>
         ))}

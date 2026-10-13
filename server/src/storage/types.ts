@@ -71,6 +71,7 @@ export interface RemoteInfo {
   branch: string;
   commit: string | null; // commit sha the committed view is based on
   pending: number; // changes not yet committed
+  held: number; // of those: held back on purpose (plugins/config), saved after a longer delay
   lastError: string | null; // last failed flush, cleared on success
   conflicts: string[]; // conflict copies created since start
 }

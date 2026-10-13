@@ -74,3 +74,11 @@ test('env: bad values fail loudly and name the variable', () => {
   bad({ WEBOBSIDIAN_STORAGE_RULES: '**=bogus' }, 'WEBOBSIDIAN_STORAGE_RULES');
   bad({ WEBOBSIDIAN_STORAGE_PRESET: 'everything' }, 'WEBOBSIDIAN_STORAGE_PRESET');
 });
+
+test('env: held paths for plugins/config', () => {
+  const a = readStorageEnv({ WEBOBSIDIAN_GITHUB_HOLD_SEC: '600', WEBOBSIDIAN_GITHUB_HOLD_MATCH: '.obsidian/**; Templates/**' });
+  assert.deepEqual(a.patch.github, { holdSec: 600, holdMatch: ['.obsidian/**', 'Templates/**'] });
+  assert.equal(a.lockedBy['github.holdMatch'], 'WEBOBSIDIAN_GITHUB_HOLD_MATCH');
+  assert.deepEqual(readStorageEnv({ WEBOBSIDIAN_GITHUB_HOLD_MATCH: 'none' }).patch.github.holdMatch, [], '"none" disables holding');
+  assert.throws(() => readStorageEnv({ WEBOBSIDIAN_GITHUB_HOLD_SEC: '0' }), /WEBOBSIDIAN_GITHUB_HOLD_SEC|holdSec/);
+});

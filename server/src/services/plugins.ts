@@ -28,6 +28,48 @@ export interface InstalledPlugin extends PluginManifest {
 
 /** Vault-relative plugins folder. All access goes through the storage facade. */
 const PLUGINS_DIR = '.obsidian/plugins';
+/**
+ * Which community plugins are on, in Obsidian's own format (a JSON array of ids), so
+ * the state lives WITH the vault (local folder, GitHub, …) and survives a container
+ * being recreated — and stays compatible with the desktop app.
+ */
+const ENABLED_FILE = '.obsidian/community-plugins.json';
+/** Per-plugin settings, written by `saveData()` — also Obsidian's own location. */
+const dataFile = (id: string) => `${PLUGINS_DIR}/${id}/data.json`;
+const MAX_DATA_BYTES = 5 * 1024 * 1024;
+
+/**
+ * The enabled list from the vault. A vault that has never had the file falls back to
+ * the list older versions kept in settings.json (see migrateLegacyEnabled()).
+ */
+async function readEnabled(): Promise<{ ids: string[]; fromFile: boolean }> {
+  try {
+    const parsed = JSON.parse(await vault.readFileText(ENABLED_FILE));
+    if (Array.isArray(parsed)) return { ids: parsed.filter((x): x is string => typeof x === 'string'), fromFile: true };
+    return { ids: [], fromFile: true };
+  } catch (e: any) {
+    if (e?.status === 404 || e?.code === 'ENOENT' || /not found/i.test(String(e?.message))) {
+      return { ids: [...(await getSettings()).plugins.enabled], fromFile: false };
+    }
+    // unreadable / malformed: treat as "none enabled" rather than failing the whole plugin list
+    return { ids: [], fromFile: true };
+  }
+}
+
+async function writeEnabled(ids: string[]): Promise<void> {
+  await vault.writeFileText(ENABLED_FILE, JSON.stringify([...new Set(ids)].sort(), null, 2) + '\n');
+}
+
+/** One-time: move the pre-existing settings.json list into the vault so it follows the vault from now on. */
+export async function migrateLegacyEnabled(): Promise<void> {
+  try {
+    const { fromFile } = await readEnabled();
+    const legacy = (await getSettings()).plugins.enabled;
+    if (!fromFile && legacy.length) await writeEnabled(legacy);
+  } catch {
+    /* best effort: the legacy fallback keeps working */
+  }
+}
 
 /**
  * A plugin id becomes a path segment under `.obsidian/plugins/`, both when
@@ -43,7 +85,7 @@ function assertSafeId(id: string): string {
 }
 
 export async function listInstalled(): Promise<InstalledPlugin[]> {
-  const s = await getSettings();
+  const enabledIds = new Set((await readEnabled()).ids);
   let entries: string[] = [];
   try {
     entries = (await vault.listDir(PLUGINS_DIR)).filter((e) => e.isDir).map((e) => e.name);
@@ -59,7 +101,7 @@ export async function listInstalled(): Promise<InstalledPlugin[]> {
       out.push({
         ...manifest,
         id: manifest.id || id,
-        enabled: s.plugins.enabled.includes(manifest.id || id),
+        enabled: enabledIds.has(manifest.id || id),
         hasStyles,
         dir: `${PLUGINS_DIR}/${id}`,
       });
@@ -80,12 +122,32 @@ export async function getPluginAsset(
 
 export async function setEnabled(id: string, enabled: boolean): Promise<void> {
   assertSafeId(id);
-  await updateSettings((d) => {
-    const set = new Set(d.plugins.enabled);
-    if (enabled) set.add(id);
-    else set.delete(id);
-    d.plugins.enabled = [...set];
-  });
+  const { ids } = await readEnabled();
+  const set = new Set(ids);
+  if (enabled) set.add(id);
+  else set.delete(id);
+  if (set.size === ids.length && set.has(id) === ids.includes(id)) return; // nothing to change
+  await writeEnabled([...set]);
+}
+
+/** A plugin's saved settings (`data.json`); `{}` when it has none yet — like Obsidian's loadData(). */
+export async function getPluginData(id: string): Promise<unknown> {
+  assertSafeId(id);
+  try {
+    return JSON.parse(await vault.readFileText(dataFile(id)));
+  } catch (e: any) {
+    if (e instanceof SyntaxError) return {}; // corrupt file: start fresh instead of breaking the plugin
+    if (e?.status === 404 || e?.code === 'ENOENT' || /not found/i.test(String(e?.message))) return {};
+    throw e;
+  }
+}
+
+export async function savePluginData(id: string, data: unknown): Promise<void> {
+  assertSafeId(id);
+  if (data === undefined) throw Object.assign(new Error('data required'), { status: 400 });
+  const text = JSON.stringify(data, null, 2);
+  if (Buffer.byteLength(text) > MAX_DATA_BYTES) throw Object.assign(new Error('Plugin data is too large (5 MB max)'), { status: 413 });
+  await vault.writeFileText(dataFile(id), text + '\n');
 }
 
 /**
@@ -116,7 +178,7 @@ export async function installFromGithub(repo: string): Promise<InstalledPlugin> 
   }
   await updateSettings((d) => {
     if (!d.plugins.installed.includes(id)) d.plugins.installed.push(id);
-  });
+  }); // informational only: the plugin folder in the vault is the source of truth
   const installed = await listInstalled();
   const found = installed.find((p) => p.id === id);
   if (!found) throw new Error('Install verification failed');

@@ -1,4 +1,4 @@
-import { Rules } from '../storage/github/rules.js';
+import { Rules, globToRegExp } from '../storage/github/rules.js';
 
 const MASK = '••••••••';
 const str = (v: unknown, max = 300) => (typeof v === 'string' ? v.trim().slice(0, max) : undefined);
@@ -42,8 +42,23 @@ export function applyStoragePatch(d: any, b: any): void {
       }
       d.github.apiUrl = api || 'https://api.github.com';
     }
-    if (typeof g.pollSec === 'number') d.github.pollSec = g.pollSec;
-    if (typeof g.flushSec === 'number') d.github.flushSec = g.flushSec;
+    const minNum = (key: 'pollSec' | 'flushSec' | 'holdSec', min: number) => {
+      if (g[key] === undefined) return;
+      if (typeof g[key] !== 'number' || !Number.isFinite(g[key]) || g[key] < min) badRequest(`storage.github.${key} must be a number ≥ ${min}`);
+      d.github[key] = g[key];
+    };
+    minNum('pollSec', 5);
+    minNum('flushSec', 1);
+    minNum('holdSec', 1);
+    if (g.holdMatch !== undefined) {
+      if (!Array.isArray(g.holdMatch) || g.holdMatch.length > 20) badRequest('storage.github.holdMatch must be a list of at most 20 patterns');
+      d.github.holdMatch = g.holdMatch.map((m: unknown) => {
+        const pat = str(m, 300);
+        if (!pat) badRequest('every held pattern needs a value');
+        try { globToRegExp(pat); } catch { badRequest(`invalid pattern: ${pat}`); }
+        return pat;
+      });
+    }
     if (typeof g.token === 'string' && g.token !== MASK) d.github.token = g.token.trim(); // empty string clears it
   }
   const c = b.cache;
@@ -52,7 +67,10 @@ export function applyStoragePatch(d: any, b: any): void {
       if (c.persist !== 'memory' && c.persist !== 'disk') badRequest('storage.cache.persist must be "memory" or "disk"');
       d.cache.persist = c.persist;
     }
-    if (typeof c.maxMB === 'number') d.cache.maxMB = c.maxMB;
+    if (c.maxMB !== undefined) {
+      if (typeof c.maxMB !== 'number' || !Number.isFinite(c.maxMB) || c.maxMB < 1) badRequest('storage.cache.maxMB must be a number ≥ 1');
+      d.cache.maxMB = c.maxMB;
+    }
     if (typeof c.dir === 'string') d.cache.dir = c.dir.trim();
   }
   if (b.rules !== undefined) {

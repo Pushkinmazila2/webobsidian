@@ -78,6 +78,11 @@ const SettingsSchema = z.object({
           pollSec: z.number().min(5).default(30),
           // Edits are committed in one batch after this many quiet seconds (write-behind).
           flushSec: z.number().min(1).default(15),
+          // Paths matching holdMatch (plugin code + settings under .obsidian by default) are
+          // saved to GitHub only after this many quiet seconds, so a chatty plugin can't
+          // spam commits. Notes are unaffected (they follow flushSec).
+          holdSec: z.number().min(1).default(300),
+          holdMatch: z.array(z.string().min(1)).default(['.obsidian/**']),
         })
         .default({}),
       cache: z

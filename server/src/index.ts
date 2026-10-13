@@ -31,6 +31,7 @@ import { buildFileIndex, indexFile, unindexFile } from './services/fileindex.js'
 import { setBroadcaster, broadcast } from './services/realtime.js';
 import { ensureVault, flushStorage, watchVault } from './services/vault.js';
 import { startAutoSync } from './services/autosync.js';
+import { migrateLegacyEnabled } from './services/plugins.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -135,6 +136,7 @@ async function main() {
   await buildLinkGraph();
   await buildFileIndex();
   console.log('[boot] index ready');
+  await migrateLegacyEnabled();
 
   const server = http.createServer(app);
   setupWebsocket(server);

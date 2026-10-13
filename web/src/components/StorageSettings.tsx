@@ -112,6 +112,8 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
     apiUrl: g.apiUrl.trim(),
     pollSec: Number(g.pollSec),
     flushSec: Number(g.flushSec),
+    holdSec: Number(g.holdSec),
+    holdMatch: g.holdMatch,
     token: g.token, // masked value is ignored by the server
   });
 
@@ -175,7 +177,7 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
       {status?.active === 'github' && (
         <Note kind={remote?.lastError ? 'error' : 'info'}>
           Connected to <b>{remote?.repo}</b> ({remote?.branch}).{' '}
-          {pending > 0 ? <b>{pending} change(s) not yet saved to GitHub.</b> : 'Everything is saved to GitHub.'}
+          {pending > 0 ? <b>{pending} change(s) not yet saved to GitHub{remote?.held > 0 ? ` (${remote.held} of them plugin/app settings, held back on purpose)` : ''}.</b> : 'Everything is saved to GitHub.'}
           {remote?.lastError && <div style={{ marginTop: 4 }}>Last save failed: {remote.lastError}. It will be retried automatically.</div>}
           {remote?.conflicts?.length > 0 && (
             <div style={{ marginTop: 4 }}>
@@ -229,6 +231,20 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
           <Row name="Saving to GitHub" desc="Edits are batched into one commit after this many seconds without typing (also on Sync and on shutdown).">
             <input className="text-input" type="number" min={1} style={{ width: 90 }} value={g.flushSec} onChange={(e) => setGh('flushSec', e.target.value)} {...lock('github.flushSec')} />
             <span style={{ marginLeft: 6, color: 'var(--text-muted)' }}>sec</span>
+          </Row>
+          <Row name="Plugins & app settings" desc="Changes under these paths are held back longer so a busy plugin can't flood the repository with commits. Notes are not affected.">
+            <input className="text-input" type="number" min={1} style={{ width: 90 }} value={g.holdSec} onChange={(e) => setGh('holdSec', e.target.value)} {...lock('github.holdSec')} />
+            <span style={{ marginLeft: 6, color: 'var(--text-muted)' }}>sec</span>
+          </Row>
+          <Row name="Held paths" desc="One pattern per line. Empty = hold nothing (everything follows the saving delay above).">
+            <textarea
+              className="text-input"
+              rows={2}
+              style={{ width: 275, fontFamily: 'var(--font-monospace, monospace)' }}
+              value={(g.holdMatch ?? []).join('\n')}
+              onChange={(e) => setGh('holdMatch', e.target.value.split('\n').map((x: string) => x.trim()).filter(Boolean))}
+              {...lock('github.holdMatch')}
+            />
           </Row>
           <Row name="Check for outside changes" desc="How often GitHub is polled for commits made elsewhere (minimum 5).">
             <input className="text-input" type="number" min={5} style={{ width: 90 }} value={g.pollSec} onChange={(e) => setGh('pollSec', e.target.value)} {...lock('github.pollSec')} />

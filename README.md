@@ -209,6 +209,7 @@ written to `settings.json`. A malformed value stops the server at startup and na
 | `WEBOBSIDIAN_GITHUB_BRANCH` | default branch | Branch to use (try a separate test branch first) |
 | `WEBOBSIDIAN_GITHUB_BASE_PATH` | repo root | Subfolder used as the vault root, e.g. `docs` |
 | `WEBOBSIDIAN_GITHUB_FLUSH_SEC` | `15` | Seconds without edits before they are saved in one commit |
+| `WEBOBSIDIAN_GITHUB_HOLD_SEC` / `_HOLD_MATCH` | `300` / `.obsidian/**` | Plugins and app settings are saved only after this many quiet seconds (so a busy plugin can't flood commits); notes are never held. `HOLD_MATCH=none` disables |
 | `WEBOBSIDIAN_GITHUB_POLL_SEC` | `30` | How often to look for commits made elsewhere (min 5) |
 | `WEBOBSIDIAN_GITHUB_API_URL` | `https://api.github.com` | GitHub Enterprise Server API URL |
 | `WEBOBSIDIAN_GIT_AUTHOR_NAME` / `_EMAIL` | token owner | Commit author |

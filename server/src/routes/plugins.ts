@@ -2,11 +2,19 @@ import { Router } from 'express';
 import { asyncHandler } from '../middleware/error.js';
 import { requireAuth } from '../middleware/auth.js';
 import * as plugins from '../services/plugins.js';
+import { getStorage } from '../services/vault.js';
 
 export const pluginsRouter = Router();
 pluginsRouter.use(requireAuth);
 
-pluginsRouter.get('/', asyncHandler(async (_req, res) => res.json({ plugins: await plugins.listInstalled() })));
+pluginsRouter.get(
+  '/',
+  asyncHandler(async (_req, res) => {
+    const remote = getStorage().remoteInfo?.();
+    // `unsaved`: plugin changes the server is still holding back before committing them (GitHub storage)
+    res.json({ plugins: await plugins.listInstalled(), unsaved: remote?.held ?? 0 });
+  }),
+);
 
 pluginsRouter.post(
   '/install',
@@ -24,6 +32,19 @@ pluginsRouter.patch(
   '/:id/enabled',
   asyncHandler(async (req, res) => {
     await plugins.setEnabled(req.params.id, Boolean(req.body?.enabled));
+    res.json({ ok: true });
+  }),
+);
+
+// Per-plugin settings: Plugin.loadData()/saveData() in the browser shim.
+pluginsRouter.get(
+  '/:id/data',
+  asyncHandler(async (req, res) => res.json({ data: await plugins.getPluginData(req.params.id) })),
+);
+pluginsRouter.put(
+  '/:id/data',
+  asyncHandler(async (req, res) => {
+    await plugins.savePluginData(req.params.id, req.body?.data);
     res.json({ ok: true });
   }),
 );

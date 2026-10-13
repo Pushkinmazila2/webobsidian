@@ -13,7 +13,7 @@ import type {
 } from '../types.js';
 import { GithubClient, GithubError, NotFastForwardError, type TreeEntry } from './client.js';
 import { TtlCache, gitBlobSha, type ContentCache } from './cache.js';
-import type { Rules } from './rules.js';
+import { globToRegExp, type Rules } from './rules.js';
 import { tarFiles } from './tar.js';
 import { TreeIndex, diffTrees, type FileEntry } from './treeindex.js';
 
@@ -49,6 +49,15 @@ export interface GithubStorageOptions {
   flushMaxBytes?: number;
   /** Longest wait between retries of a failing commit. Default 5 min. */
   flushRetryMaxMs?: number;
+  /**
+   * Paths whose changes are HELD BACK longer than notes (globs, vault-relative), e.g. plugin
+   * code and settings, which can change in bursts. Everything else is saved after
+   * `flushDelayMs`; held paths after `holdDelayMs` (still capped by `holdMaxWaitMs`).
+   * An explicit flush()/Sync and shutdown always save everything.
+   */
+  holdMatch?: string[];
+  holdDelayMs?: number;
+  holdMaxWaitMs?: number;
   /** Largest file we will upload (GitHub's blob limit is 100 MB). */
   maxBlobBytes?: number;
   /** Commit author; omitted = the account that owns the token. */
@@ -90,8 +99,11 @@ type Pending =
       /** Blob sha of this path in the committed snapshot our edit was based on. */
       baseSha: string | undefined;
       ver: number;
+      /** When this path was last / first changed (drives when it is saved). */
+      at: number;
+      first: number;
     }
-  | { kind: 'del'; baseSha: string | undefined; ver: number };
+  | { kind: 'del'; baseSha: string | undefined; ver: number; at: number; first: number };
 
 /**
  * The vault is a branch of a GitHub repository, reached through the REST API.
@@ -132,6 +144,8 @@ export class GitHubStorage implements VaultStorage {
       | 'flushMaxWaitMs'
       | 'flushMaxBytes'
       | 'flushRetryMaxMs'
+      | 'holdDelayMs'
+      | 'holdMaxWaitMs'
       | 'maxBlobBytes'
     >
   > &
@@ -163,7 +177,7 @@ export class GitHubStorage implements VaultStorage {
   private lastPollError = '';
 
   private flushTimer: NodeJS.Timeout | null = null;
-  private firstUnsavedAt = 0;
+  private holdRes: RegExp[] = [];
   private flushFailures = 0;
   private lastFlushError = '';
 
@@ -181,6 +195,8 @@ export class GitHubStorage implements VaultStorage {
       flushMaxWaitMs: 60_000,
       flushMaxBytes: 32 * 1024 * 1024,
       flushRetryMaxMs: 5 * 60_000,
+      holdDelayMs: 5 * 60_000,
+      holdMaxWaitMs: 30 * 60_000,
       maxBlobBytes: 100 * 1024 * 1024,
       ...given,
     } as typeof this.o;
@@ -189,6 +205,7 @@ export class GitHubStorage implements VaultStorage {
     this.cache = opts.cache;
     this.ttl = new TtlCache(this.o.remoteTtlMs, this.o.remoteMaxBytes);
     this.basePath = (opts.basePath ?? '').split('/').filter(Boolean).join('/');
+    this.holdRes = (opts.holdMatch ?? []).map((g) => globToRegExp(g));
   }
 
   private log(msg: string): void {
@@ -290,6 +307,7 @@ export class GitHubStorage implements VaultStorage {
       branch: this.branch,
       commit: this.commitSha,
       pending: this.pending.size,
+      held: this.heldChanges(),
       lastError: this.lastFlushError,
       conflicts: [...this.conflicts],
     };
@@ -525,7 +543,7 @@ export class GitHubStorage implements VaultStorage {
     // Back to exactly what is committed → nothing to save. (Not while a commit is in
     // flight: that commit may be about to change what "committed" means for this path.)
     if (!this.flushing && committed && committed.sha === sha) this.pending.delete(p);
-    else this.pending.set(p, { kind: 'put', sha, size, data, baseSha: cur ? cur.baseSha : committed?.sha, ver: ++this.ver });
+    else this.pending.set(p, { kind: 'put', sha, size, data, baseSha: cur ? cur.baseSha : committed?.sha, ver: ++this.ver, at: Date.now(), first: cur?.first ?? Date.now() });
     this.idx.setFile(p, { sha, size });
   }
 
@@ -533,7 +551,7 @@ export class GitHubStorage implements VaultStorage {
     const cur = this.pending.get(p);
     const committed = this.base.files.get(p);
     if (!this.flushing && !committed) this.pending.delete(p); // created and removed before ever being saved
-    else this.pending.set(p, { kind: 'del', baseSha: cur ? cur.baseSha : committed?.sha, ver: ++this.ver });
+    else this.pending.set(p, { kind: 'del', baseSha: cur ? cur.baseSha : committed?.sha, ver: ++this.ver, at: Date.now(), first: cur?.first ?? Date.now() });
     this.idx.deleteFile(p);
   }
 
@@ -781,18 +799,43 @@ export class GitHubStorage implements VaultStorage {
     return n;
   }
 
+  /** Held paths (plugins, config) wait longer than notes. */
+  private isHeld(p: string): boolean {
+    return this.holdRes.some((re) => re.test(p));
+  }
+
+  /** When an unsaved path becomes due: quiet period after its last change, capped from its first. */
+  private dueAt(p: string, e: Pending): number {
+    const held = this.isHeld(p);
+    const delay = held ? this.o.holdDelayMs : this.o.flushDelayMs;
+    const maxWait = held ? this.o.holdMaxWaitMs : this.o.flushMaxWaitMs;
+    return Math.min(e.at + delay, e.first + maxWait);
+  }
+
+  private isDue(p: string, e: Pending, now = Date.now()): boolean {
+    return this.pendingBytes() >= this.o.flushMaxBytes || this.dueAt(p, e) <= now;
+  }
+
+  /** Number of unsaved changes that are only waiting out their hold time. */
+  heldChanges(): number {
+    let n = 0;
+    for (const p of this.pending.keys()) if (this.isHeld(p)) n++;
+    return n;
+  }
+
   private scheduleFlush(retryDelay?: number): void {
-    if (!this.pending.size) {
-      this.firstUnsavedAt = 0;
-      return;
-    }
     if (this.flushTimer) clearTimeout(this.flushTimer);
+    this.flushTimer = null;
+    if (!this.pending.size) return;
     const now = Date.now();
-    if (!this.firstUnsavedAt) this.firstUnsavedAt = now;
     let delay: number;
     if (retryDelay !== undefined) delay = retryDelay;
-    else if (this.pendingBytes() >= this.o.flushMaxBytes) delay = 0;
-    else delay = Math.max(0, Math.min(this.o.flushDelayMs, this.firstUnsavedAt + this.o.flushMaxWaitMs - now));
+    else {
+      // wake up when the earliest path becomes due (notes: soon; held paths: later)
+      let next = Infinity;
+      for (const [p, e] of this.pending) next = Math.min(next, this.dueAt(p, e));
+      delay = this.pendingBytes() >= this.o.flushMaxBytes ? 0 : Math.max(0, next - now);
+    }
     this.flushTimer = setTimeout(() => void this.autoFlush(), delay);
     this.flushTimer.unref?.();
   }
@@ -800,7 +843,7 @@ export class GitHubStorage implements VaultStorage {
   private async autoFlush(): Promise<void> {
     this.flushTimer = null;
     try {
-      await this.flush();
+      await this.enqueue(() => this.flushLocked(true));
     } catch (e: any) {
       // Changes stay buffered; retry with exponential backoff (or when GitHub says rate limit lifts).
       this.flushFailures++;
@@ -812,10 +855,11 @@ export class GitHubStorage implements VaultStorage {
 
   /** Commit all unsaved changes now (one commit). Resolves when they are on GitHub. */
   flush(): Promise<void> {
-    return this.enqueue(() => this.flushLocked());
+    return this.enqueue(() => this.flushLocked(false));
   }
 
-  private async flushLocked(): Promise<void> {
+  /** `onlyDue`: the background flush saves what is due and leaves held paths waiting; an explicit flush saves everything. */
+  private async flushLocked(onlyDue: boolean): Promise<void> {
     if (this.flushTimer) {
       clearTimeout(this.flushTimer);
       this.flushTimer = null;
@@ -832,7 +876,8 @@ export class GitHubStorage implements VaultStorage {
         this.resolveConflicts();
 
         // 2. Snapshot what to save. Entries touched after this point keep a newer `ver` and stay pending.
-        const batch = [...this.pending].filter(([p, e]) => e.kind === 'put' || this.base.files.has(p));
+        const now = Date.now();
+        const batch = [...this.pending].filter(([p, e]) => (e.kind === 'put' || this.base.files.has(p)) && (!onlyDue || this.isDue(p, e, now)));
         for (const [p, e] of [...this.pending]) if (e.kind === 'del' && !this.base.files.has(p)) this.pending.delete(p);
         if (!batch.length) break;
 
@@ -890,7 +935,6 @@ export class GitHubStorage implements VaultStorage {
       throw e;
     } finally {
       this.flushing = false;
-      this.firstUnsavedAt = this.pending.size ? this.firstUnsavedAt || Date.now() : 0;
       if (this.pending.size && !this.flushTimer) this.scheduleFlush();
     }
   }

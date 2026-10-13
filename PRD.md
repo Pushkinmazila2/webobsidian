@@ -1,7 +1,8 @@
 # PRD — WebObsidian
 
 > Product Requirements Document
-> Phiên bản: 1.8 · Cập nhật: 2026-10-12 · Trạng thái: Draft
+> Phiên bản: 1.9 · Cập nhật: 2026-10-12 · Trạng thái: Draft
+> Changelog 1.9 (FR-8/FR-14 — plugin trên storage từ xa): trạng thái plugin (`.obsidian/community-plugins.json`) và cấu hình plugin (`.obsidian/plugins/<id>/data.json`, `loadData/saveData` hoạt động) sống **trong vault** theo định dạng Obsidian → đi theo vault qua GitHub/local, sống sót khi container bị tạo lại; write-behind của GitHub có **lớp "giữ lại"** (`holdMatch`, mặc định `.obsidian/**`, `holdSec` mặc định 300s) để plugin ghi dồn dập không spam commit, còn ghi chú vẫn đi theo `flushSec`.
 > Changelog 1.8 (FR-14 — cấu hình storage bằng biến môi trường): container có thể khởi động hoàn toàn bằng env (`WEBOBSIDIAN_GITHUB_REPO/TOKEN/BRANCH/BASE_PATH/…`, `WEBOBSIDIAN_STORAGE_PRESET|RULES`, `WEBOBSIDIAN_CACHE*`, `WEBOBSIDIAN_GIT_AUTHOR_*`).
 > Changelog 1.7 (FR-14 — giai đoạn ghi): `GitHubStorage` hỗ trợ **ghi** (write-behind, một commit cho mỗi lần flush, xử lý xung đột không mất dữ liệu), thêm `storage.github.flushSec`; route `/api/git/*` ở chế độ github ánh xạ sang flush/refresh.
 > Changelog 1.6 (FR-14 — Storage driver: vault lưu trong GitHub qua API, theo yêu cầu người dùng): bổ sung **FR-14**.
@@ -482,13 +483,24 @@ loại file nào được tải/cache, phần còn lại chỉ lấy từ GitHub
   và validate (owner/repo/branch/basePath/apiUrl/rules/driver; sai → 400; token `••••••••` không ghi đè; token không bao giờ
   trả về). Đổi cấu hình storage **cần restart**: `GET /api/settings/storage/status` báo `restartRequired`. Status bar hiện
   "N unsaved to GitHub" / lỗi lưu; bản conflict được liệt kê trong mục Storage.
+- **Plugin & lớp "giữ lại" (hold)**: code plugin đã nằm trong vault (`.obsidian/plugins/<id>/`, rule `mirror`). Trạng thái bật/tắt nay
+  ở `.obsidian/community-plugins.json` (mảng id, định dạng Obsidian; danh sách cũ trong `settings.json` được dùng làm fallback và
+  tự chuyển vào vault một lần lúc khởi động) và cấu hình từng plugin ở `.obsidian/plugins/<id>/data.json` (`GET/PUT
+  /api/plugins/:id/data`, tối đa 5 MB; file hỏng → `{}`). Server đọc file ở mỗi lần liệt kê (poller GitHub đã tải sẵn file mirror
+  nên thay đổi từ máy khác/`git push` thấy được); trình duyệt tự đồng bộ mỗi 30 giây và khi tab hiện lại: bật plugin mới, gỡ plugin
+  đã tắt (`onunload`). `saveData` ở client được gộp (tối đa 1 request/plugin, chỉ gửi giá trị mới nhất).
+  Ở write-behind, mỗi đường dẫn có hạn riêng: đường dẫn khớp `storage.github.holdMatch` (mặc định `.obsidian/**`) chỉ được lưu sau
+  `holdSec` giây yên lặng (mặc định 300; trần chờ `max(30 phút, 4×holdSec)`), còn ghi chú và mọi thứ khác theo `flushSec`. Commit
+  của ghi chú **không kéo theo** thay đổi đang bị giữ; `Sync now`/commit/push và tắt server luôn lưu hết. `GET /api/plugins` trả
+  `unsaved` (số thay đổi plugin đang chờ), `remoteInfo.held` cho UI. Giới hạn: plugin cần API Node/Electron vẫn không chạy trong
+  trình duyệt.
 - **Cấu hình bằng env** (triển khai container): mỗi biến được đặt sẽ **ghi đè `settings.json` và khoá field đó trong UI**
   (`GET /api/settings/storage/status` trả `locked: {đường dẫn → tên biến}`); biến không đặt vẫn sửa được trong UI. Override
   chỉ nằm trong RAM, **không bao giờ ghi vào `settings.json`** (gỡ biến + restart → quay lại giá trị đã lưu); `PUT /api/settings`
   không đổi được field bị khoá. Giá trị sai (repo, rules, số, driver…) làm server **dừng khi khởi động** với thông báo nêu tên biến,
   không âm thầm rơi về cấu hình khác. Biến: `WEBOBSIDIAN_STORAGE` (`github|local`; chỉ cần `WEBOBSIDIAN_GITHUB_REPO` thì suy ra
   `github`), `_GITHUB_REPO` (`owner/repo` hoặc URL) / `_OWNER`, `_GITHUB_TOKEN`, `_GITHUB_BRANCH`, `_GITHUB_BASE_PATH`,
-  `_GITHUB_API_URL`, `_GITHUB_FLUSH_SEC`, `_GITHUB_POLL_SEC`, `_STORAGE_PRESET` (`default|remote-only|mirror-all`),
+  `_GITHUB_API_URL`, `_GITHUB_FLUSH_SEC`, `_GITHUB_HOLD_SEC`, `_GITHUB_HOLD_MATCH` (glob cách nhau bằng `;`, hoặc `none`), `_GITHUB_POLL_SEC`, `_STORAGE_PRESET` (`default|remote-only|mirror-all`),
   `_STORAGE_RULES` (`pattern=mode[:index|:noindex];…` hoặc JSON; thắng preset), `_CACHE` (`memory|disk`), `_CACHE_DIR`,
   `_CACHE_MAX_MB`, `_GIT_AUTHOR_NAME/_EMAIL`. Mẫu trong `.env.example`, `docker-compose.yml`, README.
 - **Token**: ưu tiên env `WEBOBSIDIAN_GITHUB_TOKEN`; hoặc `storage.github.token` trong settings (bị che `••••••••` khi trả

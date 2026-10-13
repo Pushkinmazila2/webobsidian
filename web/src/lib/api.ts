@@ -230,7 +230,10 @@ export const api = {
   // the SPA never fetches /public/shares/* itself.
 
   // plugins
-  listPlugins: () => req<{ plugins: any[] }>('/api/plugins/'),
+  listPlugins: () => req<{ plugins: any[]; unsaved?: number }>('/api/plugins/'),
+  pluginData: (id: string) => req<{ data: unknown }>(`/api/plugins/${encodeURIComponent(id)}/data`),
+  savePluginData: (id: string, data: unknown) =>
+    req<{ ok: true }>(`/api/plugins/${encodeURIComponent(id)}/data`, { method: 'PUT', body: JSON.stringify({ data }) }),
   installPlugin: (repo: string) =>
     req<{ plugin: any }>('/api/plugins/install', { method: 'POST', body: JSON.stringify({ repo }) }),
   setPluginEnabled: (id: string, enabled: boolean) =>
