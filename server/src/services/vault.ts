@@ -1,9 +1,8 @@
 import path from 'node:path';
-import { config } from '../config.js';
-import { getSettings, peekSettings } from './settings.js';
-import { LocalFsStorage } from '../storage/local.js';
-import { createGithubStorage } from '../storage/github/index.js';
 import type { VaultStorage } from '../storage/types.js';
+import { currentVault, overrideDefaultStorage } from './vaultals.js';
+// Installs the vault registry (default-vault provider) as a side effect.
+import './vaults.js';
 
 export type {
   TreeNode,
@@ -23,33 +22,14 @@ export type {
  * function-style facade means routes/services don't care which driver is active.
  */
 
-let active: VaultStorage | null = null;
-/** Storage settings the running driver was built from (to tell the UI a restart is needed). */
-let bootStorageConfig = '';
-const storageFingerprint = (s: { storage: unknown }) => JSON.stringify(s.storage);
-
-/** True when the saved storage settings differ from what the running server uses. */
-export function storageRestartRequired(saved: { storage: unknown }): boolean {
-  return bootStorageConfig !== '' && bootStorageConfig !== storageFingerprint(saved);
-}
-
-/** The active storage driver (lazily created from settings). */
+/** The storage driver of the current vault (see vaultals.ts). */
 export function getStorage(): VaultStorage {
-  if (!active) {
-    const trashDir = async () => (await getSettings()).vault.trash;
-    const s = peekSettings();
-    if (s) bootStorageConfig = storageFingerprint(s);
-    active =
-      s?.storage.driver === 'github'
-        ? createGithubStorage(s, { dataDir: config.dataDir, trashDir })
-        : new LocalFsStorage({ root: async () => (await getSettings()).vault.path, trashDir });
-  }
-  return active;
+  return currentVault().storage;
 }
 
-/** Swap the driver (tests / future runtime driver switching). */
+/** Replace the main vault's driver (tests); `null` drops it so it is rebuilt from settings. */
 export function setStorage(s: VaultStorage | null): void {
-  active = s;
+  overrideDefaultStorage(s);
 }
 
 const TEXT_EXTS = new Set([
@@ -115,7 +95,7 @@ export const emptyTrash = () => getStorage().emptyTrash();
 // change feed
 /** Commit buffered changes (remote drivers). No-op for local folders. */
 export const flushStorage = async (): Promise<void> => {
-  if (active) await active.flush?.();
+  await getStorage().flush?.();
 };
 
 export const watchVault = (handler: Parameters<VaultStorage['watch']>[0]) => getStorage().watch(handler);

@@ -1,3 +1,4 @@
+import { currentVaultId } from './lib/vault';
 import { useEffect, useState } from 'react';
 import { api, ApiError } from './lib/api';
 import { useStore } from './lib/store';
@@ -76,6 +77,9 @@ export default function App() {
     ws.onmessage = (ev) => {
       try {
         const msg = JSON.parse(ev.data);
+        // events of other vaults (open in other tabs) are not ours
+        if (msg.vault && msg.vault !== currentVaultId()) return;
+        if (!msg.vault && currentVaultId() !== 'default' && (msg.type === 'fs' || msg.type === 'uistate')) return;
         if (msg.type === 'fs') {
           // coalesce bursts of fs events into a single tree refresh
           window.clearTimeout(treeTimer);

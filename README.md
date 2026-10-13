@@ -210,6 +210,7 @@ written to `settings.json`. A malformed value stops the server at startup and na
 | `WEBOBSIDIAN_GITHUB_BASE_PATH` | repo root | Subfolder used as the vault root, e.g. `docs` |
 | `WEBOBSIDIAN_GITHUB_FLUSH_SEC` | `15` | Seconds without edits before they are saved in one commit |
 | `WEBOBSIDIAN_GITHUB_HOLD_SEC` / `_HOLD_MATCH` | `300` / `.obsidian/**` | Plugins and app settings are saved only after this many quiet seconds (so a busy plugin can't flood commits); notes are never held. `HOLD_MATCH=none` disables |
+| `WEBOBSIDIAN_VAULTS` | – | JSON array of extra vaults (local `path` or GitHub `repo`, optional `tokenEnv`, `preset`/`rules`, …) — see *Multiple vaults* below |
 | `WEBOBSIDIAN_GITHUB_POLL_SEC` | `30` | How often to look for commits made elsewhere (min 5) |
 | `WEBOBSIDIAN_GITHUB_API_URL` | `https://api.github.com` | GitHub Enterprise Server API URL |
 | `WEBOBSIDIAN_GIT_AUTHOR_NAME` / `_EMAIL` | token owner | Commit author |
@@ -385,3 +386,20 @@ Run `npm run typecheck` before opening a PR.
 <div align="center">
 <sub>Built for people who want to own their notes. Not affiliated with Obsidian.md.</sub>
 </div>
+
+## Multiple vaults
+
+One server can host several vaults of different kinds (a folder on the server, a GitHub repository). **Each browser tab
+works on its own vault**: pick it with the vault name at the bottom of the sidebar (a second tab can stay on another
+vault). Every vault has its own search index, link graph, plugins/settings (stored inside the vault), UI state and share
+links. Manage them in *Settings → Vaults*, or declare them for a container:
+
+```bash
+-e WEBOBSIDIAN_VAULTS='[{"id":"work","name":"Work","path":"/data/work"},
+                        {"id":"kb","name":"Knowledge base","repo":"acme/kb","tokenEnv":"KB_TOKEN","preset":"mirror-all"}]' \
+-e KB_TOKEN=github_pat_...
+```
+
+Vaults from the environment are read-only in the UI. Local folders must be inside `ALLOWED_ROOTS`. If `tokenEnv` is not
+given, a GitHub vault uses `WEBOBSIDIAN_GITHUB_TOKEN`. Git sync / auto-sync of a local clone applies to the main vault only; API keys
+can reach every vault (select with the `X-Vault` header; no header = the main vault).

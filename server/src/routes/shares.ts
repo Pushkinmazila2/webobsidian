@@ -14,6 +14,7 @@ import {
 import { canvasEmbedTargets } from '../services/rendercanvas.js';
 import { mimeFor } from '../services/mime.js';
 import { sendFileWithRange } from '../services/httpfile.js';
+import { bindShareVault } from '../services/sharevault.js';
 
 const isMd = (p: string) => /\.(md|markdown)$/i.test(p);
 const isCanvas = (p: string) => /\.canvas$/i.test(p);
@@ -124,6 +125,7 @@ async function resolveVaultPath(rel: string): Promise<string | null> {
 }
 
 export const publicSharesRouter = Router();
+publicSharesRouter.param('id', bindShareVault);
 
 const UNLOCK_TTL = '12h';
 const unlockCookie = (id: string) => `wo_share_${id}`;

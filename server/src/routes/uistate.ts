@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { asyncHandler } from '../middleware/error.js';
 import { requireAuth } from '../middleware/auth.js';
 import { readUiState, writeUiState } from '../services/uistate.js';
+import { currentVault } from '../services/vaultals.js';
 import { broadcast } from '../services/realtime.js';
 
 export const uiStateRouter = Router();
@@ -26,7 +27,7 @@ uiStateRouter.put(
     // Notify other tabs/devices so they sync live. originId lets the sender
     // ignore the echo of its own change.
     const originId = String(req.headers['x-client-id'] ?? '');
-    broadcast({ type: 'uistate', originId, state: body });
+    broadcast({ type: 'uistate', vault: currentVault().id, originId, state: body });
     res.json({ ok: true });
   }),
 );

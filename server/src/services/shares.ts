@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { config } from '../config.js';
+import { currentVault, DEFAULT_VAULT_ID } from './vaultals.js';
 
 /** Public share links (FR-10) — persisted as a JSON array in data/shares.json. */
 export interface ShareRecord {
@@ -9,6 +10,8 @@ export interface ShareRecord {
   path: string; // vault-relative note path
   enabled: boolean;
   createdAt: string;
+  /** Vault the note lives in; absent = the main vault (records from before multi-vault). */
+  vault?: string;
   /** Optional scrypt hash — set when the share is password-protected. */
   passwordHash?: string;
 }
@@ -42,8 +45,18 @@ async function persist(shares: ShareRecord[]): Promise<void> {
   await fs.rename(tmp, SHARES_FILE);
 }
 
+/** Which vault a record belongs to. */
+export const shareVaultId = (r: ShareRecord): string => r.vault ?? DEFAULT_VAULT_ID;
+const mine = (r: ShareRecord) => shareVaultId(r) === currentVault().id;
+
+/** Shares of the current vault. */
 export async function listShares(): Promise<ShareRecord[]> {
-  return [...(await load())];
+  return (await load()).filter(mine);
+}
+
+/** A share by token regardless of vault (public routes use it to find the vault). */
+export async function findShare(id: string): Promise<ShareRecord | null> {
+  return (await load()).find((s) => s.id === id) ?? null;
 }
 
 /** Look up an ENABLED share by token (used by the public route). */
@@ -58,7 +71,7 @@ export async function getActiveShare(id: string): Promise<ShareRecord | null> {
  */
 export async function createShare(relPath: string): Promise<ShareRecord> {
   const shares = await load();
-  const existing = shares.find((s) => s.path === relPath);
+  const existing = shares.find((s) => s.path === relPath && mine(s));
   if (existing) {
     if (!existing.enabled) {
       existing.enabled = true;
@@ -71,6 +84,7 @@ export async function createShare(relPath: string): Promise<ShareRecord> {
     path: relPath,
     enabled: true,
     createdAt: new Date().toISOString(),
+    ...(currentVault().isDefault ? {} : { vault: currentVault().id }),
   };
   shares.push(record);
   await persist(shares);
@@ -79,7 +93,7 @@ export async function createShare(relPath: string): Promise<ShareRecord> {
 
 export async function setShareEnabled(id: string, enabled: boolean): Promise<ShareRecord | null> {
   const shares = await load();
-  const rec = shares.find((s) => s.id === id);
+  const rec = shares.find((s) => s.id === id && mine(s));
   if (!rec) return null;
   if (rec.enabled !== enabled) {
     rec.enabled = enabled;
@@ -91,7 +105,7 @@ export async function setShareEnabled(id: string, enabled: boolean): Promise<Sha
 /** Set (hash) or clear (null) the password of a share. */
 export async function setSharePassword(id: string, passwordHash: string | null): Promise<ShareRecord | null> {
   const shares = await load();
-  const rec = shares.find((s) => s.id === id);
+  const rec = shares.find((s) => s.id === id && mine(s));
   if (!rec) return null;
   if (passwordHash) rec.passwordHash = passwordHash;
   else delete rec.passwordHash;
@@ -101,7 +115,7 @@ export async function setSharePassword(id: string, passwordHash: string | null):
 
 export async function deleteShare(id: string): Promise<boolean> {
   const shares = await load();
-  const next = shares.filter((s) => s.id !== id);
+  const next = shares.filter((s) => !(s.id === id && mine(s)));
   if (next.length === shares.length) return false;
   cache = next;
   await persist(next);
@@ -111,7 +125,7 @@ export async function deleteShare(id: string): Promise<boolean> {
 /** Keep share paths in sync when notes are renamed/deleted elsewhere. */
 export async function onFileRenamed(from: string, to: string): Promise<void> {
   const shares = await load();
-  const rec = shares.find((s) => s.path === from);
+  const rec = shares.find((s) => s.path === from && mine(s));
   if (rec) {
     rec.path = to;
     await persist(shares);

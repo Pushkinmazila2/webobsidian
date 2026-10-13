@@ -25,12 +25,11 @@ import { agentRouter } from './routes/agent.js';
 import { uiStateRouter } from './routes/uistate.js';
 import { sharesRouter, publicSharesRouter } from './routes/shares.js';
 import { sharePageRouter } from './routes/sharepage.js';
-import { initSearch, qmd } from './services/search.js';
-import { buildLinkGraph, updateLinkGraphForFile } from './services/links.js';
-import { buildFileIndex, indexFile, unindexFile } from './services/fileindex.js';
+import { vaultsRouter, vaultMiddleware } from './routes/vaults.js';
+import { ensureReady, envVaultList, flushAll, getDefaultContext } from './services/vaults.js';
 import { setBroadcaster, broadcast } from './services/realtime.js';
-import { ensureVault, flushStorage, watchVault } from './services/vault.js';
 import { startAutoSync } from './services/autosync.js';
+import { runInVault } from './services/vaultals.js';
 import { migrateLegacyEnabled } from './services/plugins.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -47,7 +46,7 @@ process.on('unhandledRejection', (reason) => {
 async function main() {
   await loadSettings();
   await setPasswordIfInitial();
-  await ensureVault();
+  envVaultList(); // a malformed WEBOBSIDIAN_VAULTS stops startup here
 
   const app = express();
   // Honour X-Forwarded-* per the deployment's proxy topology (TRUST_PROXY).
@@ -106,6 +105,8 @@ async function main() {
   // '/api' search router, whose router-level requireAuth middleware would
   // otherwise gate every /api/* path (incl. /api/v1 and /api/keys) by prefix.
   app.use('/auth', authRouter);
+  app.use('/api/vaults', vaultsRouter); // vault list + management (auth)
+  app.use('/api', vaultMiddleware); // picks the vault of the request (X-Vault / ?vault=)
   app.use('/api/v1', agentRouter); // agent API (api-key auth)
   app.use('/api/files', filesRouter);
   app.use('/api/settings', settingsRouter);
@@ -132,15 +133,13 @@ async function main() {
 
   // Build search index + link graph
   console.log('[boot] indexing vault...');
-  await initSearch();
-  await buildLinkGraph();
-  await buildFileIndex();
+  const main = getDefaultContext();
+  await ensureReady(main);
   console.log('[boot] index ready');
-  await migrateLegacyEnabled();
+  await runInVault(main, () => migrateLegacyEnabled());
 
   const server = http.createServer(app);
   setupWebsocket(server);
-  await setupWatcher();
   startAutoSync();
 
   // Remote storage buffers edits (write-behind): commit them before the process exits.
@@ -150,7 +149,7 @@ async function main() {
     stopping = true;
     console.log(`[boot] ${sig}: saving buffered changes...`);
     const done = () => process.exit(0);
-    flushStorage()
+    flushAll()
       .catch((e) => console.error('[boot] could not save buffered changes:', e?.message ?? e))
       .finally(done);
     setTimeout(done, 20_000).unref();
@@ -217,30 +216,6 @@ function cookieValue(header: string | undefined, name: string): string | undefin
 
 function bearerToken(header: string | undefined): string | undefined {
   return header?.startsWith('Bearer ') ? header.slice(7) : undefined;
-}
-
-// --- change feed: reflect external changes (git pull, direct edits) ---
-// The storage driver decides *how* changes are detected (local: chokidar with an
-// automatic polling fallback; remote drivers: polling the remote). We only react.
-async function setupWatcher() {
-  await watchVault(async ({ type, path: rel }) => {
-    // keep the attachment/file index in sync for embed resolution
-    if (type === 'add') indexFile(rel);
-    else if (type === 'unlink') unindexFile(rel);
-    if (/\.(md|markdown)$/i.test(rel)) {
-      // Update only the changed file in the search + link indexes (O(1)) — a full
-      // buildLinkGraph() re-reads every note in the vault and was the main CPU sink
-      // when Obsidian touched files in the background.
-      if (type === 'unlink') {
-        qmd.remove(rel);
-        await updateLinkGraphForFile(rel, true).catch(() => {});
-      } else {
-        await qmd.upsert(rel).catch(() => {});
-        await updateLinkGraphForFile(rel).catch(() => {});
-      }
-    }
-    broadcast({ type: 'fs', event: type, path: rel });
-  });
 }
 
 async function dirExists(p: string): Promise<boolean> {

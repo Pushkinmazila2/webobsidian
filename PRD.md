@@ -1,7 +1,8 @@
 # PRD — WebObsidian
 
 > Product Requirements Document
-> Phiên bản: 1.9 · Cập nhật: 2026-10-12 · Trạng thái: Draft
+> Phiên bản: 2.0 · Cập nhật: 2026-10-14 · Trạng thái: Draft
+> Changelog 2.0 (FR-15 — nhiều vault, kiểu storage khác nhau, theo yêu cầu người dùng): một server phục vụ **nhiều vault cùng lúc** (thư mục local hoặc repo GitHub, tuỳ vault); **mỗi tab trình duyệt chọn vault riêng** (header `X-Vault` / `?vault=`); mỗi vault có driver, index search, link graph, file index, watcher, UI state, plugin/settings (trong vault) và share link riêng. Danh sách vault quản lý qua UI (Settings → Vaults, `/api/vaults`) và env `WEBOBSIDIAN_VAULTS` (JSON, chỉ đọc trong UI). Vault chính (`default`) giữ nguyên cấu hình/hành vi cũ. Git sync (clone local) chỉ cho vault chính; vault GitHub ánh xạ `/api/git/*` như cũ.
 > Changelog 1.9 (FR-8/FR-14 — plugin trên storage từ xa): trạng thái plugin (`.obsidian/community-plugins.json`) và cấu hình plugin (`.obsidian/plugins/<id>/data.json`, `loadData/saveData` hoạt động) sống **trong vault** theo định dạng Obsidian → đi theo vault qua GitHub/local, sống sót khi container bị tạo lại; write-behind của GitHub có **lớp "giữ lại"** (`holdMatch`, mặc định `.obsidian/**`, `holdSec` mặc định 300s) để plugin ghi dồn dập không spam commit, còn ghi chú vẫn đi theo `flushSec`.
 > Changelog 1.8 (FR-14 — cấu hình storage bằng biến môi trường): container có thể khởi động hoàn toàn bằng env (`WEBOBSIDIAN_GITHUB_REPO/TOKEN/BRANCH/BASE_PATH/…`, `WEBOBSIDIAN_STORAGE_PRESET|RULES`, `WEBOBSIDIAN_CACHE*`, `WEBOBSIDIAN_GIT_AUTHOR_*`).
 > Changelog 1.7 (FR-14 — giai đoạn ghi): `GitHubStorage` hỗ trợ **ghi** (write-behind, một commit cho mỗi lần flush, xử lý xung đột không mất dữ liệu), thêm `storage.github.flushSec`; route `/api/git/*` ở chế độ github ánh xạ sang flush/refresh.
@@ -420,6 +421,15 @@ Express + SPA hiện có (không fork code, không đổi kiến trúc) — nên
 - **Phạm vi (non-goals)**: chưa auto-update (người dùng tải bản mới thủ công); chưa ký số; không nhúng git
   portable; không chạy nhiều cửa sổ/vault song song trong 1 instance (single-instance lock).
 
+### FR-15 · Nhiều vault (mỗi vault một kiểu storage)
+
+- Server giữ một **registry vault**: vault chính `default` (từ `vault.path` + `storage`, như trước) và các vault bổ sung (`settings.vaults[]` + env `WEBOBSIDIAN_VAULTS`; env thắng khi trùng id, chỉ đọc trong UI, không ghi vào `settings.json`). Mỗi vault: `{id, name, path | storage.github…, storage.rules/cache, tokenEnv}`; `id` dạng slug, `default` được giữ chỗ.
+- Mỗi request chạy trong ngữ cảnh một vault (AsyncLocalStorage): chọn bằng header `X-Vault` hoặc `?vault=` (cho URL trình duyệt tự tải: ảnh, video, tải xuống); không chọn = vault chính, nên client/API key cũ không đổi. Vault chỉ được khởi động (init, dựng index, watcher) khi một request **đã đăng nhập** chạm tới; id lạ → 404.
+- Cô lập: storage driver, search index (`data/vaults/<id>/qmd-index.json`, remote không ghi đĩa), link graph, file index, watcher + sự kiện WebSocket (gắn `vault`), UI state (`uistate-<id>.json`), cache đĩa GitHub (`cache/<id>`), plugin/settings (nằm trong vault), share link (`vault` trong bản ghi; route công khai tìm vault theo token).
+- Client: mỗi tab lưu vault trong `sessionStorage` (mở `?vault=<id>` để đặt), bộ chuyển vault ở chân sidebar (đổi → tải lại tab), URL deep-link mang `?vault=`; tab khác không bị ảnh hưởng. Settings → **Vaults**: thêm/sửa/xoá (xoá chỉ gỡ khỏi danh sách, flush trước, không đụng dữ liệu), thử kết nối.
+- Quản trị: `GET/POST /api/vaults`, `GET/PUT/DELETE /api/vaults/:id`, `GET /api/vaults/:id/status`; đường dẫn local phải nằm trong `allowedRoots`; token lấy từ `tokenEnv` (hoặc `WEBOBSIDIAN_GITHUB_TOKEN` nếu để trống) hoặc `storage.github.token`; thêm/sửa/xoá có hiệu lực ngay (không cần restart); cấu hình env sai → server không khởi động, báo tên biến. Tắt máy: flush mọi vault.
+- Không làm (hiện tại): git sync/auto-sync/commit-on-save cho vault bổ sung local; API key theo từng vault (key hiện có truy cập mọi vault, chọn bằng `X-Vault`).
+
 ### FR-14 · Storage driver (vault trong GitHub qua API)
 
 Mục tiêu: dùng WebObsidian với vault nằm **hoàn toàn trong GitHub**, không cần tải cả repo về server; người dùng chọn
@@ -529,6 +539,8 @@ loại file nào được tải/cache, phần còn lại chỉ lấy từ GitHub
 
 ### Web/session API (cookie auth)
 ```
+GET    /api/vaults           # danh sách vault; POST tạo; GET|PUT|DELETE /api/vaults/:id; GET /api/vaults/:id/status
+                             # mọi /api/* khác nhận header X-Vault (hoặc ?vault=) để chọn vault, mặc định `default`
 POST   /auth/setup            # (legacy) set password lần đầu — vô hiệu khi đã có pass mặc định
 POST   /auth/login            # login → cookie
 POST   /auth/logout

@@ -18,49 +18,7 @@ const ApiKeySchema = z.object({
   lastUsed: z.string().nullable().default(null),
 });
 
-const SettingsSchema = z.object({
-  version: z.number().default(1),
-  auth: z
-    .object({
-      // Mật khẩu người dùng đã đổi. Rỗng = đang dùng mật khẩu mặc định (123456).
-      userPasswordHash: z.string().default(''),
-      // Mật khẩu override để khôi phục khi quên pass (sửa tay vào file). Rỗng = không có.
-      passwordHash: z.string().default(''),
-      jwtSecret: z.string().default(''),
-    })
-    .default({}),
-  vault: z
-    .object({
-      path: z.string().default(''),
-      allowedRoots: z.array(z.string()).default([]),
-      trash: z.string().default('.trash'),
-      // Xoá file: 'trash' = chuyển vào thư mục .trash (khôi phục được);
-      // 'permanent' = xoá vĩnh viễn ngay.
-      deleteMode: z.enum(['trash', 'permanent']).default('trash'),
-      attachmentDir: z.string().default('attachments'),
-    })
-    .default({}),
-  git: z
-    .object({
-      enabled: z.boolean().default(false),
-      remote: z.string().default(''),
-      branch: z.string().default('main'),
-      token: z.string().default(''),
-      authorName: z.string().default('WebObsidian'),
-      authorEmail: z.string().default('webobsidian@localhost'),
-      autoSync: z.boolean().default(false),
-      autoCommitOnSave: z.boolean().default(false),
-      intervalSec: z.number().default(300),
-      lfsPatterns: z
-        .array(z.string())
-        .default(['*.png', '*.jpg', '*.jpeg', '*.gif', '*.pdf', '*.mp4', '*.mov', '*.zip']),
-    })
-    .default({}),
-  // Where the vault lives. 'local' = a folder on disk (vault.path above);
-  // 'github' = a repository read/written through the GitHub API, with per-path
-  // rules for what is mirrored locally, fetched lazily, or never stored at all.
-  // Changes here take effect on restart.
-  storage: z
+const StorageSchema = z
     .object({
       driver: z.enum(['local', 'github']).default('local'),
       github: z
@@ -110,8 +68,67 @@ const SettingsSchema = z.object({
           { match: '**/*.{md,markdown,canvas}', mode: 'mirror', index: true },
           { match: '**', mode: 'lazy', index: false },
         ]),
+    });
+
+/** An additional vault: its own folder or GitHub repository, with its own storage rules. */
+export const VaultSchema = z.object({
+  // URL/header-safe slug; "default" is reserved for the main vault.
+  id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,31}$/).refine((v) => v !== 'default', 'reserved id'),
+  name: z.string().min(1).max(80),
+  // Folder of a local vault (driver "local").
+  path: z.string().default(''),
+  // Name of an environment variable holding this vault's GitHub token (preferred over storage.github.token).
+  tokenEnv: z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/).or(z.literal('')).default(''),
+  storage: StorageSchema.default({}),
+});
+export type VaultConfig = z.infer<typeof VaultSchema>;
+
+const SettingsSchema = z.object({
+  version: z.number().default(1),
+  auth: z
+    .object({
+      // Mật khẩu người dùng đã đổi. Rỗng = đang dùng mật khẩu mặc định (123456).
+      userPasswordHash: z.string().default(''),
+      // Mật khẩu override để khôi phục khi quên pass (sửa tay vào file). Rỗng = không có.
+      passwordHash: z.string().default(''),
+      jwtSecret: z.string().default(''),
     })
     .default({}),
+  vault: z
+    .object({
+      path: z.string().default(''),
+      allowedRoots: z.array(z.string()).default([]),
+      trash: z.string().default('.trash'),
+      // Xoá file: 'trash' = chuyển vào thư mục .trash (khôi phục được);
+      // 'permanent' = xoá vĩnh viễn ngay.
+      deleteMode: z.enum(['trash', 'permanent']).default('trash'),
+      attachmentDir: z.string().default('attachments'),
+    })
+    .default({}),
+  git: z
+    .object({
+      enabled: z.boolean().default(false),
+      remote: z.string().default(''),
+      branch: z.string().default('main'),
+      token: z.string().default(''),
+      authorName: z.string().default('WebObsidian'),
+      authorEmail: z.string().default('webobsidian@localhost'),
+      autoSync: z.boolean().default(false),
+      autoCommitOnSave: z.boolean().default(false),
+      intervalSec: z.number().default(300),
+      lfsPatterns: z
+        .array(z.string())
+        .default(['*.png', '*.jpg', '*.jpeg', '*.gif', '*.pdf', '*.mp4', '*.mov', '*.zip']),
+    })
+    .default({}),
+  // Where the vault lives. 'local' = a folder on disk (vault.path above);
+  // 'github' = a repository read/written through the GitHub API, with per-path
+  // rules for what is mirrored locally, fetched lazily, or never stored at all.
+  // Changes here take effect on restart.
+  storage: StorageSchema.default({}),
+
+  // Additional vaults (Settings → Vaults). The main vault above is always "default".
+  vaults: z.array(VaultSchema).default([]),
   search: z
     .object({
       fuzzy: z.number().default(0.2),

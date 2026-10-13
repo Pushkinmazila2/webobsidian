@@ -1,3 +1,4 @@
+import { withVault } from './vault';
 import {
   Decoration,
   DecorationSet,
@@ -1896,7 +1897,7 @@ const EMPHASIS_CLASS: Record<string, string> = {
 const hidden = Decoration.replace({});
 
 function attachmentUrl(target: string): string {
-  return `/api/files/content?path=${encodeURIComponent(target)}`;
+  return withVault(`/api/files/content?path=${encodeURIComponent(target)}`);
 }
 
 function buildDecorations(view: EditorView): DecorationSet {

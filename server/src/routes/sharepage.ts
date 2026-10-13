@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { asyncHandler } from '../middleware/error.js';
 import * as vault from '../services/vault.js';
 import { getActiveShare } from '../services/shares.js';
+import { bindShareVault } from '../services/sharevault.js';
 import { isUnlocked } from './shares.js';
 import { renderNoteHtml, metaDescription, firstImage, escapeHtml } from '../services/renderhtml.js';
 import { renderCanvasHtml, canvasDescription, canvasFirstImage, canvasViewerScript } from '../services/rendercanvas.js';
@@ -70,6 +71,7 @@ ${inner}
 }
 
 export const sharePageRouter = Router();
+sharePageRouter.param('id', bindShareVault);
 
 sharePageRouter.get(
   '/:id',

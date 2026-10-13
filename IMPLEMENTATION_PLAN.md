@@ -4,7 +4,7 @@
 > Quy ước: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 > Cập nhật file này **mỗi khi** một mục thay đổi trạng thái.
 
-Cập nhật lần cuối: 2026-10-12 (FR-14 — storage driver: đọc/ghi write-behind, UI Storage, cấu hình bằng env)
+Cập nhật lần cuối: 2026-10-14 (FR-15 — nhiều vault, mỗi tab một vault, kiểu storage khác nhau)
 
 ---
 
@@ -447,6 +447,8 @@ Cập nhật lần cuối: 2026-10-12 (FR-14 — storage driver: đọc/ghi writ
 - [x] M31.18 Plugin trên storage từ xa: trạng thái `community-plugins.json` + `data.json` trong vault (migrate danh sách cũ), `loadData/saveData` thật (gộp request), client đồng bộ định kỳ (bật/gỡ plugin), lớp hold trong write-behind (`holdMatch`/`holdSec`, hạn riêng từng đường dẫn, commit ghi chú không kéo theo plugin), UI/env/số liệu `unsaved`; test đơn vị (local), storage (hold), e2e GitHub + mutation test
 - [ ] M31.16 Kiểm tra ghi trên repo GitHub thật (nhánh thử riêng, không phải main) — thời gian, số request, quyền token
 - [x] M31.13 UI Settings (mục "Storage"): chọn driver, repo/branch/basePath/token, flush/poll, bảng rules (preset, thứ tự, index, cảnh báo rule che khuất), cache, "Test connection", banner cần restart, chỉ báo thay đổi chưa lưu + bản conflict, status bar GitHub; backend `PUT /api/settings` nhận `storage` (validate), `GET /api/settings/storage/status`, `POST /api/settings/storage/test`
+- [x] M31.19 Nhiều vault (FR-15, PRD 2.0): `vaultals.ts` (AsyncLocalStorage) + `vaults.ts` (registry lười, init/watcher/dispose/flushAll), search/links/fileindex/uistate/shares theo vault, `settings.vaults[]` + env `WEBOBSIDIAN_VAULTS`, `/api/vaults` + middleware `X-Vault`/`?vault=` (chỉ sau đăng nhập), route share công khai tìm vault theo token, client: vault theo tab (sessionStorage), bộ chuyển ở sidebar, Settings → Vaults; test e2e (cô lập search/graph/files/plugin/uistate/share giữa vault local và GitHub mock, request song song, thêm/sửa/xoá runtime, env sai), smoke local không đổi
+- [ ] M31.20 Driver thêm: Git thuần (clone cục bộ/ssh), S3 — chưa yêu cầu
 - [ ] M31.14 Git LFS qua Batch API; fallback GraphQL chỉ lấy `.md` cho repo có nhiều binary ngoài LFS
 
 ### Nhật ký tiến độ
@@ -1298,3 +1300,4 @@ Cập nhật lần cuối: 2026-10-12 (FR-14 — storage driver: đọc/ghi writ
 - 2026-10-12: Phase 31 M31.13 — UI Storage. Component `StorageSettings` + status bar + ghi chú trong tab Git; backend nhận/validate `storage` (basePath `..`, apiUrl non-http, mode/driver sai → 400; token mask không ghi đè; token không bao giờ trả về), phát hiện cần restart bằng fingerprint cấu hình lúc khởi động, test kết nối không lưu gì. Test e2e bổ sung; xem UI bằng Chromium với GitHub giả. Đổi driver vẫn cần restart (chưa hot-switch).
 - 2026-10-12: Phase 31 M31.17 (PRD 1.8) — cấu hình storage bằng biến môi trường cho container. `storageenv.ts` đọc/validate (dùng chung `storagepatch.ts` với API settings), `settings.ts` phủ env lên settings trong RAM và ghi file chỉ với giá trị người dùng đã lưu, field bị khoá không đổi được qua PUT; UI làm xám field bị khoá. Mutation test 2 invariant (ghi nhầm env xuống file, bỏ khoá khi PUT) đều bị bắt.
 - 2026-10-13: Phase 31 M31.18 (PRD 1.9) — plugin trên storage từ xa. Trạng thái và cấu hình plugin chuyển vào vault (định dạng Obsidian) nên sống sót khi container tạo lại; `loadData/saveData` hoạt động; client tự đồng bộ. Write-behind có lớp hold theo đường dẫn: `.obsidian/**` chờ `holdSec` (300s) với trần chờ, ghi chú vẫn đi theo `flushSec` và không kéo theo thay đổi plugin; sync/shutdown lưu hết. Thêm kiểm tra khoảng giá trị số khi lưu settings/env (trả 400 thay vì lỗi schema).
+- 2026-10-14: Phase 31 M31.19 (PRD 2.0) — nhiều vault. Ngữ cảnh vault theo request (AsyncLocalStorage) nên facade `vault.*`, `qmd`, link graph, file index giữ nguyên chữ ký; vault chính vẫn là `default` với đúng file/đường dẫn cũ (smoke 50 bước chỉ lệch trường `unsaved` có chủ đích). Vault bổ sung (local hoặc GitHub) từ UI hoặc `WEBOBSIDIAN_VAULTS`, hot-reload khi sửa/xoá, mỗi tab chọn vault riêng. Giới hạn đã ghi: git sync chỉ vault chính; API key chưa giới hạn theo vault.

@@ -2,11 +2,15 @@
 // /note/<vault-relative-path> (Graph view = /graph). Opening such a URL after
 // login opens the note; browser back/forward navigate via popstate.
 import { useStore, GRAPH_PATH } from './store';
+import { currentVaultId, DEFAULT_VAULT } from './vault';
+
+// The vault rides along as ?vault= so a copied link opens in the right vault.
+const vq = () => (currentVaultId() === DEFAULT_VAULT ? '' : `?vault=${encodeURIComponent(currentVaultId())}`);
 
 export function pathToUrl(path: string | null): string {
-  if (!path) return '/';
-  if (path === GRAPH_PATH) return '/graph';
-  return `/note/${path.split('/').map(encodeURIComponent).join('/')}`;
+  if (!path) return '/' + vq();
+  if (path === GRAPH_PATH) return '/graph' + vq();
+  return `/note/${path.split('/').map(encodeURIComponent).join('/')}` + vq();
 }
 
 /** Vault path encoded in a location pathname, or null if it isn't a deep link. */
@@ -42,7 +46,7 @@ export function initUrlSync(): string | null {
   useStore.subscribe((state, prev) => {
     if (state.activePath === prev.activePath) return;
     const url = pathToUrl(state.activePath);
-    if (window.location.pathname === url) return;
+    if (window.location.pathname + window.location.search === url) return;
     if (applyingPop || firstSync) window.history.replaceState(null, '', url);
     else window.history.pushState(null, '', url);
     firstSync = false;

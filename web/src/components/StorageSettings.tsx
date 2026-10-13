@@ -14,7 +14,7 @@ const MODE_HELP: Record<Mode, string> = {
   remote: 'Never kept — fetched from GitHub every time (slowest, nothing stored)',
 };
 
-const PRESETS: { name: string; desc: string; rules: RuleRow[] }[] = [
+export const PRESETS: { name: string; desc: string; rules: RuleRow[] }[] = [
   {
     name: 'Notes local, files on demand',
     desc: 'Notes are mirrored and searchable; images, PDFs and the rest are fetched when opened.',
@@ -38,7 +38,7 @@ const PRESETS: { name: string; desc: string; rules: RuleRow[] }[] = [
 
 const effIndex = (r: RuleRow) => r.index ?? r.mode === 'mirror';
 
-function Row({ name, desc, children }: { name: string; desc?: string; children: React.ReactNode }) {
+export function Row({ name, desc, children }: { name: string; desc?: string; children: React.ReactNode }) {
   return (
     <div className="setting-row">
       <div className="info">
@@ -50,7 +50,7 @@ function Row({ name, desc, children }: { name: string; desc?: string; children: 
   );
 }
 
-function Note({ kind, children }: { kind: 'info' | 'warn' | 'error' | 'ok'; children: React.ReactNode }) {
+export function Note({ kind, children }: { kind: 'info' | 'warn' | 'error' | 'ok'; children: React.ReactNode }) {
   const color = { info: 'var(--text-muted)', warn: '#d9a21b', error: '#e5534b', ok: '#3fb950' }[kind];
   return (
     <div

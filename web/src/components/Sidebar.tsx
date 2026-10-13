@@ -1,4 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { api, type VaultInfo } from '../lib/api';
+import { currentVaultId, switchVault } from '../lib/vault';
 import { useStore } from '../lib/store';
 import FileTree, { collectFolderPaths } from './FileTree';
 import SearchPanel from './SearchPanel';
@@ -29,6 +31,30 @@ export default function Sidebar() {
   const toggleAutoReveal = useStore((s) => s.toggleAutoReveal);
   const openContextMenu = useStore((s) => s.openContextMenu);
   const vaultName = tree?.name || 'Vault';
+  const [vaults, setVaults] = useState<VaultInfo[]>([]);
+  useEffect(() => {
+    api.listVaults().then((r) => setVaults(r.vaults)).catch(() => {});
+  }, []);
+  const curId = currentVaultId();
+  const curInfo = vaults.find((v) => v.id === curId);
+  const footerName = vaults.length > 1 ? curInfo?.name ?? vaultName : vaultName;
+  // Each tab has its own vault: picking one here only changes this tab.
+  const openVaultMenu = (e: React.MouseEvent) => {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    openContextMenu({
+      x: r.left,
+      y: Math.max(8, r.top - 8 - vaults.length * 30),
+      items: [
+        ...vaults.map((v) => ({
+          label: v.driver === 'github' ? `${v.name} (GitHub)` : v.name,
+          icon: v.id === curId ? 'check' : 'folder',
+          onClick: () => { if (v.id !== curId) switchVault(v.id); },
+        })),
+        { label: '', separator: true },
+        { label: 'Manage vaults…', icon: 'settings', onClick: () => setSettings(true) },
+      ],
+    });
+  };
 
   const allCollapsed = expanded.length === 0;
   const toggleCollapseAll = () => setExpanded(allCollapsed ? collectFolderPaths(tree) : []);
@@ -130,8 +156,13 @@ export default function Sidebar() {
         {leftPanel === 'bookmarks' && <BookmarksPanel />}
       </div>
       <div className="vault-footer">
-        <span className="vault-name">
-          <Icon name="gem" size={15} /> {vaultName}
+        <span
+          className="vault-name"
+          style={{ cursor: 'pointer' }}
+          title="Switch vault (this tab only)"
+          onClick={openVaultMenu}
+        >
+          <Icon name="gem" size={15} /> {footerName}
         </span>
         <span className="grow" />
         <button title="Settings" onClick={() => setSettings(true)}>

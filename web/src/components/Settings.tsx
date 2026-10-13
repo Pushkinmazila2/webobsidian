@@ -3,9 +3,10 @@ import { useStore } from '../lib/store';
 import { api } from '../lib/api';
 import Icon from './Icon';
 import StorageSettings from './StorageSettings';
+import VaultsSettings from './VaultsSettings';
 import { syncPlugins } from '../lib/plugins';
 
-type Section = 'vault' | 'storage' | 'git' | 'api' | 'sharing' | 'plugins' | 'appearance' | 'account' | 'about';
+type Section = 'vault' | 'storage' | 'vaults' | 'git' | 'api' | 'sharing' | 'plugins' | 'appearance' | 'account' | 'about';
 
 export default function Settings() {
   const open = useStore((s) => s.settingsOpen);
@@ -24,7 +25,7 @@ export default function Settings() {
       <div className="modal settings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="settings-layout">
           <div className="settings-nav">
-            {(['vault', 'storage', 'git', 'api', 'sharing', 'plugins', 'appearance', 'account', 'about'] as Section[]).map((s) => (
+            {(['vault', 'storage', 'vaults', 'git', 'api', 'sharing', 'plugins', 'appearance', 'account', 'about'] as Section[]).map((s) => (
               <button key={s} className={section === s ? 'active' : ''} onClick={() => setSection(s)}>
                 {labels[s]}
               </button>
@@ -33,6 +34,7 @@ export default function Settings() {
           <div className="settings-content">
             {settings && section === 'vault' && <VaultSettings s={settings} reload={() => api.getSettings().then(setSettings)} />}
             {settings && section === 'storage' && <StorageSettings s={settings} reload={() => api.getSettings().then(setSettings)} />}
+            {section === 'vaults' && <VaultsSettings />}
             {settings && section === 'git' && <GitSettings s={settings} reload={() => api.getSettings().then(setSettings)} />}
             {section === 'api' && <ApiKeys />}
             {section === 'sharing' && <Shares />}
@@ -50,6 +52,7 @@ export default function Settings() {
 const labels: Record<Section, string> = {
   vault: 'Vault & Files',
   storage: 'Storage',
+  vaults: 'Vaults',
   git: 'GitHub Sync',
   api: 'API Keys',
   sharing: 'Sharing',

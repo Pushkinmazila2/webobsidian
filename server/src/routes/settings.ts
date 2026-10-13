@@ -6,7 +6,8 @@ import { asyncHandler } from '../middleware/error.js';
 import { requireAuth } from '../middleware/auth.js';
 import { getSettings, updateSettings, redactSettings, ensureVaultBrowsable, storageLockedBy } from '../services/settings.js';
 import { config } from '../config.js';
-import { getStorage, storageRestartRequired } from '../services/vault.js';
+import { getStorage } from '../services/vault.js';
+import { extraVaultConfigs, storageRestartRequired } from '../services/vaults.js';
 import { GithubClient, GithubError, TOKEN_ENV } from '../storage/github/index.js';
 import { applyStoragePatch } from '../services/storagepatch.js';
 
@@ -79,12 +80,15 @@ settingsRouter.post(
   '/storage/test',
   asyncHandler(async (req, res) => {
     const s = await getSettings();
-    const draft: any = JSON.parse(JSON.stringify(s.storage));
+    // `vault` = test an extra vault (its saved settings + env token), else the main one.
+    const extra = req.body?.vault ? extraVaultConfigs(s).find((v) => v.conf.id === req.body.vault)?.conf : undefined;
+    const draft: any = JSON.parse(JSON.stringify(extra ? extra.storage : s.storage));
     applyStoragePatch(draft, { github: req.body?.github ?? {} });
     const g = draft.github;
-    const token = process.env[TOKEN_ENV] || g.token;
+    const tokenVar = (typeof req.body?.tokenEnv === 'string' && req.body.tokenEnv) || extra?.tokenEnv || TOKEN_ENV;
+    const token = process.env[tokenVar] || g.token;
     if (!g.owner || !g.repo) return res.json({ ok: false, error: 'Enter the repository owner and name first' });
-    if (!token) return res.json({ ok: false, error: `No token: set ${TOKEN_ENV} on the server or paste one here` });
+    if (!token) return res.json({ ok: false, error: `No token: set ${tokenVar} on the server or paste one here` });
     const client = new GithubClient({ apiUrl: g.apiUrl, token, maxRetries: 1, maxRateWaitMs: 2000 });
     try {
       const repo = await client.getRepo(g.owner, g.repo);
@@ -150,7 +154,7 @@ async function effectiveRoots(newAllowed?: unknown): Promise<string[]> {
   return roots.map((r) => path.resolve(r));
 }
 
-async function assertVaultPathAllowed(v: any): Promise<void> {
+export async function assertVaultPathAllowed(v: any): Promise<void> {
   const target = path.resolve(String(v.path));
   const roots = await effectiveRoots(v.allowedRoots);
   const within = roots.some((r) => target === r || target.startsWith(r + path.sep));

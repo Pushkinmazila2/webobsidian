@@ -1,8 +1,10 @@
 import { promises as fs } from 'node:fs';
 import MiniSearch from 'minisearch';
 import { getSettings } from './settings.js';
-import { INDEX_FILE, config } from '../config.js';
-import { getStorage, isIndexed, listIndexedMarkdownFiles, readFileText } from './vault.js';
+import path from 'node:path';
+import { currentVault } from './vaultals.js';
+import type { VaultStorage } from '../storage/types.js';
+import { isIndexed, listIndexedMarkdownFiles, readFileText } from './vault.js';
 import { parseNote } from './markdown.js';
 
 /**
@@ -73,7 +75,7 @@ function shiftRanges(untrimmed: string, ranges: [number, number][]): [number, nu
     .filter(([s]) => s < trimmedLen);
 }
 
-class QmdEngine {
+export class QmdEngine {
   private mini: MiniSearch<QmdDoc>;
   private snippets = new Map<string, string>();
   private tagSet = new Map<string, string[]>();
@@ -81,7 +83,7 @@ class QmdEngine {
   private propMeta = new Map<string, Record<string, string>>();
   private ready = false;
 
-  constructor() {
+  constructor(private opts: { indexFile: string; storage: () => VaultStorage }) {
     this.mini = this.newIndex();
   }
 
@@ -316,20 +318,20 @@ class QmdEngine {
    * always rebuild from the content cache at startup.
    */
   private diskIndexAllowed(): boolean {
-    return getStorage().kind === 'local';
+    return this.opts.storage().kind === 'local';
   }
 
   private async persist(): Promise<void> {
     if (!this.diskIndexAllowed()) return;
     try {
-      await fs.mkdir(config.dataDir, { recursive: true });
+      await fs.mkdir(path.dirname(this.opts.indexFile), { recursive: true });
       const payload = {
         mini: this.mini.toJSON(),
         snippets: [...this.snippets.entries()],
         tags: [...this.tagSet.entries()],
         propMeta: [...this.propMeta.entries()],
       };
-      await fs.writeFile(INDEX_FILE, JSON.stringify(payload));
+      await fs.writeFile(this.opts.indexFile, JSON.stringify(payload));
     } catch {
       /* non-fatal */
     }
@@ -338,7 +340,7 @@ class QmdEngine {
   async restore(): Promise<boolean> {
     if (!this.diskIndexAllowed()) return false;
     try {
-      const raw = await fs.readFile(INDEX_FILE, 'utf8');
+      const raw = await fs.readFile(this.opts.indexFile, 'utf8');
       const payload = JSON.parse(raw);
       this.mini = MiniSearch.loadJSON<QmdDoc>(JSON.stringify(payload.mini), {
         fields: FIELDS as unknown as string[],
@@ -388,7 +390,17 @@ function parseFielded(query: string): { filterText: string; fields: string[] } {
   return { filterText: rest.join(' '), fields: [...fields] };
 }
 
-export const qmd = new QmdEngine();
+/**
+ * The search engine of the current vault (see vaultals.ts). A Proxy keeps every
+ * `qmd.search(...)` call site unchanged while each vault owns its own index.
+ */
+export const qmd: QmdEngine = new Proxy({} as QmdEngine, {
+  get(_t, prop) {
+    const eng = currentVault().search as QmdEngine;
+    const v = (eng as any)[prop];
+    return typeof v === 'function' ? v.bind(eng) : v;
+  },
+});
 
 /** Initialize the engine: restore from disk or build fresh. */
 export async function initSearch(): Promise<void> {

@@ -1,4 +1,5 @@
 import { listFiles } from './vault.js';
+import { currentVault } from './vaultals.js';
 
 /**
  * Vault-wide file index for Obsidian-style attachment resolution: an embed like
@@ -7,8 +8,8 @@ import { listFiles } from './vault.js';
  * and resolve by shortest path when a link doesn't include an explicit folder.
  */
 
-let byBasename = new Map<string, string>();
-let byBasenameNoExt = new Map<string, string>();
+/** Per-vault maps (see vaultals.ts). */
+const files = () => currentVault().files;
 
 function depth(p: string): number {
   return p.split('/').length;
@@ -24,23 +25,28 @@ function record(maps: { b: Map<string, string>; bn: Map<string, string> }, rel: 
 }
 
 export async function buildFileIndex(): Promise<void> {
+  const ctx = currentVault();
   const maps = { b: new Map<string, string>(), bn: new Map<string, string>() };
   for (const rel of await listFiles()) record(maps, rel);
-  byBasename = maps.b;
-  byBasenameNoExt = maps.bn;
+  const f = ctx.files;
+  f.byBasename = maps.b;
+  f.byBasenameNoExt = maps.bn;
 }
 
 /** Resolve a link target (basename or partial path) to a real vault path. */
 export function resolveFile(name: string): string | undefined {
   const base = (name.split('/').pop() ?? name).toLowerCase();
+  const { byBasename, byBasenameNoExt } = files();
   return byBasename.get(base) ?? byBasenameNoExt.get(base.replace(/\.[^.]+$/, ''));
 }
 
 export function indexFile(rel: string): void {
-  record({ b: byBasename, bn: byBasenameNoExt }, rel);
+  const f = files();
+  record({ b: f.byBasename, bn: f.byBasenameNoExt }, rel);
 }
 
 export function unindexFile(rel: string): void {
+  const { byBasename, byBasenameNoExt } = files();
   const name = (rel.split('/').pop() ?? rel).toLowerCase();
   if (byBasename.get(name) === rel) byBasename.delete(name);
   const noExt = name.replace(/\.[^.]+$/, '');

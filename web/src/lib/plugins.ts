@@ -7,6 +7,7 @@
  * main.js against it. Plugins relying on Electron/Node internals will fail
  * softly (their missing-API calls throw and are caught) — logged, not fatal.
  */
+import { vaultHeaders, withVault } from './vault';
 import { api } from './api';
 import { useStore } from './store';
 
@@ -155,7 +156,7 @@ function saveDataCoalesced(id: string, data: unknown): Promise<void> {
 /** Evaluate one plugin's main.js against the shim. */
 async function loadPlugin(id: string, manifest: any) {
   if (loaded.has(id)) return;
-  const code = await fetch(`/api/plugins/${id}/main.js`, { credentials: 'include' }).then((r) => r.text());
+  const code = await fetch(`/api/plugins/${id}/main.js`, { credentials: 'include', headers: vaultHeaders() }).then((r) => r.text());
   const module = { exports: {} as any };
   const require = (name: string) => {
     if (name === 'obsidian') return obsidianModule;
@@ -172,7 +173,7 @@ async function loadPlugin(id: string, manifest: any) {
   if (manifest.hasStyles) {
     style = document.createElement('link');
     style.rel = 'stylesheet';
-    style.href = `/api/plugins/${id}/styles.css`;
+    style.href = withVault(`/api/plugins/${id}/styles.css`);
     document.head.appendChild(style);
   }
   loaded.set(id, { instance, style });

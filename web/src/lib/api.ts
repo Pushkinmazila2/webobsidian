@@ -1,4 +1,5 @@
 // Thin fetch wrapper around the WebObsidian server API.
+import { vaultHeaders, withVault } from './vault';
 
 export interface TreeNode {
   name: string;
@@ -18,6 +19,15 @@ export interface TrashItem {
   ext: string;
   size: number;
   mtime: number;
+}
+
+export interface VaultInfo {
+  id: string;
+  name: string;
+  driver: 'local' | 'github';
+  isDefault: boolean;
+  fromEnv: boolean;
+  location: string;
 }
 
 export interface ShareRecord {
@@ -63,7 +73,7 @@ async function req<T>(url: string, opts: RequestInit = {}): Promise<T> {
     ...rest,
     // headers MUST be merged last — spreading ...opts after a `headers` literal
     // would drop Content-Type whenever a caller passes its own headers.
-    headers: { 'Content-Type': 'application/json', ...(optHeaders ?? {}) },
+    headers: { 'Content-Type': 'application/json', ...vaultHeaders(), ...(optHeaders ?? {}) },
   });
   if (res.status === 401) {
     throw new ApiError('Unauthorized', 401);
@@ -137,11 +147,11 @@ export const api = {
     const fd = new FormData();
     fd.append('dir', dir);
     fd.append('file', file);
-    const res = await fetch('/api/files/upload', { method: 'POST', credentials: 'include', body: fd });
+    const res = await fetch('/api/files/upload', { method: 'POST', credentials: 'include', headers: vaultHeaders(), body: fd });
     if (!res.ok) throw new ApiError((await res.json().catch(() => ({}))).error ?? 'Upload failed', res.status);
     return res.json() as Promise<{ ok: true; path: string; size: number }>;
   },
-  rawUrl: (path: string) => `/api/files/content?path=${encodeURIComponent(path)}`,
+  rawUrl: (path: string) => withVault(`/api/files/content?path=${encodeURIComponent(path)}`),
 
   // search & links
   // limit omitted → server returns every match (panel renders them incrementally)
@@ -189,7 +199,16 @@ export const api = {
   getSettings: () => req<any>('/api/settings/'),
   putSettings: (patch: any) => req<any>('/api/settings/', { method: 'PUT', body: JSON.stringify(patch) }),
   storageStatus: () => req<any>('/api/settings/storage/status'),
-  storageTest: (github: any) => req<any>('/api/settings/storage/test', { method: 'POST', body: JSON.stringify({ github }) }),
+  storageTest: (github: any, extra?: { vault?: string; tokenEnv?: string }) =>
+    req<any>('/api/settings/storage/test', { method: 'POST', body: JSON.stringify({ github, ...extra }) }),
+
+  // vaults
+  listVaults: () => req<{ vaults: VaultInfo[] }>('/api/vaults'),
+  getVault: (id: string) => req<{ vault: any }>(`/api/vaults/${id}`),
+  createVault: (body: any) => req<{ vault: any }>('/api/vaults', { method: 'POST', body: JSON.stringify(body) }),
+  updateVault: (id: string, body: any) => req<{ vault: any }>(`/api/vaults/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteVault: (id: string) => req<{ ok: true }>(`/api/vaults/${id}`, { method: 'DELETE' }),
+  vaultStatus: (id: string) => req<any>(`/api/vaults/${id}/status`),
   browse: (dir?: string) =>
     req<{ dir: string; parent: string; roots: string[]; folders: { name: string; path: string }[] }>(
       `/api/settings/browse${dir ? `?dir=${encodeURIComponent(dir)}` : ''}`,
