@@ -190,3 +190,13 @@ async function fetchText(url: string): Promise<string> {
   if (!r.ok) throw new Error(`Download failed: ${url} (${r.status})`);
   return r.text();
 }
+
+/**
+ * main.js as a classic script that registers its module function under `window.__woPlugins[id]`.
+ * The code starts the function body (so a leading "use strict" still applies) and the closing
+ * brace sits on its own line (so a trailing `//` comment, e.g. a sourcemap URL, cannot swallow it).
+ */
+export function wrapPluginCode(id: string, code: string): string {
+  assertSafeId(id);
+  return `(window.__woPlugins = window.__woPlugins || {})[${JSON.stringify(id)}] = function (module, exports, require) {${code}\n};\n`;
+}

@@ -1759,3 +1759,28 @@ audio.media-embed { display: block; width: min(100%, 480px); max-width: 100%; ma
 }
 .image-lightbox-close:hover { background: rgba(255, 255, 255, .18); }
 .image-lightbox-close svg { width: 22px; height: 22px; }
+
+/* ---- Community plugins: Obsidian-style settings widgets, modals, ribbon/status items ---- */
+.plugin-settings-host { margin: 4px 0 14px; padding: 4px 12px; border-left: 2px solid var(--bg-modifier-border); }
+.setting-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid var(--bg-modifier-border); }
+.setting-item:first-child { border-top: 0; }
+.setting-item-heading { font-weight: 600; }
+.setting-item-name { font-weight: 600; }
+.setting-item-description { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+.setting-item-control { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.setting-item.is-disabled { opacity: .5; }
+.plugin-settings-host input[type=text], .plugin-settings-host textarea, .plugin-settings-host select,
+.plugin-modal input[type=text], .plugin-modal textarea, .plugin-modal select {
+  background: var(--bg-primary); color: var(--text-normal); border: 1px solid var(--bg-modifier-border); border-radius: 6px; padding: 4px 8px; font: inherit;
+}
+.plugin-settings-host button, .plugin-modal button { cursor: pointer; }
+.plugin-settings-host button.mod-cta, .plugin-modal button.mod-cta { background: var(--accent, #7c5cff); color: #fff; border: 0; border-radius: 6px; padding: 4px 12px; }
+.plugin-settings-host button.mod-warning, .plugin-modal button.mod-warning { background: #e5534b; color: #fff; border: 0; border-radius: 6px; padding: 4px 12px; }
+.clickable-icon { display: inline-flex; align-items: center; justify-content: center; background: none; border: 0; color: inherit; cursor: pointer; }
+.plugin-modal { min-width: 320px; max-width: 90vw; padding: 16px 20px; margin-top: 12vh; }
+.plugin-modal .modal-title { font-size: 1.1em; font-weight: 600; margin-bottom: 10px; }
+.plugin-modal .modal-title:empty { display: none; }
+.plugin-ribbon-letter { font-weight: 700; font-size: 13px; }
+.status-bar .plugin-status-item { display: inline-flex; align-items: center; gap: 4px; }
+.notice-container { position: fixed; bottom: 34px; right: 16px; display: flex; flex-direction: column; gap: 6px; z-index: 2000; align-items: flex-end; }
+.notice-container .toast { position: static; }

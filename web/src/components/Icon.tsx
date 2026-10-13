@@ -108,3 +108,10 @@ export default function Icon({
     />
   );
 }
+
+/** Same glyph as <Icon>, as an SVG string (for plugins that call setIcon() on a DOM element). */
+export function iconSvg(name: string, size = 16): string {
+  const path = PATHS[name] ?? '';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+}
+export const hasIcon = (name: string): boolean => name in PATHS;

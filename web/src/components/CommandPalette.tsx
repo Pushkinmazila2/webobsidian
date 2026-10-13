@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../lib/store';
 import { api, type TreeNode } from '../lib/api';
+import { pluginHost, usePluginHost } from '../lib/pluginHost';
 
 interface Cmd {
   id: string;
@@ -45,6 +46,7 @@ export default function CommandPalette() {
   const [sel, setSel] = useState(0);
 
   const files = useMemo(() => flatten(tree), [tree]);
+  usePluginHost(); // commands added/removed by community plugins
 
   const commands: Cmd[] = useMemo(
     () => [
@@ -82,11 +84,15 @@ export default function CommandPalette() {
       .filter((f) => !lc || f.title.toLowerCase().includes(lc) || f.path.toLowerCase().includes(lc))
       .slice(0, 40)
       .map((f) => ({ id: `f:${f.path}`, title: f.title, hint: f.path, run: () => openFile(f.path) }));
-    const cmdItems = commands.filter((c) => !lc || c.title.toLowerCase().includes(lc));
+    // Plugin commands (checkCallback hides the ones that can't run right now).
+    const pluginCmds: Cmd[] = open
+      ? pluginHost.commands().filter((c) => c.available()).map((c) => ({ id: `p:${c.id}`, title: c.name, run: c.run }))
+      : [];
+    const cmdItems = [...commands, ...pluginCmds].filter((c) => !lc || c.title.toLowerCase().includes(lc));
     if (isCmd) return cmdItems;
     if (mode === 'files') return fileItems;
     return [...cmdItems.slice(0, 3), ...fileItems];
-  }, [q, mode, files, commands, openFile]);
+  }, [q, mode, files, commands, openFile, open, pluginHost.version()]);
 
   useEffect(() => setSel(0), [q, open]);
   useEffect(() => {

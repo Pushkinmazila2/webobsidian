@@ -5,6 +5,7 @@ import Icon from './Icon';
 import StorageSettings from './StorageSettings';
 import VaultsSettings from './VaultsSettings';
 import { syncPlugins } from '../lib/plugins';
+import { pluginHost, usePluginHost } from '../lib/pluginHost';
 
 type Section = 'vault' | 'storage' | 'vaults' | 'git' | 'api' | 'sharing' | 'plugins' | 'appearance' | 'account' | 'about';
 
@@ -362,7 +363,24 @@ function Shares() {
   );
 }
 
+/** A plugin's own settings tab (PluginSettingTab.display()) rendered inside our settings dialog. */
+function PluginTab({ tab }: { tab: { containerEl: HTMLElement; display(): void; hide(): void } }) {
+  return (
+    <div
+      className="plugin-settings-host"
+      ref={(n) => {
+        if (n && tab.containerEl.parentNode !== n) {
+          n.appendChild(tab.containerEl);
+          try { tab.containerEl.empty(); tab.display(); } catch (e) { n.textContent = `This plugin's settings could not be shown: ${(e as Error).message}`; }
+        }
+      }}
+    />
+  );
+}
+
 function Plugins() {
+  usePluginHost();
+  const [openOptions, setOpenOptions] = useState<string | null>(null);
   const [plugins, setPlugins] = useState<any[]>([]);
   const [unsaved, setUnsaved] = useState(0);
   const [repo, setRepo] = useState('');
@@ -392,17 +410,32 @@ function Plugins() {
       )}
       <div style={{ marginTop: 12 }}>
         {plugins.length === 0 && <div style={{ color: 'var(--text-faint)' }}>No plugins installed in .obsidian/plugins</div>}
-        {plugins.map((p) => (
-          <div className="setting-row" key={p.id}>
-            <div className="info">
-              <div className="name">{p.name} <span style={{ color: 'var(--text-faint)' }}>v{p.version}</span></div>
-              <div className="desc">{p.description}</div>
+        {plugins.map((p) => {
+          const tabs = p.enabled ? pluginHost.tabs(p.id) : [];
+          const err = p.enabled ? pluginHost.error(p.id) : undefined;
+          return (
+            <div key={p.id}>
+              <div className="setting-row">
+                <div className="info">
+                  <div className="name">{p.name} <span style={{ color: 'var(--text-faint)' }}>v{p.version}</span></div>
+                  <div className="desc">{p.description}</div>
+                  {err && <div className="desc" style={{ color: '#e5534b' }}>Could not start: {err}</div>}
+                </div>
+                <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  {tabs.length > 0 && (
+                    <button className="btn" onClick={() => setOpenOptions(openOptions === p.id ? null : p.id)}>
+                      {openOptions === p.id ? 'Hide options' : 'Options'}
+                    </button>
+                  )}
+                  <label>
+                    <input type="checkbox" checked={p.enabled} onChange={async (e) => { await api.setPluginEnabled(p.id, e.target.checked); await syncPlugins(); load(); }} /> enabled
+                  </label>
+                </span>
+              </div>
+              {openOptions === p.id && tabs.map((t, i) => <PluginTab key={i} tab={t.tab} />)}
             </div>
-            <label>
-              <input type="checkbox" checked={p.enabled} onChange={async (e) => { await api.setPluginEnabled(p.id, e.target.checked); await syncPlugins(); load(); }} /> enabled
-            </label>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <p style={{ color: 'var(--text-faint)', fontSize: 12, marginTop: 14 }}>
         Note: WebObsidian supports a subset of the Obsidian plugin API. Most metadata/markdown plugins work; plugins relying on Electron/Node internals may not.

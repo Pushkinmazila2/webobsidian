@@ -58,7 +58,14 @@ pluginsRouter.get(
       res.status(400).json({ error: 'invalid asset' });
       return;
     }
-    const body = await plugins.getPluginAsset(req.params.id, asset as any);
+    let body = await plugins.getPluginAsset(req.params.id, asset as any);
+    // `?wrap=1`: the plugin's CommonJS code wrapped so the browser can run it with a plain
+    // <script src> (allowed by the CSP `script-src 'self'`). Evaluating it from a string
+    // (new Function) would need 'unsafe-eval', which the CSP deliberately does not grant.
+    if (asset === 'main.js' && req.query.wrap) {
+      body = plugins.wrapPluginCode(req.params.id, body);
+      res.setHeader('Cache-Control', 'no-store');
+    }
     const type =
       asset === 'main.js'
         ? 'application/javascript'

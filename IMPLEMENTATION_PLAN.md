@@ -4,7 +4,7 @@
 > Quy ước: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 > Cập nhật file này **mỗi khi** một mục thay đổi trạng thái.
 
-Cập nhật lần cuối: 2026-10-14 (FR-15 — nhiều vault, mỗi tab một vault, kiểu storage khác nhau)
+Cập nhật lần cuối: 2026-10-14 (FR-8 — sửa plugin: CSP + lớp Obsidian API chạy thật; FR-15 nhiều vault)
 
 ---
 
@@ -448,6 +448,7 @@ Cập nhật lần cuối: 2026-10-14 (FR-15 — nhiều vault, mỗi tab một 
 - [ ] M31.16 Kiểm tra ghi trên repo GitHub thật (nhánh thử riêng, không phải main) — thời gian, số request, quyền token
 - [x] M31.13 UI Settings (mục "Storage"): chọn driver, repo/branch/basePath/token, flush/poll, bảng rules (preset, thứ tự, index, cảnh báo rule che khuất), cache, "Test connection", banner cần restart, chỉ báo thay đổi chưa lưu + bản conflict, status bar GitHub; backend `PUT /api/settings` nhận `storage` (validate), `GET /api/settings/storage/status`, `POST /api/settings/storage/test`
 - [x] M31.19 Nhiều vault (FR-15, PRD 2.0): `vaultals.ts` (AsyncLocalStorage) + `vaults.ts` (registry lười, init/watcher/dispose/flushAll), search/links/fileindex/uistate/shares theo vault, `settings.vaults[]` + env `WEBOBSIDIAN_VAULTS`, `/api/vaults` + middleware `X-Vault`/`?vault=` (chỉ sau đăng nhập), route share công khai tìm vault theo token, client: vault theo tab (sessionStorage), bộ chuyển ở sidebar, Settings → Vaults; test e2e (cô lập search/graph/files/plugin/uistate/share giữa vault local và GitHub mock, request song song, thêm/sửa/xoá runtime, env sai), smoke local không đổi
+- [x] M31.21 Sửa plugin (PRD 2.1): nạp qua `<script src>` thay `new Function` (CSP), lớp Obsidian API chạy thật (`lib/obsidianApi.ts`, `lib/pluginHost.ts`: command/ribbon/status bar/settings tab/Modal/Setting/Editor), dọn khi tắt, lỗi nạp hiện trong Settings; kiểm tra E2E bằng Chromium với `obsidian-sample-plugin` (8 kiểm tra: status bar, ribbon, palette, modal, notice, editor command, settings tab, data.json) + test đơn vị `wrapPluginCode`. Chưa: markdown post-processor, view/leaf tuỳ biến, editor extension, `metadataCache` thật — xem tương thích plugin tiếp theo
 - [ ] M31.20 Driver thêm: Git thuần (clone cục bộ/ssh), S3 — chưa yêu cầu
 - [ ] M31.14 Git LFS qua Batch API; fallback GraphQL chỉ lấy `.md` cho repo có nhiều binary ngoài LFS
 
@@ -1301,3 +1302,4 @@ Cập nhật lần cuối: 2026-10-14 (FR-15 — nhiều vault, mỗi tab một 
 - 2026-10-12: Phase 31 M31.17 (PRD 1.8) — cấu hình storage bằng biến môi trường cho container. `storageenv.ts` đọc/validate (dùng chung `storagepatch.ts` với API settings), `settings.ts` phủ env lên settings trong RAM và ghi file chỉ với giá trị người dùng đã lưu, field bị khoá không đổi được qua PUT; UI làm xám field bị khoá. Mutation test 2 invariant (ghi nhầm env xuống file, bỏ khoá khi PUT) đều bị bắt.
 - 2026-10-13: Phase 31 M31.18 (PRD 1.9) — plugin trên storage từ xa. Trạng thái và cấu hình plugin chuyển vào vault (định dạng Obsidian) nên sống sót khi container tạo lại; `loadData/saveData` hoạt động; client tự đồng bộ. Write-behind có lớp hold theo đường dẫn: `.obsidian/**` chờ `holdSec` (300s) với trần chờ, ghi chú vẫn đi theo `flushSec` và không kéo theo thay đổi plugin; sync/shutdown lưu hết. Thêm kiểm tra khoảng giá trị số khi lưu settings/env (trả 400 thay vì lỗi schema).
 - 2026-10-14: Phase 31 M31.19 (PRD 2.0) — nhiều vault. Ngữ cảnh vault theo request (AsyncLocalStorage) nên facade `vault.*`, `qmd`, link graph, file index giữ nguyên chữ ký; vault chính vẫn là `default` với đúng file/đường dẫn cũ (smoke 50 bước chỉ lệch trường `unsaved` có chủ đích). Vault bổ sung (local hoặc GitHub) từ UI hoặc `WEBOBSIDIAN_VAULTS`, hot-reload khi sửa/xoá, mỗi tab chọn vault riêng. Giới hạn đã ghi: git sync chỉ vault chính; API key chưa giới hạn theo vault.
+- 2026-10-14: Phase 31 M31.21 (PRD 2.1) — sửa plugin. Nguyên nhân: CSP chặn `new Function` nên mọi plugin không chạy; chuyển sang `<script src>` do server bọc. Lớp tương thích viết lại để `obsidian-sample-plugin` chạy đủ: command/ribbon/status bar/settings tab/modal/notice/editor; kiểm tra bằng Chromium.

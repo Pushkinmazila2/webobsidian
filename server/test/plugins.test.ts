@@ -83,3 +83,17 @@ test('[plugins] data endpoints validate: unsafe ids → 400, missing data → 40
   await assert.rejects(() => plugins.savePluginData('alpha', { blob: 'x'.repeat(5 * 1024 * 1024) }), (e) => status(e) === 413);
   await assert.rejects(() => plugins.setEnabled('../evil', true), (e) => status(e) === 400);
 });
+
+test('[plugins] wrapPluginCode: a classic-script wrapper (CSP forbids eval) that survives trailing comments and keeps "use strict"', async () => {
+  const code = '"use strict";\nmodule.exports = { hello: () => 42 };\n//# sourceMappingURL=main.js.map';
+  const g: any = { window: {} as any };
+  new Function('window', plugins.wrapPluginCode('demo-1', code))(g.window); // register
+  const mod = { exports: {} as any };
+  g.window.__woPlugins['demo-1'](mod, mod.exports, () => ({}));
+  assert.equal(mod.exports.hello(), 42);
+  // strict mode survived: assigning to an undeclared variable throws
+  const strict = { exports: {} as any };
+  new Function('window', plugins.wrapPluginCode('s', '"use strict"; undeclared = 1;'))(g.window);
+  assert.throws(() => g.window.__woPlugins.s(strict, strict.exports, () => ({})), ReferenceError);
+  assert.throws(() => plugins.wrapPluginCode('../x', ''), (e) => status(e) === 400);
+});

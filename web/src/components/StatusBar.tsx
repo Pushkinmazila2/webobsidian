@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react';
 import { useStore } from '../lib/store';
 import { api } from '../lib/api';
 import Icon from './Icon';
+import { pluginHost, usePluginHost } from '../lib/pluginHost';
+
+/** Mounts a DOM element created by a plugin (addStatusBarItem) into the status bar. */
+function HostedEl({ el }: { el: HTMLElement }) {
+  return <span ref={(n) => { if (n && el.parentNode !== n) n.appendChild(el); }} />;
+}
 
 export default function StatusBar() {
   const content = useStore((s) => s.content);
@@ -11,6 +17,7 @@ export default function StatusBar() {
   const notify = useStore((s) => s.notify);
   const [git, setGit] = useState<any>(null);
   const [syncing, setSyncing] = useState(false);
+  usePluginHost();
 
   const refresh = () => api.gitStatus().then(setGit).catch(() => setGit(null));
   useEffect(() => {
@@ -53,6 +60,7 @@ export default function StatusBar() {
 
   return (
     <div className="status-bar">
+      {pluginHost.status().map((x, i) => <HostedEl key={i} el={x.el} />)}
       {dirty && <span>Saving…</span>}
       {isText && <span>{words} words</span>}
       {isText && <span>{content.length} characters</span>}
