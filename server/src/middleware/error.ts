@@ -12,7 +12,8 @@ export function asyncHandler<T>(
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function errorHandler(err: any, _req: Request, res: Response, _next: NextFunction): void {
-  const status = err?.status ?? 500;
+  // A missing file / a directory where a file was expected is the client's problem, not a server fault.
+  const status = err?.status ?? (err?.code === 'ENOENT' ? 404 : err?.code === 'EISDIR' ? 400 : 500);
   // Redact any URL-embedded credentials (e.g. a Git PAT baked into an
   // authenticated remote URL) before this message hits the client OR the logs.
   const message = redactUrlCreds(err?.message ?? 'Internal Server Error');

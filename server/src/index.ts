@@ -75,13 +75,20 @@ async function main() {
         useDefaults: true,
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", (_req, res) => `'nonce-${(res as Response).locals.cspNonce}'`],
+          scriptSrc: [
+            "'self'",
+            (_req, res) => `'nonce-${(res as Response).locals.cspNonce}'`,
+            // Opt-in: some plugins (Excalidraw, …) evaluate strings. Off by default — it weakens XSS protection.
+            ...(process.env.WEBOBSIDIAN_ALLOW_UNSAFE_EVAL === '1' ? ["'unsafe-eval'"] : []),
+          ],
           styleSrc: ["'self'", "'unsafe-inline'"],
           imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
           fontSrc: ["'self'", 'data:'],
           connectSrc: ["'self'", 'ws:', 'wss:'],
           objectSrc: ["'none'"],
           frameSrc: ["'self'", 'blob:'],
+          // Plugins (and the PDF/graph libs) spin up Web Workers from blob: URLs.
+          workerSrc: ["'self'", 'blob:'],
           baseUri: ["'self'"],
           formAction: ["'self'"],
           frameAncestors: ["'none'"],

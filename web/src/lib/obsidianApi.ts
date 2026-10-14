@@ -13,7 +13,8 @@ import { api } from './api';
 import { useStore, type ContextMenuItem } from './store';
 import { getActiveEditor } from './activeEditor';
 import { pluginHost } from './pluginHost';
-import { iconSvg, registerCustomIcon, unregisterCustomIcon } from '../components/Icon';
+import { iconSvg, registerCustomIcon, unregisterCustomIcon, listIconNames } from '../components/Icon';
+import { renderMarkdown as renderMarkdownHtml } from './markdown';
 import * as utils from './obsidianUtils';
 
 // ---- DOM helpers Obsidian adds to every element ------------------------------------------
@@ -95,6 +96,21 @@ function installDomHelpers() {
   def(Element.prototype, 'find', function (this: Element, s: string) { return this.querySelector(s); });
   def(Element.prototype, 'findAll', function (this: Element, s: string) { return Array.from(this.querySelectorAll(s)); });
   const w = window as any;
+  // Obsidian also exposes these as globals (plugins call createDiv(), createFragment(), sleep() …).
+  w.createEl ??= (tag: any, o?: ElOpts, cb?: any) => createElIn(null, tag, o, cb);
+  w.createDiv ??= (o?: ElOpts, cb?: any) => createElIn(null, 'div', o, cb);
+  w.createSpan ??= (o?: ElOpts, cb?: any) => createElIn(null, 'span', o, cb);
+  w.createSvg ??= (tag: string, o?: { cls?: string | string[]; attr?: Record<string, string> }, cb?: any) => {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    if (o?.cls) el.classList.add(...([] as string[]).concat(o.cls));
+    for (const [k, v] of Object.entries(o?.attr ?? {})) el.setAttribute(k, v);
+    cb?.(el); return el;
+  };
+  w.createFragment ??= (cb?: (f: DocumentFragment) => void) => { const f = document.createDocumentFragment(); cb?.(f); return f; };
+  w.sleep ??= (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+  w.nextFrame ??= () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+  // Obsidian still exposes legacy CodeMirror 5 as a global; Dataview registers a highlight mode on it.
+  w.CodeMirror ??= { defineMode() {}, defineMIME() {}, defineExtension() {}, registerHelper() {}, getMode: () => ({}), modes: {}, mimeModes: {}, commands: {} };
   w.activeDocument ??= document;
   w.activeWindow ??= window;
 }
@@ -174,13 +190,54 @@ function flattenFiles(): TFile[] {
 const asFile = (f: TFile | string) => (typeof f === 'string' ? f : f.path);
 const readText = async (path: string) => { const r: any = await api.read(path); return typeof r === 'string' ? r : r.content; };
 
+function treeNode(path: string): any | null {
+  const p = normalizePath(path);
+  if (p === '') return useStore.getState().tree ?? null;
+  let found: any = null;
+  const walk = (n: any) => { if (found) return; if (n.path === p) { found = n; return; } n.children?.forEach(walk); };
+  useStore.getState().tree?.children?.forEach(walk);
+  return found;
+}
+/** `vault.adapter`: path-based file access (no real disk path exists — the vault may live in GitHub). */
+export class DataAdapter {
+  getName() { return 'WebObsidian'; }
+  async exists(p: string, _sensitive?: boolean) { try { await api.read(p); return true; } catch { return treeNode(p) !== null; } }
+  async read(p: string) { return readText(p); }
+  async write(p: string, data: string) { await api.write(p, data); }
+  async append(p: string, data: string) { let old = ''; try { old = await readText(p); } catch { /* new file */ } await api.write(p, old + data); }
+  async process(p: string, fn: (d: string) => string) { const next = fn(await readText(p)); await api.write(p, next); return next; }
+  async readBinary(p: string): Promise<ArrayBuffer> {
+    const r = await fetch(api.rawUrl(p), { credentials: 'include' });
+    if (!r.ok) throw new Error(`Cannot read ${p} (${r.status})`);
+    return r.arrayBuffer();
+  }
+  async writeBinary(p: string, data: ArrayBuffer) {
+    const i = p.lastIndexOf('/');
+    await api.upload(new File([data], i < 0 ? p : p.slice(i + 1)), i < 0 ? '' : p.slice(0, i));
+  }
+  async mkdir(p: string) { await api.createFolder(normalizePath(p)); }
+  async remove(p: string) { await api.remove(p); }
+  async rmdir(p: string, _recursive?: boolean) { await api.remove(p); }
+  async trashSystem(p: string) { await api.remove(p); return true; }
+  async trashLocal(p: string) { await api.remove(p); }
+  async rename(from: string, to: string) { await api.rename(from, to); }
+  async copy(from: string, to: string) { await api.copy(from, to); }
+  async list(p: string): Promise<{ files: string[]; folders: string[] }> {
+    const n = treeNode(p);
+    const kids: any[] = n?.children ?? [];
+    return { files: kids.filter((k) => k.type === 'file').map((k) => k.path), folders: kids.filter((k) => k.type !== 'file').map((k) => k.path) };
+  }
+  async stat(p: string): Promise<{ type: 'file' | 'folder'; ctime: number; mtime: number; size: number } | null> {
+    const n = treeNode(p);
+    return n ? { type: n.type === 'file' ? 'file' : 'folder', ctime: n.ctime ?? 0, mtime: n.mtime ?? 0, size: n.size ?? 0 } : null;
+  }
+  getResourcePath(p: string) { return api.rawUrl(p); }
+  getFullPath(p: string) { return p; }
+  getBasePath() { return ''; }
+}
+
 export class Vault extends Events {
-  adapter = {
-    exists: async (p: string) => { try { await api.read(p); return true; } catch { return false; } },
-    read: (p: string) => readText(p),
-    write: (p: string, data: string) => api.write(p, data),
-    getName: () => 'WebObsidian',
-  };
+  adapter: DataAdapter = new DataAdapter();
   getName() { return 'WebObsidian'; }
   getRoot() { return new TFolder(''); }
   async read(file: TFile) { return readText(file.path); }
@@ -346,7 +403,140 @@ export class MarkdownView {
   getViewData() { return useStore.getState().content; }
   getDisplayText() { return this.file?.basename ?? ''; }
 }
-export class ItemView extends Component { constructor(public leaf?: unknown) { super(); } getViewType() { return ''; } getDisplayText() { return ''; } }
+export class View extends Component {
+  app: App = new App();
+  containerEl: HTMLElement = document.createElement('div');
+  icon = '';
+  navigation = true;
+  scope: Scope | null = null;
+  constructor(public leaf: WorkspaceLeaf = new WorkspaceLeaf()) { super(); this.containerEl.className = 'view-container'; }
+  getViewType(): string { return ''; }
+  getDisplayText(): string { return ''; }
+  getIcon(): string { return this.icon; }
+  getState(): Record<string, unknown> { return {}; }
+  async setState(_state: unknown, _result?: unknown): Promise<void> {}
+  getEphemeralState(): Record<string, unknown> { return {}; }
+  setEphemeralState(_state: unknown): void {}
+  onOpen(): void | Promise<void> {}
+  onClose(): void | Promise<void> {}
+  onResize(): void {}
+  onPaneMenu(_menu: Menu, _source: string): void {}
+  addAction(icon: string, title: string, cb: (e: MouseEvent) => any): HTMLElement {
+    const el = createElIn(null, 'a', { cls: 'view-action clickable-icon', attr: { 'aria-label': title } });
+    el.innerHTML = iconSvg(icon, 16); el.addEventListener('click', cb as any); return el;
+  }
+  handleCopy(_e: ClipboardEvent) {}
+  handleCut(_e: ClipboardEvent) {}
+  handlePaste(_e: ClipboardEvent) {}
+}
+export class ItemView extends View {
+  contentEl: HTMLElement;
+  constructor(leaf?: WorkspaceLeaf) {
+    super(leaf);
+    this.contentEl = this.containerEl.createDiv('view-content');
+  }
+  addAction(icon: string, title: string, cb: (e: MouseEvent) => any): HTMLElement { return super.addAction(icon, title, cb); }
+}
+export class FileView extends ItemView {
+  allowNoFile = false;
+  file: TFile | null = null;
+  navigation = true;
+  getDisplayText(): string { return this.file?.basename ?? ''; }
+  canAcceptExtension(_extension: string): boolean { return false; }
+  async onLoadFile(_file: TFile): Promise<void> {}
+  async onUnloadFile(_file: TFile): Promise<void> {}
+  async onRename(_file: TFile): Promise<void> {}
+}
+export abstract class TextFileView extends FileView {
+  data = '';
+  lastSavedData: string | null = null;
+  private saveTimer: ReturnType<typeof setTimeout> | undefined;
+  requestSave = () => {
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(() => { void this.save(); }, 2000);
+  };
+  abstract getViewData(): string;
+  abstract setViewData(data: string, clear: boolean): void;
+  abstract clear(): void;
+  async onLoadFile(file: TFile) { this.data = await readText(file.path); this.lastSavedData = this.data; this.setViewData(this.data, true); }
+  async onUnloadFile(_file: TFile) { await this.save(); this.clear(); }
+  async save(_clear?: boolean) {
+    if (!this.file) return;
+    this.data = this.getViewData();
+    if (this.data !== this.lastSavedData) { await api.write(this.file.path, this.data); this.lastSavedData = this.data; }
+  }
+}
+export class EditableFileView extends FileView {}
+
+export class WorkspaceItem extends Events {
+  parent: WorkspaceParent | null = null;
+  getRoot(): WorkspaceItem { return this; }
+  getContainer(): WorkspaceItem { return this; }
+}
+export class WorkspaceParent extends WorkspaceItem { children: WorkspaceItem[] = []; }
+export class WorkspaceSplit extends WorkspaceParent { direction: 'vertical' | 'horizontal' = 'vertical'; }
+export class WorkspaceLeaf extends WorkspaceItem {
+  view: View = new MarkdownViewShell();
+  async openFile(f: TFile, _state?: unknown) { await useStore.getState().openFile(f.path); }
+  async open(view: View) { this.view = view; return view; }
+  async setViewState(_state: unknown, _eState?: unknown) {}
+  getViewState(): { type: string; state?: unknown } { return { type: this.view.getViewType() }; }
+  getDisplayText() { return this.view.getDisplayText(); }
+  getIcon() { return this.view.getIcon(); }
+  detach() {}
+  setPinnedFlag(_p: boolean) {}
+  isDeferred = false;
+  async loadIfDeferred() {}
+  setGroup(_g: string) {}
+  setEphemeralState(_s: unknown) {}
+  togglePinned() {}
+}
+class MarkdownViewShell extends ItemView { getViewType() { return 'markdown'; } }
+
+export class MarkdownRenderChild extends Component {
+  constructor(public containerEl: HTMLElement) { super(); }
+}
+export const MarkdownRenderer = {
+  async render(_app: App, markdown: string, el: HTMLElement, _sourcePath: string, _component: Component) {
+    el.innerHTML = await renderMarkdownHtml(markdown, { rawUrl: (p: string) => api.rawUrl(p) });
+  },
+  async renderMarkdown(markdown: string, el: HTMLElement, sourcePath: string, component: Component) {
+    return MarkdownRenderer.render(new App(), markdown, el, sourcePath, component);
+  },
+};
+
+// ---- Settings groups & secrets --------------------------------------------------------------
+export class SettingGroup {
+  groupEl: HTMLElement;
+  headerEl: HTMLElement;
+  listEl: HTMLElement;
+  constructor(public containerEl: HTMLElement) {
+    this.groupEl = containerEl.createDiv('setting-group');
+    this.headerEl = this.groupEl.createDiv('setting-item setting-item-heading');
+    this.listEl = this.groupEl.createDiv('setting-items');
+  }
+  setHeading(heading: string | DocumentFragment) { this.headerEl.setText(heading as any); return this; }
+  addClass(cls: string) { this.groupEl.classList.add(cls); return this; }
+  addSetting(cb: (setting: Setting) => void) { cb(new Setting(this.listEl)); return this; }
+  addSearch(cb: (c: SearchComponent) => any) { new Setting(this.listEl).addSearch(cb); return this; }
+  addExtraButton(cb: (c: ExtraButtonComponent) => any) { new Setting(this.headerEl).addExtraButton(cb); return this; }
+}
+/** Secrets live in this browser's localStorage (never in the vault, so they are not synced to GitHub). */
+export class SecretStorage {
+  private key = (id: string) => `wo-secret:${id}`;
+  getSecret(id: string): string | null { try { return localStorage.getItem(this.key(id)); } catch { return null; } }
+  setSecret(id: string, secret: string): void { try { localStorage.setItem(this.key(id), secret); } catch { /* storage unavailable */ } }
+  listSecrets(): string[] { try { return Object.keys(localStorage).filter((k) => k.startsWith('wo-secret:')).map((k) => k.slice(10)); } catch { return []; } }
+}
+// ---- Bases value types (minimal, so plugins that extend them load) ---------------------------
+export class Value { static type = 'value'; isTruthy(): boolean { return true; } toString(): string { return ''; } equals(o: Value) { return this.toString() === o.toString(); } }
+export class NullValue extends Value { static type = 'null'; isTruthy() { return false; } }
+export class PrimitiveValue<T> extends Value { constructor(public value: T) { super(); } toString() { return String(this.value); } isTruthy() { return !!this.value; } }
+export class StringValue extends PrimitiveValue<string> { static type = 'string'; }
+export class NumberValue extends PrimitiveValue<number> { static type = 'number'; }
+export class BooleanValue extends PrimitiveValue<boolean> { static type = 'boolean'; }
+export class DateValue extends PrimitiveValue<Date> { static type = 'date'; }
+export class ListValue extends Value { static type = 'list'; constructor(public value: Value[]) { super(); } isTruthy() { return this.value.length > 0; } toString() { return this.value.map(String).join(', '); } length() { return this.value.length; } get(i: number) { return this.value[i]; } }
 export interface MarkdownFileInfo { file: TFile | null; editor?: Editor }
 
 export class Workspace extends Events {
@@ -362,11 +552,30 @@ export class Workspace extends Events {
     return null;
   }
   getLeaf(_new?: boolean | string) {
-    return { openFile: async (f: TFile) => { await useStore.getState().openFile(f.path); }, view: new MarkdownView() };
+    const leaf = new WorkspaceLeaf();
+    leaf.view = new MarkdownView() as unknown as View;
+    return leaf;
   }
+  getRightLeaf(_split: boolean) { return this.getLeaf(); }
+  getLeftLeaf(_split: boolean) { return this.getLeaf(); }
+  ensureSideLeaf(_type: string, _side: string, _o?: unknown) { return Promise.resolve(this.getLeaf()); }
+  revealLeaf(_leaf: WorkspaceLeaf) { return Promise.resolve(); }
+  setActiveLeaf(_leaf: WorkspaceLeaf, _o?: unknown) {}
   getMostRecentLeaf() { return this.getLeaf(); }
   async openLinkText(link: string, _src?: string) { await useStore.getState().openFile(/\.[a-z0-9]+$/i.test(link) ? link : `${link}.md`); }
   onLayoutReady(cb: () => void) { cb(); }
+  layoutReady = true;
+  containerEl: HTMLElement = document.body;
+  leftSplit = new WorkspaceSplit();
+  rightSplit = new WorkspaceSplit();
+  rootSplit = new WorkspaceSplit();
+  updateOptions() {}
+  requestSaveLayout() {}
+  getLastOpenFiles(): string[] { return useStore.getState().tabs.map((t: any) => (typeof t === 'string' ? t : t.path)).filter(Boolean); }
+  duplicateLeaf(leaf: WorkspaceLeaf) { return Promise.resolve(leaf); }
+  getGroupLeaves(_g: string): WorkspaceLeaf[] { return []; }
+  getLeafById(_id: string): WorkspaceLeaf | null { return null; }
+  moveLeafToPopout(leaf: WorkspaceLeaf) { return leaf; }
   iterateAllLeaves(_cb: (l: unknown) => void) {}
   detachLeavesOfType(_t: string) {}
   getLeavesOfType(_t: string): unknown[] { return []; }
@@ -383,8 +592,29 @@ useStore.subscribe((s, prev) => {
 export class App {
   vault = new Vault();
   workspace = sharedWorkspace;
-  metadataCache = Object.assign(new Events(), { getFileCache: (_f: unknown) => null as unknown, getCache: (_p: string) => null as unknown, resolvedLinks: {} as Record<string, unknown> });
+  metadataCache = Object.assign(new Events(), { getFileCache: (_f: unknown) => null as unknown, getCache: (_p: string) => null as unknown, resolvedLinks: {} as Record<string, unknown>, unresolvedLinks: {} as Record<string, unknown>,
+    getCachedFiles: (): string[] => flattenFiles().map((f) => f.path),
+    /** Resolve `[[link]]` text to a file: exact path, then path + .md, then unique basename. */
+    getFirstLinkpathDest: (linkpath: string, _sourcePath?: string): TFile | null => {
+      const lp = normalizePath(utils.getLinkpath(linkpath));
+      const files = flattenFiles();
+      return files.find((f) => f.path === lp) ?? files.find((f) => f.path === `${lp}.md`)
+        ?? files.find((f) => f.basename.toLowerCase() === lp.toLowerCase() || f.path.toLowerCase().endsWith(`/${lp.toLowerCase()}.md`)) ?? null;
+    },
+    fileToLinktext: (file: TFile, _sourcePath: string, omitMdExtension = true): string => (omitMdExtension ? file.path.replace(/\.md$/i, '') : file.path),
+  });
   keymap = {};
+  secretStorage = new SecretStorage();
+  /** Plugin manager as seen by other plugins (`app.plugins.plugins[id]`, `getPlugin`). */
+  plugins = { plugins: {} as Record<string, unknown>, enabledPlugins: new Set<string>(), manifests: {} as Record<string, unknown>, getPlugin(id: string): unknown { return this.plugins[id] ?? null; } };
+  internalPlugins = { plugins: {} as Record<string, unknown>, getPluginById(_id: string): unknown { return null; }, getEnabledPluginById(_id: string): unknown { return null; } };
+  commands = {
+    commands: {} as Record<string, unknown>,
+    listCommands: () => pluginHost.commands().map((c) => ({ id: c.id, name: c.name })),
+    findCommand: (id: string) => pluginHost.commands().find((c) => c.id === id) ?? null,
+    executeCommandById: (id: string) => { const c = pluginHost.commands().find((x) => x.id === id); if (c && c.available()) { c.run(); return true; } return false; },
+  };
+  hotkeyManager = { getHotkeys: (_id: string): unknown[] => [], getDefaultHotkeys: (_id: string): unknown[] => [], addDefaultHotkeys: (_id: string, _keys: unknown[]) => {}, removeDefaultHotkeys: (_id: string) => {}, setHotkeys: (_id: string, _keys: unknown[]) => {}, printHotkeyForCommand: (_id: string) => '' };
   scope = new Scope();
   lastEvent: UIEvent | null = null;
   setting = { open() {}, close() {}, openTabById(_id: string) {} };
@@ -400,20 +630,21 @@ export class App {
 
 /** Minimal hotkey scope: plugins register handlers; modals/suggesters dispatch keydown to them. */
 export class Scope {
-  private handlers: { modifiers: string[]; key: string | null; fn: (e: KeyboardEvent, ctx: unknown) => any }[] = [];
+  /** Registered handlers (Obsidian calls them `keys`; plugins inspect/unregister them). */
+  keys: { modifiers: string[]; key: string | null; func: (e: KeyboardEvent, ctx: unknown) => any; scope?: Scope }[] = [];
   constructor(public parent?: Scope) {}
   register(modifiers: string[] | null, key: string | null, fn: (e: KeyboardEvent, ctx: unknown) => any) {
-    const h = { modifiers: modifiers ?? [], key, fn }; this.handlers.push(h); return h;
+    const h = { modifiers: modifiers ?? [], key, func: fn, scope: this }; this.keys.push(h); return h;
   }
-  unregister(h: unknown) { this.handlers = this.handlers.filter((x) => x !== h); }
+  unregister(h: unknown) { this.keys = this.keys.filter((x) => x !== h); }
   /** Returns true when a handler consumed the event. */
   handle(e: KeyboardEvent): boolean {
-    for (const h of this.handlers) {
+    for (const h of this.keys) {
       const want = new Set(h.modifiers.map((m) => (m === 'Mod' ? (Platform.isMacOS ? 'Meta' : 'Ctrl') : m)));
       const have = new Set<string>([e.ctrlKey && 'Ctrl', e.metaKey && 'Meta', e.altKey && 'Alt', e.shiftKey && 'Shift'].filter(Boolean) as string[]);
       if (want.size !== have.size || [...want].some((m) => !have.has(m))) continue;
       if (h.key !== null && h.key.toLowerCase() !== e.key.toLowerCase()) continue;
-      if (h.fn(e, {}) !== false) return true;
+      if (h.func(e, {}) !== false) return true;
     }
     return this.parent?.handle(e) ?? false;
   }
@@ -470,6 +701,15 @@ export class Notice {
   hide() { this.noticeEl.remove(); }
 }
 
+// Escape closes the most recently opened modal even when focus is elsewhere on the page.
+const openModals: Modal[] = [];
+document.addEventListener('keydown', (e) => {
+  const top = openModals[openModals.length - 1];
+  if (!top || e.key !== 'Escape' || e.defaultPrevented) return;
+  if (top.scope.handle(e)) { e.preventDefault(); return; }
+  top.close();
+}, true);
+
 export class Modal {
   containerEl = document.createElement('div');
   modalEl = document.createElement('div');
@@ -487,16 +727,19 @@ export class Modal {
     this.containerEl.appendChild(this.modalEl);
     this.containerEl.addEventListener('mousedown', (e) => { if (e.target === this.containerEl) this.close(); });
     this.modalEl.addEventListener('keydown', (e) => {
-      if (this.scope.handle(e as KeyboardEvent)) { e.preventDefault(); return; }
-      if ((e as KeyboardEvent).key === 'Escape') this.close();
+      if ((e as KeyboardEvent).key !== 'Escape' && this.scope.handle(e as KeyboardEvent)) e.preventDefault();
     });
   }
   setCloseCallback(cb: () => void) { this.closeCb = cb; return this; }
   onHistoryBack(): boolean { return false; }
   setTitle(t: string) { this.titleEl.setText(t); return this; }
   setContent(c: string | DocumentFragment) { this.contentEl.setText(c as any); return this; }
-  open() { document.body.appendChild(this.containerEl); void this.onOpen(); }
-  close() { if (!this.containerEl.isConnected) return; this.containerEl.remove(); void this.onClose(); this.closeCb?.(); }
+  open() {
+    document.body.appendChild(this.containerEl);
+    openModals.push(this);
+    void this.onOpen();
+  }
+  close() { if (!this.containerEl.isConnected) return; const i = openModals.indexOf(this); if (i >= 0) openModals.splice(i, 1); this.containerEl.remove(); void this.onClose(); this.closeCb?.(); }
   onOpen(): void | Promise<void> {}
   onClose(): void | Promise<void> {}
 }
@@ -695,11 +938,35 @@ export class Setting {
   then(cb: (s: Setting) => any) { cb(this); return this; }
 }
 
-export class PluginSettingTab {
-  containerEl = document.createElement('div');
-  constructor(public app: App, public plugin: Plugin) { this.containerEl.className = 'vertical-tab-content'; }
-  display(): void {}
+export abstract class SettingPage {
+  rootEl: HTMLElement = document.createElement('div');
+  titlebarEl: HTMLElement = document.createElement('div');
+  containerEl: HTMLElement = document.createElement('div');
+  title = '';
+  constructor() {
+    this.rootEl.className = 'setting-page';
+    this.titlebarEl.className = 'setting-page-titlebar';
+    this.containerEl.className = 'setting-page-content';
+    this.rootEl.append(this.titlebarEl, this.containerEl);
+  }
+  abstract display(): void;
   hide(): void {}
+}
+export abstract class SettingTab {
+  icon = '';
+  app!: App;
+  containerEl: HTMLElement = document.createElement('div');
+  settingItems: unknown[] = [];
+  getSettingDefinitions(): unknown[] { return []; }
+  update(): void { this.settingItems = this.getSettingDefinitions(); }
+  getControlValue(_key: string): unknown { return undefined; }
+  setControlValue(_key: string, _value: unknown): void | Promise<void> {}
+  abstract display(): void;
+  hide(): void {}
+}
+export class PluginSettingTab extends SettingTab {
+  constructor(public app: App, public plugin: Plugin) { super(); this.containerEl.className = 'vertical-tab-content'; }
+  display(): void {}
 }
 
 // ---- Plugin -------------------------------------------------------------------------------
@@ -770,9 +1037,12 @@ export class Plugin extends Component {
   addSettingTab(tab: PluginSettingTab) { pluginHost.addTab(this.pid(), this.manifest.name, tab); }
   async loadData(): Promise<any> { return dataBackend ? dataBackend.load(this.pid()) : null; }
   async saveData(data: unknown): Promise<void> { await dataBackend?.save(this.pid(), data); }
-  registerMarkdownPostProcessor(_fn: unknown) {}
-  registerMarkdownCodeBlockProcessor(_lang: string, _fn: unknown) {}
+  registerMarkdownPostProcessor(fn: any, sortOrder?: number) { const f = typeof fn === 'function' ? fn : () => {}; f.sortOrder = sortOrder; return f; }
+  registerMarkdownCodeBlockProcessor(_lang: string, fn: any, sortOrder?: number) { const f = (typeof fn === 'function' ? fn : () => {}) as any; f.sortOrder = sortOrder; return f; }
   registerEditorExtension(_ext: unknown) {}
+  registerEditorSuggest(_s: unknown) {}
+  registerBasesView(_id: string, _reg: unknown) {}
+  registerCliHandler(_id: string, _d: string, _f: unknown, _h: unknown) {}
   registerView(_type: string, _creator: unknown) {}
   registerExtensions(_exts: string[], _viewType: string) {}
   registerObsidianProtocolHandler(_action: string, _handler: unknown) {}
@@ -808,6 +1078,43 @@ export function setIcon(el: HTMLElement, name: string) { el.innerHTML = iconSvg(
 export const getIcon = (name: string): SVGSVGElement | null => { const t = document.createElement('div'); t.innerHTML = iconSvg(name, 16); return t.firstElementChild as SVGSVGElement | null; };
 export const addIcon = (name: string, svg: string) => { registerCustomIcon(name, svg); };
 export const removeIcon = (name: string) => { unregisterCustomIcon(name); };
+export async function request(req: string | { url: string; method?: string; headers?: Record<string, string>; body?: string; contentType?: string }): Promise<string> { return (await requestUrl(req)).text; }
+export function htmlToMarkdown(html: string | HTMLElement | Document | DocumentFragment): string {
+  const root: Node = typeof html === 'string' ? new DOMParser().parseFromString(html, 'text/html').body : html;
+  const walk = (n: Node): string => {
+    if (n.nodeType === Node.TEXT_NODE) return (n.textContent ?? '').replace(/\s+/g, ' ');
+    if (!(n instanceof Element)) return Array.from(n.childNodes).map(walk).join('');
+    const inner = () => Array.from(n.childNodes).map(walk).join('');
+    const tag = n.tagName.toLowerCase();
+    if (/^h[1-6]$/.test(tag)) return `\n\n${'#'.repeat(Number(tag[1]))} ${inner().trim()}\n\n`;
+    switch (tag) {
+      case 'p': case 'div': return `\n\n${inner().trim()}\n\n`;
+      case 'br': return '\n';
+      case 'strong': case 'b': return `**${inner()}**`;
+      case 'em': case 'i': return `*${inner()}*`;
+      case 'code': return n.parentElement?.tagName === 'PRE' ? inner() : `\`${inner()}\``;
+      case 'pre': return `\n\n\`\`\`\n${n.textContent ?? ''}\n\`\`\`\n\n`;
+      case 'a': return `[${inner()}](${n.getAttribute('href') ?? ''})`;
+      case 'img': return `![${n.getAttribute('alt') ?? ''}](${n.getAttribute('src') ?? ''})`;
+      case 'li': return `\n${n.parentElement?.tagName === 'OL' ? '1.' : '-'} ${inner().trim()}`;
+      case 'ul': case 'ol': return `\n${inner()}\n`;
+      case 'blockquote': return `\n\n> ${inner().trim().replace(/\n/g, '\n> ')}\n\n`;
+      case 'hr': return '\n\n---\n\n';
+      case 'script': case 'style': return '';
+      default: return inner();
+    }
+  };
+  return walk(root).replace(/\n{3,}/g, '\n\n').trim();
+}
+export const getAllTags = (cache: { tags?: { tag: string }[]; frontmatter?: Record<string, unknown> } | null): string[] | null => {
+  if (!cache) return null;
+  const out = new Set<string>((cache.tags ?? []).map((t) => t.tag));
+  for (const t of utils.parseFrontMatterTags(cache.frontmatter ?? null) ?? []) out.add(t);
+  return [...out];
+};
+export const getIconIds = (): string[] => listIconNames();
+export const resolveSubpath = (_cache: unknown, _subpath: string): null => null;
+export async function loadPdfJs(): Promise<never> { throw new Error('PDF rendering is not available in WebObsidian'); }
 export const getLanguage = (): string => (document.documentElement.lang || navigator.language || 'en').split('-')[0].toLowerCase();
 export async function loadMermaid(): Promise<any> { return (await import('mermaid')).default; }
 
@@ -1016,6 +1323,8 @@ export class PopoverSuggest<T> extends SuggestList<T> {
   constructor(public app: App, scope?: Scope) {
     super();
     if (scope) this.scope = scope;
+    // Obsidian's suggest popovers ship a default Escape handler (plugins patch its `func`).
+    if (!this.scope.keys.length) this.scope.register([], 'Escape', () => { this.close(); return false; });
     this.listEl.className = 'suggestion-container suggestion';
     this.listEl.style.cssText = 'position:fixed;z-index:10000;';
   }
@@ -1053,6 +1362,29 @@ export abstract class AbstractInputSuggest<T> extends PopoverSuggest<T> {
   selectSuggestion(value: T, evt: MouseEvent | KeyboardEvent) { this.onSelectCb?.(value, evt); }
 }
 
+// ---- Editor suggest (autocomplete popups driven by the editor) -----------------------------
+export interface EditorSuggestContext { editor: Editor; file: TFile | null; start: EditorPosition; end: EditorPosition; query: string }
+export abstract class EditorSuggest<T> extends PopoverSuggest<T> {
+  context: EditorSuggestContext | null = null;
+  limit = 100;
+  constructor(app: App) { super(app); }
+  setInstructions(_i: { command: string; purpose: string }[]) {}
+  abstract onTrigger(cursor: EditorPosition, editor: Editor, file: TFile | null): { start: EditorPosition; end: EditorPosition; query: string } | null;
+  abstract getSuggestions(context: EditorSuggestContext): T[] | Promise<T[]>;
+}
+
+export class SecretComponent extends ValueComponent<string> {
+  inputEl: HTMLInputElement;
+  constructor(public app: App, public containerEl: HTMLElement) {
+    super();
+    this.inputEl = containerEl.createEl('input', { type: 'password' });
+    this.inputEl.addEventListener('input', () => this.fire(this.inputEl.value));
+  }
+  getValue() { return this.inputEl.value; }
+  setValue(v: string) { this.inputEl.value = v; return this; }
+  onChange(cb: (v: string) => any) { this.cbs.push(cb); return this; }
+}
+
 /**
  * Older plugins are compiled to ES5, where a subclass calls its base as a plain function
  * (`Plugin.apply(this, arguments)`). ES6 classes refuse that, so every class we export is
@@ -1080,6 +1412,11 @@ const rawModule = {
   PluginSettingTab, Modal, Setting, Menu, Editor, MarkdownView, ItemView,
   TextComponent, TextAreaComponent, ToggleComponent, DropdownComponent, SliderComponent, ButtonComponent, ExtraButtonComponent,
   Platform, debounce, requestUrl, setIcon, getIcon, addIcon, removeIcon, normalizePath, moment, sanitizeHTMLToDom,
+  request, htmlToMarkdown, getAllTags, getIconIds, resolveSubpath, loadPdfJs,
+  View, FileView, TextFileView, EditableFileView, WorkspaceItem, WorkspaceParent, WorkspaceSplit, WorkspaceLeaf,
+  MarkdownRenderChild, MarkdownRenderer, EditorSuggest, SettingGroup, SecretStorage, SecretComponent,
+  SettingPage, SettingTab,
+  Value, NullValue, StringValue, NumberValue, BooleanValue, DateValue, ListValue,
   getLanguage, loadMermaid, setTooltip, displayTooltip, FileManager, Scope, MenuItem, MenuSeparator,
   SuggestModal, FuzzySuggestModal, PopoverSuggest, AbstractInputSuggest,
   BaseComponent, ValueComponent, DisplayValueComponent, AbstractTextComponent, SearchComponent, ColorComponent, ProgressBarComponent, MomentFormatComponent,

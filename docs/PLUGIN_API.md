@@ -12,12 +12,12 @@ Feasibility of what is not ✅: **easy** (hours) · **medium** (a feature) · **
 
 | | count | share |
 |---|---:|---:|
-| ✅ implemented | 333 | 44.5% |
-| 🟡 stub / partial | 20 | 2.7% |
-| ❌ missing | 396 | 52.9% |
-| **runtime API items** (class members, functions, constants, missing classes) | **749** | |
+| ✅ implemented | 447 | 61.6% |
+| 🟡 stub / partial | 40 | 5.5% |
+| ❌ missing | 239 | 32.9% |
+| **runtime API items** (class members, functions, constants, missing classes) | **726** | |
 
-Not yet working (🟡 + ❌), by feasibility: **easy 53** · **medium 149** · **hard 167** · **impossible 47**.
+Not yet working (🟡 + ❌), by feasibility: **easy 27** · **medium 75** · **hard 130** · **impossible 47**.
 112 interfaces, 30 type aliases and 1 enum(s) are type-only (no runtime behaviour) and are not counted.
 
 What typical plugins need first (a plugin is usable once these exist): commands ✅, settings tab ✅, `loadData/saveData` ✅, ribbon ✅, status bar ✅, modals ✅, notices ✅, editor commands ✅ —
@@ -31,61 +31,43 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **Node/Electron modules** (`require("fs")`, `"path"`, `"electron"`, `child_process`, …) — not part of obsidian.d.ts, but many desktop-only plugins call them. A page cannot run them; such plugins show "unsupported module" and stay off. Plugins with `isDesktopOnly: true` are the likely casualties.
 - **Other plugins' internals** (`app.plugins.plugins[...]`, `app.internalPlugins`) — undocumented; reachable only if we imitate them.
 
-## Easy — not done yet (11 entries)
+## Easy — not done yet (9 entries)
 
 - **App**: `renderContext` — Core object; remaining members are small.
 - **ConfirmationButton** (class) — Plain overlay UI on top of the Modal we already have.
 - **ConfirmationModal** (class) — Plain overlay UI on top of the Modal we already have.
 - **Plugin**: `settings`, `registerBasesView`, `registerEditorSuggest`, `registerCliHandler` — Core object; remaining members are small.
-- **PluginSettingTab**: `getSettingDefinitions`, `getControlValue`, `setControlValue` — Settings-tab variants (definitions API) are plain DOM.
-- **SettingGroup** (class) — Plain DOM widgets.
-- **SettingPage** (class) — Plain DOM widgets.
-- **SettingTab** (class) — Plain DOM widgets.
+- **PluginSettingTab**: `setControlValue` — Settings-tab variants (definitions API) are plain DOM.
+- **SettingTab**: `setControlValue`, `refreshDomState` — Plain DOM widgets.
 - **Tasks** (class) — Core object; remaining members are small.
 - **TExternalFile** (class) — Backed by the files API; events come from the WebSocket change feed.
 - **Platform** — Plain object of booleans (present).
 
-## Medium — not done yet (46 entries)
+## Medium — not done yet (30 entries)
 
-- **App**: `secretStorage` — See SecretStorage.
-- **EditableFileView** (class) — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
-- **EditorSuggest** (class) — Needs a CodeMirror autocomplete source driven by the plugin.
 - **FileManager**: `processFrontMatter` — Parse/write YAML front matter on the client; round-trip must keep comments/ordering.
-- **FileView** (class) — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
+- **FileView**: `setState`, `canAcceptExtension` — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
 - **HoverPopover** (class) — Popover UI is easy; hooking into link hover needs the preview pipeline.
-- **ItemView**: `contentEl`, `addAction` — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
 - **Keymap** (class) — Hotkeys: we have a global key handler; needs scopes and per-command hotkeys.
 - **MarkdownPreviewRenderer** (class) — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
-- **MarkdownRenderChild** (class) — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
-- **MarkdownRenderer** (class) — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
+- **MarkdownRenderer**: `app`, `hoverPopover`, `file`, `renderMarkdown`, `render` — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **MarkdownView**: `previewMode`, `currentMode`, `hoverPopover`, `clear`, `setViewData`, `showSearch` — Needs reading/live-preview modes and the leaf facade behind it.
 - **MetadataCache**: `getFirstLinkpathDest`, `getFileCache`, `getCache`, `fileToLinktext`, `resolvedLinks`, `unresolvedLinks` — The server already parses notes for search/links; getFileCache needs section/heading/link positions and change events exposed to the browser.
 - **Plugin**: `registerView` — See View: needs a React host container for the plugin view.
 - **Plugin**: `registerHoverLinkSource` — Needs the link-hover preview pipeline.
 - **Plugin**: `registerExtensions` — Needs file-type → view mapping.
-- **Plugin**: `registerMarkdownPostProcessor` — Run processors on rendered preview / live-preview HTML.
-- **Plugin**: `registerMarkdownCodeBlockProcessor` — Same hook, selected by code-block language.
 - **Plugin**: `registerEditorExtension` — Possible because the editor is CodeMirror 6, but plugins import @codemirror/* — those modules must be provided to require() at the same version.
 - **RenderContext** (class) — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
-- **SecretComponent** (class) — Server-side secret store plus a masked input; no OS keychain on the server.
-- **SecretStorage** (class) — Server-side secret store plus a masked input; no OS keychain on the server.
-- **TextFileView** (class) — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
 - **Vault**: `adapter` — DataAdapter over the files API (read/write/list/exists/mkdir/rename/stat/remove).
-- **View** (class) — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
-- **Workspace**: `leftSplit`, `rightSplit`, `leftRibbon`, `rightRibbon`, `rootSplit`, `activeLeaf`, `containerEl`, `layoutReady`, `requestSaveLayout`, `changeLayout`, `getLayout`, `createLeafInParent`, `createLeafBySplit`, `splitActiveLeaf`, `duplicateLeaf`, `getUnpinnedLeaf`, `moveLeafToPopout`, `openPopoutLeaf`, `setActiveLeaf`, `getLeafById`, `getGroupLeaves`, `getMostRecentLeaf`, `getLeftLeaf`, `getRightLeaf`, `ensureSideLeaf`, `getActiveViewOfType`, `iterateRootLeaves`, `iterateAllLeaves`, `detachLeavesOfType`, `revealLeaf`, `getLastOpenFiles`, `updateOptions`, `handleLinkContextMenu` — Not yet analysed.
+- **View**: `setState`, `setEphemeralState` — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
+- **Workspace**: `leftRibbon`, `rightRibbon`, `activeLeaf`, `requestSaveLayout`, `changeLayout`, `getLayout`, `createLeafInParent`, `createLeafBySplit`, `splitActiveLeaf`, `getUnpinnedLeaf`, `openPopoutLeaf`, `setActiveLeaf`, `getLeafById`, `getMostRecentLeaf`, `getActiveViewOfType`, `iterateRootLeaves`, `iterateAllLeaves`, `detachLeavesOfType`, `updateOptions`, `handleLinkContextMenu` — Not yet analysed.
 - **finishRenderMath** — Via KaTeX.
-- **getAllTags** — Needs MetadataCache.
-- **getIconIds** — Same.
-- **htmlToMarkdown** — Needs an HTML→Markdown converter (e.g. turndown).
 - **iterateCacheRefs** — Needs MetadataCache.
 - **iterateRefs** — Needs MetadataCache.
 - **loadMathJax** — We ship KaTeX, not MathJax; either bundle MathJax or alias to KaTeX.
-- **loadPdfJs** — Bundle pdf.js lazily.
 - **loadPrism** — We highlight with CodeMirror/lowlight, not Prism; bundle Prism lazily.
 - **renderMath** — Via KaTeX.
-- **request** — Same as requestUrl.
 - **requestUrl** — Browsers enforce CORS, so the request has to go through a server proxy (with SSRF limits).
-- **resolveSubpath** — Needs MetadataCache (headings/blocks).
 - **setIcon** — Works, but we only ship part of the Lucide set; add the rest on demand.
 - **editorEditorField** — CM6 state fields — need the same @codemirror/state build as the plugin.
 - **editorInfoField** — Same.
@@ -94,47 +76,42 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **livePreviewState** — Same.
 - **moment** — Bundle the real moment (≈70 KB) instead of the stub.
 
-## Hard — not done yet (41 entries)
+## Hard — not done yet (36 entries)
 
 - **BasesEntry** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **BasesEntryGroup** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **BasesQueryResult** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **BasesView** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **BasesViewConfig** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **BooleanValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **DateValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
+- **DateValue**: `dateOnly`, `relative`, `parseFromString` — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **DurationValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **FileValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **HTMLValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **IconValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **ImageValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **LinkValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **ListValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
+- **ListValue**: `includes`, `concat` — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **MarkdownEditView** (class) — Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer.
 - **MarkdownPreviewView** (class) — Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer.
 - **NotNullValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **NullValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **NumberValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
+- **NullValue**: `isTruthy`, `value` — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **ObjectValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **PrimitiveValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **QueryController** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **RegExpValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **RelativeDateValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **StringValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **TagValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **UrlValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **Value** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
+- **Value**: `equals`, `looseEquals`, `looseEquals`, `renderTo` — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **Workspace**: `getLeaf` — Only a facade that opens a file is realistic.
 - **WorkspaceContainer** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceFloating** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-- **WorkspaceItem** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-- **WorkspaceLeaf** (class) — Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins.
+- **WorkspaceItem**: `getRoot`, `getContainer` — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
+- **WorkspaceLeaf**: `hoverPopover`, `setViewState`, `loadIfDeferred`, `getEphemeralState`, `setEphemeralState`, `togglePinned`, `setPinned`, `setGroupMember`, `setGroup`, `detach`, `onResize` — Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins.
 - **WorkspaceMobileDrawer** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-- **WorkspaceParent** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceRibbon** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceRoot** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceSidedock** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-- **WorkspaceSplit** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceTabs** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceWindow** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 
@@ -149,8 +126,8 @@ One line per class: ✅ implemented members, 🟡 stubs, ❌ missing. Deprecated
 - ✅ `inputEl` `setDisabled` `getValue` `setValue` `setPlaceholder` `onChanged` `onChange`
 
 ### 🟡 App
-- ✅ `keymap` `scope` `workspace` `vault` `metadataCache` `fileManager` `lastEvent` `isDarkMode` `loadLocalStorage` `saveLocalStorage`
-- ❌ `renderContext` `secretStorage`
+- ✅ `keymap` `scope` `workspace` `vault` `metadataCache` `fileManager` `lastEvent` `secretStorage` `isDarkMode` `loadLocalStorage` `saveLocalStorage`
+- ❌ `renderContext`
 
 ### ✅ BaseComponent
 - ✅ `disabled` `then` `setDisabled`
@@ -180,10 +157,8 @@ Class not provided. Feasibility: **hard** — Bases (database views over notes).
 
 - ❌ `name` `get` `getAsPropertyId` `getEvaluatedFormula` `set` `getOrder` `getSort` `getDisplayName`
 
-### ❌ BooleanValue <small>extends PrimitiveValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
-- ❌ `static·type`
+### ✅ BooleanValue <small>extends PrimitiveValue</small>
+- ✅ `static·type`
 
 ### ✅ ButtonComponent <small>extends BaseComponent</small>
 - ✅ `buttonEl` `setDisabled` `setCta` `removeCta` `setWarning`*(dep.)* `setDestructive` `removeDestructive` `setTooltip` `setButtonText` `setIcon` `setClass` `onClick`
@@ -209,10 +184,9 @@ Class not provided. Feasibility: **easy** — Plain overlay UI on top of the Mod
 
 - ❌ `buttonContainerEl` `addClass` `addCheckbox` `addButton` `addCancelButton`
 
-### ❌ DateValue <small>extends NotNullValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
-- ❌ `toString` `dateOnly` `relative` `isTruthy` `static·parseFromString`
+### 🟡 DateValue <small>extends NotNullValue</small>
+- ✅ `toString` `isTruthy`
+- ❌ `dateOnly` `relative` `static·parseFromString`
 
 ### ✅ DisplayValueComponent
 - ✅ `valueEl` `setValue` `setStatus`
@@ -225,17 +199,13 @@ Class not provided. Feasibility: **hard** — Bases (database views over notes).
 
 - ❌ `toString` `isTruthy` `addToDate` `getMilliseconds` `static·parseFromString` `static·fromMilliseconds`
 
-### ❌ EditableFileView <small>extends FileView</small>
-Class not provided. Feasibility: **medium** — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
-
+### ✅ EditableFileView <small>extends FileView</small>
 
 ### ✅ Editor
 - ✅ `getDoc`*(dep.)* `refresh` `getValue` `setValue` `getLine` `setLine` `lineCount` `lastLine` `getSelection` `somethingSelected` `getRange` `replaceSelection` `replaceRange` `getCursor` `listSelections` `setCursor` `setSelection` `setSelections` `focus` `blur` `hasFocus` `getScrollInfo` `scrollTo` `scrollIntoView` `undo` `redo` `exec` `transaction` `wordAt` `posToOffset` `offsetToPos` `processLines`
 
-### ❌ EditorSuggest <small>extends PopoverSuggest</small>
-Class not provided. Feasibility: **medium** — Needs a CodeMirror autocomplete source driven by the plugin.
-
-- ❌ `context` `limit` `setInstructions` `onTrigger` `getSuggestions`
+### ✅ EditorSuggest <small>extends PopoverSuggest</small>
+- ✅ `context` `limit` `setInstructions` `onTrigger` `getSuggestions`
 
 ### ✅ Events
 - ✅ `on` `off` `offref` `trigger` `tryTrigger`
@@ -257,10 +227,9 @@ Class not provided. Feasibility: **hard** — Bases (database views over notes).
 
 - ❌ `toString` `isTruthy`
 
-### ❌ FileView <small>extends ItemView</small>
-Class not provided. Feasibility: **medium** — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
-
-- ❌ `allowNoFile` `file` `navigation` `getDisplayText` `onload` `getState` `setState` `onLoadFile` `onUnloadFile` `onRename` `canAcceptExtension`
+### 🟡 FileView <small>extends ItemView</small>
+- ✅ `allowNoFile` `file` `navigation` `getDisplayText` `onload` `getState` `onLoadFile` `onUnloadFile` `onRename`
+- 🟡 `setState` `canAcceptExtension`
 
 ### ✅ FuzzySuggestModal <small>extends SuggestModal</small>
 - ✅ `getSuggestions` `renderSuggestion` `onChooseSuggestion` `getItems` `getItemText` `onChooseItem`
@@ -282,8 +251,8 @@ Class not provided. Feasibility: **hard** — Bases (database views over notes).
 Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 
 
-### 🟡 ItemView <small>extends View</small>
-- ❌ `contentEl` `addAction`
+### ✅ ItemView <small>extends View</small>
+- ✅ `contentEl` `addAction`
 
 ### ❌ Keymap
 Class not provided. Feasibility: **medium** — Hotkeys: we have a global key handler; needs scopes and per-command hotkeys.
@@ -295,10 +264,9 @@ Class not provided. Feasibility: **hard** — Bases (database views over notes).
 
 - ❌ `static·parseFromString`
 
-### ❌ ListValue <small>extends NotNullValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
-- ❌ `static·type` `toString` `isTruthy` `includes` `length` `get` `concat`
+### 🟡 ListValue <small>extends NotNullValue</small>
+- ✅ `static·type` `toString` `isTruthy` `length` `get`
+- ❌ `includes` `concat`
 
 ### ❌ MarkdownEditView
 Class not provided. Feasibility: **hard** — Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer.
@@ -315,14 +283,10 @@ Class not provided. Feasibility: **hard** — Internal editor/preview view objec
 
 - ❌ `containerEl` `file` `get` `set` `clear` `rerender` `getScroll` `applyScroll`
 
-### ❌ MarkdownRenderChild <small>extends Component</small>
-Class not provided. Feasibility: **medium** — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
+### ✅ MarkdownRenderChild <small>extends Component</small>
+- ✅ `containerEl`
 
-- ❌ `containerEl`
-
-### ❌ MarkdownRenderer <small>extends MarkdownRenderChild</small>
-Class not provided. Feasibility: **medium** — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
-
+### 🟡 MarkdownRenderer <small>extends MarkdownRenderChild</small>
 - ❌ `app` `hoverPopover` `file` `static·renderMarkdown`*(dep.)* `static·render`
 
 ### 🟡 MarkdownView <small>extends TextFileView</small>
@@ -355,15 +319,13 @@ Class not provided. Feasibility: **medium** — We have a Markdown pipeline (ren
 Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 
 
-### ❌ NullValue <small>extends Value</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
+### 🟡 NullValue <small>extends Value</small>
+- ✅ `toString`
+- 🟡 `isTruthy`
+- ❌ `static·value`
 
-- ❌ `toString` `isTruthy` `static·value`
-
-### ❌ NumberValue <small>extends PrimitiveValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
-- ❌ `static·type`
+### ✅ NumberValue <small>extends PrimitiveValue</small>
+- ✅ `static·type`
 
 ### ❌ ObjectValue <small>extends NotNullValue</small>
 Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
@@ -371,12 +333,13 @@ Class not provided. Feasibility: **hard** — Bases (database views over notes).
 - ❌ `static·type` `toString` `isTruthy` `isEmpty` `get`
 
 ### 🟡 Plugin <small>extends Component</small>
-- ✅ `app` `manifest` `onload` `addRibbonIcon` `addStatusBarItem` `addCommand` `removeCommand` `addSettingTab` `loadData` `saveData` `onUserEnable` `onExternalSettingsChange`
-- 🟡 `registerView` `registerHoverLinkSource` `registerExtensions` `registerMarkdownPostProcessor` `registerMarkdownCodeBlockProcessor` `registerEditorExtension` `registerObsidianProtocolHandler`
-- ❌ `settings` `registerBasesView` `registerEditorSuggest` `registerCliHandler`
+- ✅ `app` `manifest` `onload` `addRibbonIcon` `addStatusBarItem` `addCommand` `removeCommand` `addSettingTab` `registerMarkdownPostProcessor` `registerMarkdownCodeBlockProcessor` `loadData` `saveData` `onUserEnable` `onExternalSettingsChange`
+- 🟡 `registerView` `registerHoverLinkSource` `registerExtensions` `registerBasesView` `registerEditorExtension` `registerObsidianProtocolHandler` `registerEditorSuggest` `registerCliHandler`
+- ❌ `settings`
 
 ### 🟡 PluginSettingTab <small>extends SettingTab</small>
-- ❌ `getSettingDefinitions` `getControlValue` `setControlValue`
+- ✅ `getSettingDefinitions` `getControlValue`
+- 🟡 `setControlValue`
 
 ### ✅ PopoverSuggest
 - ✅ `app` `scope` `onHistoryBack` `open` `close` `renderSuggestion` `selectSuggestion`
@@ -413,41 +376,31 @@ Class not provided. Feasibility: **medium** — We have a Markdown pipeline (ren
 ### ✅ SearchComponent <small>extends AbstractTextComponent</small>
 - ✅ `clearButtonEl` `onChanged`
 
-### ❌ SecretComponent <small>extends BaseComponent</small>
-Class not provided. Feasibility: **medium** — Server-side secret store plus a masked input; no OS keychain on the server.
+### ✅ SecretComponent <small>extends BaseComponent</small>
+- ✅ `setValue` `onChange`
 
-- ❌ `setValue` `onChange`
-
-### ❌ SecretStorage <small>extends Events</small>
-Class not provided. Feasibility: **medium** — Server-side secret store plus a masked input; no OS keychain on the server.
-
-- ❌ `setSecret` `getSecret` `listSecrets`
+### ✅ SecretStorage <small>extends Events</small>
+- ✅ `setSecret` `getSecret` `listSecrets`
 
 ### ✅ Setting
 - ✅ `settingEl` `infoEl` `nameEl` `descEl` `controlEl` `components` `errorEl` `setErrorMessage` `addDisplayValue` `setName` `setDesc` `setClass` `setTooltip` `setHeading` `setDisabled` `addButton` `addExtraButton` `addToggle` `addText` `addComponent` `addSearch` `addTextArea` `addMomentFormat` `addDropdown` `addColorPicker` `addProgressBar` `addSlider` `then` `clear`
 
-### ❌ SettingGroup
-Class not provided. Feasibility: **easy** — Plain DOM widgets.
+### ✅ SettingGroup
+- ✅ `listEl` `setHeading` `addClass` `addSetting` `addSearch` `addExtraButton`
 
-- ❌ `listEl` `setHeading` `addClass` `addSetting` `addSearch` `addExtraButton`
+### ✅ SettingPage
+- ✅ `rootEl` `titlebarEl` `containerEl` `title` `display` `hide`
 
-### ❌ SettingPage
-Class not provided. Feasibility: **easy** — Plain DOM widgets.
-
-- ❌ `rootEl` `titlebarEl` `containerEl` `title` `display` `hide`
-
-### ❌ SettingTab
-Class not provided. Feasibility: **easy** — Plain DOM widgets.
-
-- ❌ `icon` `app` `containerEl` `settingItems` `getSettingDefinitions` `update` `getControlValue` `setControlValue` `refreshDomState` `display`*(dep.)* `hide`
+### 🟡 SettingTab
+- ✅ `icon` `app` `containerEl` `settingItems` `getSettingDefinitions` `update` `getControlValue` `display`*(dep.)* `hide`
+- 🟡 `setControlValue`
+- ❌ `refreshDomState`
 
 ### ✅ SliderComponent <small>extends ValueComponent</small>
 - ✅ `sliderEl` `setDisabled` `setInstant` `setLimits` `getValue` `setValue` `getValuePretty` `setDisplayFormat` `setDynamicTooltip`*(dep.)* `onChange`
 
-### ❌ StringValue <small>extends PrimitiveValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
-- ❌ `static·type`
+### ✅ StringValue <small>extends PrimitiveValue</small>
+- ✅ `static·type`
 
 ### ✅ SuggestModal <small>extends Modal</small>
 - ✅ `limit` `emptyStateText` `inputEl` `resultContainerEl` `setPlaceholder` `setInstructions` `onNoSuggestion` `selectSuggestion` `selectActiveSuggestion` `getSuggestions` `renderSuggestion` `onChooseSuggestion`
@@ -473,10 +426,8 @@ Class not provided. Feasibility: **easy** — Backed by the files API; events co
 
 - ❌ `getRealPath`
 
-### ❌ TextFileView <small>extends EditableFileView</small>
-Class not provided. Feasibility: **medium** — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
-
-- ❌ `data` `requestSave` `onUnloadFile` `onLoadFile` `save` `getViewData` `setViewData` `clear`
+### ✅ TextFileView <small>extends EditableFileView</small>
+- ✅ `data` `requestSave` `onUnloadFile` `onLoadFile` `save` `getViewData` `setViewData` `clear`
 
 ### ✅ TFile <small>extends TAbstractFile</small>
 - ✅ `stat` `basename` `extension`
@@ -491,10 +442,9 @@ Class not provided. Feasibility: **medium** — Custom views: doable by giving e
 Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 
 
-### ❌ Value
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
-- ❌ `static·type` `static·equals` `static·looseEquals` `toString` `isTruthy` `equals` `looseEquals` `renderTo`
+### 🟡 Value
+- ✅ `static·type` `toString` `isTruthy` `equals`
+- ❌ `static·equals` `static·looseEquals` `looseEquals` `renderTo`
 
 ### ✅ ValueComponent <small>extends BaseComponent</small>
 - ✅ `registerOptionListener` `getValue` `setValue`
@@ -503,15 +453,14 @@ Class not provided. Feasibility: **hard** — Bases (database views over notes).
 - ✅ `configDir` `getName` `getFileByPath` `getFolderByPath` `getAbstractFileByPath` `getRoot` `create` `createBinary` `createFolder` `read` `cachedRead` `readBinary` `getResourcePath` `delete` `trash` `rename` `modify` `modifyBinary` `append` `appendBinary` `process` `copy` `getAllLoadedFiles` `getAllFolders` `static·recurseChildren` `getMarkdownFiles` `getFiles` `on`
 - 🟡 `adapter`
 
-### ❌ View <small>extends Component</small>
-Class not provided. Feasibility: **medium** — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
-
-- ❌ `app` `icon` `navigation` `leaf` `containerEl` `scope` `getViewType` `getState` `setState` `getEphemeralState` `setEphemeralState` `getIcon` `onResize` `getDisplayText` `onPaneMenu`
+### 🟡 View <small>extends Component</small>
+- ✅ `app` `icon` `navigation` `leaf` `containerEl` `scope` `getViewType` `getState` `getEphemeralState` `getIcon` `onResize` `getDisplayText` `onPaneMenu`
+- 🟡 `setState` `setEphemeralState`
 
 ### 🟡 Workspace <small>extends Events</small>
-- ✅ `activeEditor` `onLayoutReady` `openLinkText` `getActiveFile` `getLeavesOfType` `on`
-- 🟡 `getLeaf` `getMostRecentLeaf` `getActiveViewOfType` `iterateAllLeaves` `detachLeavesOfType`
-- ❌ `leftSplit` `rightSplit` `leftRibbon` `rightRibbon`*(dep.)* `rootSplit` `activeLeaf`*(dep.)* `containerEl` `layoutReady` `requestSaveLayout` `changeLayout` `getLayout` `createLeafInParent` `createLeafBySplit` `splitActiveLeaf`*(dep.)* `duplicateLeaf`*(dep.)* `getUnpinnedLeaf`*(dep.)* `moveLeafToPopout` `openPopoutLeaf` `setActiveLeaf` `getLeafById` `getGroupLeaves` `getLeftLeaf` `getRightLeaf` `ensureSideLeaf` `iterateRootLeaves` `revealLeaf` `getLastOpenFiles` `updateOptions` `handleLinkContextMenu`
+- ✅ `leftSplit` `rightSplit` `rootSplit` `containerEl` `layoutReady` `activeEditor` `onLayoutReady` `duplicateLeaf`*(dep.)* `moveLeafToPopout` `openLinkText` `getGroupLeaves` `getLeftLeaf` `getRightLeaf` `ensureSideLeaf` `getActiveFile` `getLeavesOfType` `revealLeaf` `getLastOpenFiles` `on`
+- 🟡 `requestSaveLayout` `getLeaf` `setActiveLeaf` `getLeafById` `getMostRecentLeaf` `getActiveViewOfType` `iterateAllLeaves` `detachLeavesOfType` `updateOptions`
+- ❌ `leftRibbon` `rightRibbon`*(dep.)* `activeLeaf`*(dep.)* `changeLayout` `getLayout` `createLeafInParent` `createLeafBySplit` `splitActiveLeaf`*(dep.)* `getUnpinnedLeaf`*(dep.)* `openPopoutLeaf` `iterateRootLeaves` `handleLinkContextMenu`
 
 ### ❌ WorkspaceContainer <small>extends WorkspaceSplit</small>
 Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
@@ -523,24 +472,21 @@ Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, t
 
 - ❌ `parent`
 
-### ❌ WorkspaceItem <small>extends Events</small>
-Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
+### 🟡 WorkspaceItem <small>extends Events</small>
+- ✅ `parent`
+- 🟡 `getRoot` `getContainer`
 
-- ❌ `parent` `getRoot` `getContainer`
-
-### ❌ WorkspaceLeaf <small>extends WorkspaceItem</small>
-Class not provided. Feasibility: **hard** — Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins.
-
-- ❌ `parent` `view` `hoverPopover` `openFile` `open` `getViewState` `setViewState` `isDeferred` `loadIfDeferred` `getEphemeralState` `setEphemeralState` `togglePinned` `setPinned` `setGroupMember` `setGroup` `detach` `getIcon` `getDisplayText` `onResize` `on`
+### 🟡 WorkspaceLeaf <small>extends WorkspaceItem</small>
+- ✅ `parent` `view` `openFile` `open` `getViewState` `isDeferred` `getIcon` `getDisplayText` `on`
+- 🟡 `setViewState` `loadIfDeferred` `setEphemeralState` `togglePinned` `setGroup` `detach`
+- ❌ `hoverPopover` `getEphemeralState` `setPinned` `setGroupMember` `onResize`
 
 ### ❌ WorkspaceMobileDrawer <small>extends WorkspaceParent</small>
 Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 
 - ❌ `parent` `collapsed` `expand` `collapse` `toggle`
 
-### ❌ WorkspaceParent <small>extends WorkspaceItem</small>
-Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-
+### ✅ WorkspaceParent <small>extends WorkspaceItem</small>
 
 ### ❌ WorkspaceRibbon
 Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
@@ -556,10 +502,8 @@ Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, t
 
 - ❌ `collapsed` `toggle` `collapse` `expand`
 
-### ❌ WorkspaceSplit <small>extends WorkspaceParent</small>
-Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-
-- ❌ `parent`
+### ✅ WorkspaceSplit <small>extends WorkspaceParent</small>
+- ✅ `parent`
 
 ### ❌ WorkspaceTabs <small>extends WorkspaceParent</small>
 Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
@@ -582,20 +526,20 @@ Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, t
 | `debounce` | ✅ |  |  |
 | `displayTooltip` | ✅ |  |  |
 | `finishRenderMath` | ❌ | medium | Via KaTeX. |
-| `getAllTags` | ❌ | medium | Needs MetadataCache. |
+| `getAllTags` | ✅ |  |  |
 | `getBlobArrayBuffer` | ✅ |  |  |
 | `getFrontMatterInfo` | ✅ |  |  |
 | `getIcon` | ✅ |  |  |
-| `getIconIds` | ❌ | medium | Same. |
+| `getIconIds` | ✅ |  |  |
 | `getLanguage` | ✅ |  |  |
 | `getLinkpath` | ✅ |  |  |
 | `hexToArrayBuffer` | ✅ |  |  |
-| `htmlToMarkdown` | ❌ | medium | Needs an HTML→Markdown converter (e.g. turndown). |
+| `htmlToMarkdown` | ✅ |  |  |
 | `iterateCacheRefs` *(dep.)* | ❌ | medium | Needs MetadataCache. |
 | `iterateRefs` | ❌ | medium | Needs MetadataCache. |
 | `loadMathJax` | ❌ | medium | We ship KaTeX, not MathJax; either bundle MathJax or alias to KaTeX. |
 | `loadMermaid` | ✅ |  |  |
-| `loadPdfJs` | ❌ | medium | Bundle pdf.js lazily. |
+| `loadPdfJs` | ✅ |  |  |
 | `loadPrism` | ❌ | medium | We highlight with CodeMirror/lowlight, not Prism; bundle Prism lazily. |
 | `normalizePath` | ✅ |  |  |
 | `parseFrontMatterAliases` | ✅ |  |  |
@@ -611,10 +555,10 @@ Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, t
 | `renderMatches` | ✅ |  |  |
 | `renderMath` | ❌ | medium | Via KaTeX. |
 | `renderResults` | ✅ |  |  |
-| `request` | ❌ | medium | Same as requestUrl. |
+| `request` | ✅ |  |  |
 | `requestUrl` | 🟡 | medium | Browsers enforce CORS, so the request has to go through a server proxy (with SSRF limits). |
 | `requireApiVersion` | ✅ |  |  |
-| `resolveSubpath` | ❌ | medium | Needs MetadataCache (headings/blocks). |
+| `resolveSubpath` | ✅ |  |  |
 | `sanitizeHTMLToDom` | ✅ |  |  |
 | `setIcon` | 🟡 | medium | Works, but we only ship part of the Lucide set; add the rest on demand. |
 | `setTooltip` | ✅ |  |  |

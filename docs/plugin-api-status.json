@@ -1,14 +1,14 @@
 {
  "apiVersion": "1.14.4",
  "totals": {
-  "ok": 333,
-  "stub": 20,
-  "missing": 396
+  "ok": 447,
+  "stub": 40,
+  "missing": 239
  },
  "feasibility": {
-  "easy": 53,
-  "medium": 149,
-  "hard": 167,
+  "easy": 27,
+  "medium": 75,
+  "hard": 130,
   "impossible": 47
  },
  "classes": [
@@ -203,9 +203,9 @@
      "name": "secretStorage",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "See SecretStorage."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "isDarkMode",
@@ -508,7 +508,7 @@
    "name": "BooleanValue",
    "extends": "PrimitiveValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -516,9 +516,9 @@
      "name": "static type",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -1056,7 +1056,7 @@
    "name": "DateValue",
    "extends": "NotNullValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -1064,9 +1064,9 @@
      "name": "toString",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "dateOnly",
@@ -1088,9 +1088,9 @@
      "name": "isTruthy",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "static parseFromString",
@@ -1263,7 +1263,7 @@
    "name": "EditableFileView",
    "extends": "FileView",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "medium",
    "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.",
    "members": []
@@ -1537,7 +1537,7 @@
    "name": "EditorSuggest",
    "extends": "PopoverSuggest",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "medium",
    "note": "Needs a CodeMirror autocomplete source driven by the plugin.",
    "members": [
@@ -1545,41 +1545,41 @@
      "name": "context",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Needs a CodeMirror autocomplete source driven by the plugin."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "limit",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Needs a CodeMirror autocomplete source driven by the plugin."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setInstructions",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Needs a CodeMirror autocomplete source driven by the plugin."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "onTrigger",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Needs a CodeMirror autocomplete source driven by the plugin."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getSuggestions",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Needs a CodeMirror autocomplete source driven by the plugin."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -1978,7 +1978,7 @@
    "name": "FileView",
    "extends": "ItemView",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "medium",
    "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.",
    "members": [
@@ -1986,55 +1986,55 @@
      "name": "allowNoFile",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "file",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "navigation",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getDisplayText",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "onload",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getState",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setState",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "medium",
      "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
     },
@@ -2042,31 +2042,31 @@
      "name": "onLoadFile",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "onUnloadFile",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "onRename",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "canAcceptExtension",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "medium",
      "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
     }
@@ -2195,17 +2195,17 @@
      "name": "contentEl",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "addAction",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -2272,7 +2272,7 @@
    "name": "ListValue",
    "extends": "NotNullValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -2280,25 +2280,25 @@
      "name": "static type",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "toString",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "isTruthy",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "includes",
@@ -2312,17 +2312,17 @@
      "name": "length",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "get",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "concat",
@@ -2526,7 +2526,7 @@
    "name": "MarkdownRenderChild",
    "extends": "Component",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "medium",
    "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.",
    "members": [
@@ -2534,9 +2534,9 @@
      "name": "containerEl",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -2544,7 +2544,7 @@
    "name": "MarkdownRenderer",
    "extends": "MarkdownRenderChild",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "medium",
    "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.",
    "members": [
@@ -3182,7 +3182,7 @@
    "name": "NullValue",
    "extends": "Value",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -3190,15 +3190,15 @@
      "name": "toString",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "isTruthy",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "hard",
      "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
     },
@@ -3216,7 +3216,7 @@
    "name": "NumberValue",
    "extends": "PrimitiveValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -3224,9 +3224,9 @@
      "name": "static type",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -3388,23 +3388,23 @@
      "name": "registerMarkdownPostProcessor",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "medium",
-     "note": "Run processors on rendered preview / live-preview HTML."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "registerMarkdownCodeBlockProcessor",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "medium",
-     "note": "Same hook, selected by code-block language."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "registerBasesView",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "easy",
      "note": "Core object; remaining members are small."
     },
@@ -3428,7 +3428,7 @@
      "name": "registerEditorSuggest",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "easy",
      "note": "Core object; remaining members are small."
     },
@@ -3436,7 +3436,7 @@
      "name": "registerCliHandler",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "easy",
      "note": "Core object; remaining members are small."
     },
@@ -3486,23 +3486,23 @@
      "name": "getSettingDefinitions",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Settings-tab variants (definitions API) are plain DOM."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getControlValue",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Settings-tab variants (definitions API) are plain DOM."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setControlValue",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "easy",
      "note": "Settings-tab variants (definitions API) are plain DOM."
     }
@@ -3741,7 +3741,7 @@
    "name": "SecretComponent",
    "extends": "BaseComponent",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "medium",
    "note": "Server-side secret store plus a masked input; no OS keychain on the server.",
    "members": [
@@ -3749,17 +3749,17 @@
      "name": "setValue",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Server-side secret store plus a masked input; no OS keychain on the server."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "onChange",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Server-side secret store plus a masked input; no OS keychain on the server."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -3767,7 +3767,7 @@
    "name": "SecretStorage",
    "extends": "Events",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "medium",
    "note": "Server-side secret store plus a masked input; no OS keychain on the server.",
    "members": [
@@ -3775,25 +3775,25 @@
      "name": "setSecret",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Server-side secret store plus a masked input; no OS keychain on the server."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getSecret",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Server-side secret store plus a masked input; no OS keychain on the server."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "listSecrets",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Server-side secret store plus a masked input; no OS keychain on the server."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -4041,7 +4041,7 @@
   {
    "name": "SettingGroup",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "easy",
    "note": "Plain DOM widgets.",
    "members": [
@@ -4049,56 +4049,56 @@
      "name": "listEl",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setHeading",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "addClass",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "addSetting",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "addSearch",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "addExtraButton",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
   {
    "name": "SettingPage",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "easy",
    "note": "Plain DOM widgets.",
    "members": [
@@ -4106,56 +4106,56 @@
      "name": "rootEl",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "titlebarEl",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "containerEl",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "title",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "display",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "hide",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
   {
    "name": "SettingTab",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "easy",
    "note": "Plain DOM widgets.",
    "members": [
@@ -4163,63 +4163,63 @@
      "name": "icon",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "app",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "containerEl",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "settingItems",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getSettingDefinitions",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "update",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getControlValue",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setControlValue",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "easy",
      "note": "Plain DOM widgets."
     },
@@ -4235,17 +4235,17 @@
      "name": "display",
      "kind": "method",
      "deprecated": true,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "hide",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -4343,7 +4343,7 @@
    "name": "StringValue",
    "extends": "PrimitiveValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -4351,9 +4351,9 @@
      "name": "static type",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -4594,7 +4594,7 @@
    "name": "TextFileView",
    "extends": "EditableFileView",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "medium",
    "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.",
    "members": [
@@ -4602,65 +4602,65 @@
      "name": "data",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "requestSave",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "onUnloadFile",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "onLoadFile",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "save",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getViewData",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setViewData",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "clear",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -4802,7 +4802,7 @@
   {
    "name": "Value",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -4810,9 +4810,9 @@
      "name": "static type",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "static equals",
@@ -4834,25 +4834,25 @@
      "name": "toString",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "isTruthy",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "equals",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "looseEquals",
@@ -5152,7 +5152,7 @@
    "name": "View",
    "extends": "Component",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "medium",
    "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.",
    "members": [
@@ -5160,71 +5160,71 @@
      "name": "app",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "icon",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "navigation",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "leaf",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "containerEl",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "scope",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getViewType",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getState",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setState",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "medium",
      "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
     },
@@ -5232,15 +5232,15 @@
      "name": "getEphemeralState",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setEphemeralState",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "medium",
      "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
     },
@@ -5248,33 +5248,33 @@
      "name": "getIcon",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "onResize",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getDisplayText",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "onPaneMenu",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -5290,17 +5290,17 @@
      "name": "leftSplit",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "rightSplit",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "leftRibbon",
@@ -5322,9 +5322,9 @@
      "name": "rootSplit",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "activeLeaf",
@@ -5338,23 +5338,23 @@
      "name": "containerEl",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "layoutReady",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "requestSaveLayout",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "medium",
      "note": "Not yet analysed."
     },
@@ -5418,9 +5418,9 @@
      "name": "duplicateLeaf",
      "kind": "method",
      "deprecated": true,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getUnpinnedLeaf",
@@ -5442,9 +5442,9 @@
      "name": "moveLeafToPopout",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "openPopoutLeaf",
@@ -5466,7 +5466,7 @@
      "name": "setActiveLeaf",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "medium",
      "note": "Not yet analysed."
     },
@@ -5474,7 +5474,7 @@
      "name": "getLeafById",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "medium",
      "note": "Not yet analysed."
     },
@@ -5482,9 +5482,9 @@
      "name": "getGroupLeaves",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getMostRecentLeaf",
@@ -5498,25 +5498,25 @@
      "name": "getLeftLeaf",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getRightLeaf",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "ensureSideLeaf",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getActiveViewOfType",
@@ -5570,23 +5570,23 @@
      "name": "revealLeaf",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getLastOpenFiles",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "updateOptions",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "medium",
      "note": "Not yet analysed."
     },
@@ -5656,7 +5656,7 @@
    "name": "WorkspaceItem",
    "extends": "Events",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
    "members": [
@@ -5664,15 +5664,15 @@
      "name": "parent",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getRoot",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "hard",
      "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
     },
@@ -5680,7 +5680,7 @@
      "name": "getContainer",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "hard",
      "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
     }
@@ -5690,7 +5690,7 @@
    "name": "WorkspaceLeaf",
    "extends": "WorkspaceItem",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins.",
    "members": [
@@ -5698,17 +5698,17 @@
      "name": "parent",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "view",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "hoverPopover",
@@ -5722,31 +5722,31 @@
      "name": "openFile",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "open",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getViewState",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setViewState",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "hard",
      "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
     },
@@ -5754,15 +5754,15 @@
      "name": "isDeferred",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "loadIfDeferred",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "hard",
      "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
     },
@@ -5778,7 +5778,7 @@
      "name": "setEphemeralState",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "hard",
      "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
     },
@@ -5786,7 +5786,7 @@
      "name": "togglePinned",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "hard",
      "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
     },
@@ -5810,7 +5810,7 @@
      "name": "setGroup",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "hard",
      "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
     },
@@ -5818,7 +5818,7 @@
      "name": "detach",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "hard",
      "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
     },
@@ -5826,17 +5826,17 @@
      "name": "getIcon",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getDisplayText",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "onResize",
@@ -5850,9 +5850,9 @@
      "name": "on",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -5910,7 +5910,7 @@
    "name": "WorkspaceParent",
    "extends": "WorkspaceItem",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
    "members": []
@@ -5995,7 +5995,7 @@
    "name": "WorkspaceSplit",
    "extends": "WorkspaceParent",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
    "members": [
@@ -6003,9 +6003,9 @@
      "name": "parent",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -6107,9 +6107,9 @@
   {
    "name": "getAllTags",
    "deprecated": false,
-   "status": "missing",
-   "feasibility": "medium",
-   "note": "Needs MetadataCache."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "getBlobArrayBuffer",
@@ -6135,9 +6135,9 @@
   {
    "name": "getIconIds",
    "deprecated": false,
-   "status": "missing",
-   "feasibility": "medium",
-   "note": "Same."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "getLanguage",
@@ -6163,9 +6163,9 @@
   {
    "name": "htmlToMarkdown",
    "deprecated": false,
-   "status": "missing",
-   "feasibility": "medium",
-   "note": "Needs an HTML→Markdown converter (e.g. turndown)."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "iterateCacheRefs",
@@ -6198,9 +6198,9 @@
   {
    "name": "loadPdfJs",
    "deprecated": false,
-   "status": "missing",
-   "feasibility": "medium",
-   "note": "Bundle pdf.js lazily."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "loadPrism",
@@ -6310,9 +6310,9 @@
   {
    "name": "request",
    "deprecated": false,
-   "status": "missing",
-   "feasibility": "medium",
-   "note": "Same as requestUrl."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "requestUrl",
@@ -6331,9 +6331,9 @@
   {
    "name": "resolveSubpath",
    "deprecated": false,
-   "status": "missing",
-   "feasibility": "medium",
-   "note": "Needs MetadataCache (headings/blocks)."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "sanitizeHTMLToDom",

@@ -11,10 +11,24 @@ import { vaultHeaders, withVault } from './vault';
 import { api } from './api';
 import { pluginHost } from './pluginHost';
 import { App, Notice, Plugin, obsidianModule, setPluginDataBackend } from './obsidianApi';
+import * as cmState from '@codemirror/state';
+import * as cmView from '@codemirror/view';
+import * as cmCommands from '@codemirror/commands';
+import * as cmAutocomplete from '@codemirror/autocomplete';
+import * as cmLanguage from '@codemirror/language';
+import * as cmSearch from '@codemirror/search';
+import * as cmLint from '@codemirror/lint';
+import * as lezerCommon from '@lezer/common';
+import * as lezerHighlight from '@lezer/highlight';
+import * as lezerLr from '@lezer/lr';
 
 const sharedApp = new App();
 setPluginDataBackend({
-  load: async (id) => (await api.pluginData(id)).data ?? null,
+  // Obsidian's loadData() is null when the plugin has no data.json yet; the server answers {} then.
+  load: async (id) => {
+    const d = (await api.pluginData(id)).data ?? null;
+    return d && typeof d === 'object' && !Array.isArray(d) && Object.keys(d).length === 0 ? null : d;
+  },
   save: (id, data) => saveDataCoalesced(id, data),
 });
 const loaded = new Map<string, { instance: Plugin; style?: HTMLLinkElement }>();
@@ -48,12 +62,44 @@ function saveDataCoalesced(id: string, data: unknown): Promise<void> {
   });
 }
 
+const EXTERNALS: Record<string, unknown> = {
+  '@codemirror/state': cmState, '@codemirror/view': cmView, '@codemirror/commands': cmCommands,
+  '@codemirror/autocomplete': cmAutocomplete, '@codemirror/language': cmLanguage, '@codemirror/search': cmSearch,
+  '@codemirror/lint': cmLint, '@lezer/common': lezerCommon, '@lezer/highlight': lezerHighlight, '@lezer/lr': lezerLr,
+};
+const NODE_BUILTINS = new Set(['fs', 'fs/promises', 'os', 'crypto', 'util', 'zlib', 'url', 'child_process', 'stream', 'events', 'buffer', 'http', 'https', 'net', 'tls', 'electron', 'original-fs', 'process', 'assert', 'readline', 'worker_threads', 'module', 'vm']);
+const unavailable = (mod: string, plugin: string) =>
+  new Proxy({}, {
+    get: (_t, key) => {
+      if (key === '__esModule' || key === 'then' || typeof key === 'symbol') return undefined;
+      return () => { throw new Error(`"${mod}" is not available in WebObsidian (plugin "${plugin}" called ${String(key)}())`); };
+    },
+  });
+const pathShim = {
+  sep: '/', delimiter: ':',
+  join: (...p: string[]) => p.join('/').replace(/\/+/g, '/'),
+  resolve: (...p: string[]) => p.join('/').replace(/\/+/g, '/'),
+  basename: (p: string, ext?: string) => { const b = p.split('/').pop() ?? ''; return ext && b.endsWith(ext) ? b.slice(0, -ext.length) : b; },
+  dirname: (p: string) => { const i = p.lastIndexOf('/'); return i < 0 ? '.' : i === 0 ? '/' : p.slice(0, i); },
+  extname: (p: string) => { const b = p.split('/').pop() ?? ''; const i = b.lastIndexOf('.'); return i <= 0 ? '' : b.slice(i); },
+  normalize: (p: string) => p.replace(/\/+/g, '/'),
+  isAbsolute: (p: string) => p.startsWith('/'),
+  relative: (_a: string, b: string) => b,
+};
+
 /** Evaluate one plugin's main.js against the shim. */
 async function loadPlugin(id: string, manifest: any) {
   if (loaded.has(id)) return;
   const module = { exports: {} as any };
   const require = (name: string) => {
     if (name === 'obsidian') return obsidianModule;
+    // Editor libraries are the app's own instances: plugins extending the editor must share its classes.
+    if (name in EXTERNALS) return EXTERNALS[name];
+    // Node/Electron built-ins do not exist in a browser. Many plugins only touch them on desktop-only
+    // code paths, so hand back a stub that fails when *used* instead of refusing to start.
+    const bare = name.replace(/^node:/, '');
+    if (bare === 'path') return pathShim;
+    if (NODE_BUILTINS.has(bare)) return unavailable(bare, id);
     throw new Error(`Plugin "${id}" required unsupported module: ${name}`);
   };
   // The page's CSP forbids evaluating code from strings, so the plugin is loaded as a
@@ -73,6 +119,7 @@ async function loadPlugin(id: string, manifest: any) {
   run(module, module.exports, require);
   const PluginClass = module.exports.default ?? module.exports;
   const instance: Plugin = new PluginClass(sharedApp, manifest);
+  sharedApp.plugins.plugins[id] = instance; sharedApp.plugins.manifests[id] = manifest; sharedApp.plugins.enabledPlugins.add(id);
   await instance.onload?.();
   let style: HTMLLinkElement | undefined;
   // inject plugin styles if any
@@ -91,6 +138,7 @@ async function unloadPlugin(id: string) {
   const p = loaded.get(id);
   if (!p) return;
   loaded.delete(id);
+  delete sharedApp.plugins.plugins[id]; delete sharedApp.plugins.manifests[id]; sharedApp.plugins.enabledPlugins.delete(id);
   try { await p.instance.onunload?.(); } catch (e) { console.warn(`[plugin] ${id} failed to unload cleanly:`, e); }
   p.instance.teardown(); // commands, ribbon, status bar, settings tab, listeners, timers
   p.style?.remove();
