@@ -30,6 +30,7 @@ const bump = () => { version++; listeners.forEach((l) => l()); };
 
 export const pluginHost = {
   addCommand(c: PluginCommand) { commands.set(c.id, c); bump(); },
+  removeCommand(id: string) { if (commands.delete(id)) bump(); },
   addRibbon(r: PluginRibbonItem) { ribbon.set(r.id, r); bump(); },
   removeRibbon(id: string) { if (ribbon.delete(id)) bump(); },
   addStatus(id: string, pluginId: string, el: HTMLElement) { status.set(id, { pluginId, el }); bump(); },

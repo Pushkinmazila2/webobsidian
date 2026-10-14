@@ -6,11 +6,15 @@
  * DOM helpers (`createEl`, `setText`, …), a CodeMirror-backed Editor, vault access and events.
  * Anything not implemented is a no-op or throws a clear error — the loader reports it per plugin.
  */
+import { EditorSelection } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
+import { undo, redo, indentMore, indentLess, cursorDocStart, cursorDocEnd, selectAll, deleteLine } from '@codemirror/commands';
 import { api } from './api';
-import { useStore } from './store';
+import { useStore, type ContextMenuItem } from './store';
 import { getActiveEditor } from './activeEditor';
 import { pluginHost } from './pluginHost';
-import { iconSvg } from '../components/Icon';
+import { iconSvg, registerCustomIcon, unregisterCustomIcon } from '../components/Icon';
+import * as utils from './obsidianUtils';
 
 // ---- DOM helpers Obsidian adds to every element ------------------------------------------
 type ElOpts = string | { cls?: string | string[]; text?: string | DocumentFragment; attr?: Record<string, string | number | boolean | null>; title?: string; parent?: Node; value?: string; type?: string; prepend?: boolean; placeholder?: string; href?: string };
@@ -141,7 +145,9 @@ export class Component {
 }
 
 // ---- Files / vault / workspace ---------------------------------------------------------
+let sharedVault: Vault | null = null;
 export class TAbstractFile {
+  get vault(): Vault { return (sharedVault ??= new Vault()); }
   constructor(public path: string, public name: string = path.split('/').pop() ?? path) {}
   get parent(): TFolder | null { const i = this.path.lastIndexOf('/'); return i < 0 ? null : new TFolder(this.path.slice(0, i)); }
 }
@@ -190,7 +196,47 @@ export class Vault extends Events {
   getFiles(): TFile[] { return flattenFiles(); }
   getAllLoadedFiles(): TAbstractFile[] { return flattenFiles(); }
   getAbstractFileByPath(path: string) { return flattenFiles().find((f) => f.path === path) ?? null; }
-  getFileByPath(path: string) { return this.getAbstractFileByPath(path); }
+  getFileByPath(path: string) { const f = this.getAbstractFileByPath(path); return f instanceof TFile ? f : null; }
+  configDir = '.obsidian';
+  getAllFolders(includeRoot = false): TFolder[] {
+    const out: TFolder[] = includeRoot ? [new TFolder('')] : [];
+    const walk = (n: any) => { if (n.type === 'folder' || n.children) { if (n.path) out.push(new TFolder(n.path, n.name)); n.children?.forEach(walk); } };
+    useStore.getState().tree?.children?.forEach(walk);
+    return out;
+  }
+  getFolderByPath(path: string): TFolder | null {
+    const p = normalizePath(path);
+    return p === '' ? new TFolder('') : this.getAllFolders().find((f) => f.path === p) ?? null;
+  }
+  async readBinary(file: TFile): Promise<ArrayBuffer> {
+    const r = await fetch(api.rawUrl(file.path), { credentials: 'include' });
+    if (!r.ok) throw new Error(`Cannot read ${file.path} (${r.status})`);
+    return r.arrayBuffer();
+  }
+  async createBinary(path: string, data: ArrayBuffer): Promise<TFile> {
+    const i = path.lastIndexOf('/');
+    const dir = i < 0 ? '' : path.slice(0, i);
+    const name = i < 0 ? path : path.slice(i + 1);
+    await api.upload(new File([data], name), dir);
+    return new TFile(path);
+  }
+  async modifyBinary(file: TFile, data: ArrayBuffer) { await this.createBinary(file.path, data); }
+  async appendBinary(file: TFile, data: ArrayBuffer) {
+    const old = await this.readBinary(file);
+    const merged = new Uint8Array(old.byteLength + data.byteLength);
+    merged.set(new Uint8Array(old), 0); merged.set(new Uint8Array(data), old.byteLength);
+    await this.createBinary(file.path, merged.buffer);
+  }
+  getResourcePath(file: TFile): string { return api.rawUrl(file.path); }
+  async rename(file: TAbstractFile, newPath: string) { await api.rename(file.path, newPath); }
+  async copy<T extends TAbstractFile>(file: T, newPath: string): Promise<T> {
+    await api.copy(file.path, newPath);
+    return (file instanceof TFile ? new TFile(newPath) : new TFolder(newPath)) as unknown as T;
+  }
+  static recurseChildren(root: TAbstractFile, cb: (file: TAbstractFile) => any) {
+    const walk = (f: TAbstractFile) => { cb(f); (f as TFolder).children?.forEach(walk); };
+    walk(root);
+  }
 }
 
 // ---- Editor (CodeMirror 6 under the hood) -----------------------------------------------
@@ -212,6 +258,11 @@ export class Editor {
     return { line: l.number - 1, ch: o - l.from };
   }
   getDoc() { return this; }
+  exec(command: string) {
+    const v = this.v;
+    const run: Record<string, () => unknown> = { undo: () => undo(v), redo: () => redo(v), indentMore: () => indentMore(v), indentLess: () => indentLess(v), goStart: () => cursorDocStart(v), goEnd: () => cursorDocEnd(v), selectAll: () => selectAll(v), deleteLine: () => deleteLine(v) };
+    run[command]?.();
+  }
   getValue() { return this.v.state.doc.toString(); }
   setValue(t: string) { this.v.dispatch({ changes: { from: 0, to: this.v.state.doc.length, insert: t } }); }
   getLine(n: number) { return this.v.state.doc.line(n + 1).text; }
@@ -244,11 +295,47 @@ export class Editor {
   offsetToPos(o: number) { return this.pos(o); }
   posToOffset(p: EditorPosition) { return this.off(p); }
   focus() { this.v.focus(); }
-  blur() {}
+  blur() { (this.v.contentDOM as HTMLElement).blur(); }
   hasFocus() { return this.v.hasFocus; }
-  refresh() {}
-  scrollIntoView() {}
-  getScrollInfo() { return { top: 0, left: 0 }; }
+  refresh() { this.v.requestMeasure(); }
+  scrollIntoView(range: { from: EditorPosition; to: EditorPosition }, center = false) {
+    this.v.dispatch({ effects: EditorView.scrollIntoView(this.off(range.from), { y: center ? 'center' : 'nearest' }) });
+  }
+  scrollTo(x?: number | null, y?: number | null) {
+    const sc = this.v.scrollDOM;
+    if (typeof x === 'number') sc.scrollLeft = x;
+    if (typeof y === 'number') sc.scrollTop = y;
+  }
+  getScrollInfo() { const sc = this.v.scrollDOM; return { top: sc.scrollTop, left: sc.scrollLeft, height: sc.scrollHeight, width: sc.scrollWidth, clientHeight: sc.clientHeight, clientWidth: sc.clientWidth }; }
+  setSelections(ranges: { anchor: EditorPosition; head?: EditorPosition }[], main = 0) {
+    if (!ranges.length) return;
+    this.v.dispatch({ selection: EditorSelection.create(ranges.map((r) => EditorSelection.range(this.off(r.anchor), this.off(r.head ?? r.anchor))), main) });
+  }
+  undo() { undo(this.v); }
+  redo() { redo(this.v); }
+  wordAt(pos: EditorPosition): { from: EditorPosition; to: EditorPosition } | null {
+    const w = this.v.state.wordAt(this.off(pos));
+    return w ? { from: this.pos(w.from), to: this.pos(w.to) } : null;
+  }
+  transaction(tx: { changes?: { from: EditorPosition; to?: EditorPosition; text: string }[]; selection?: { from: EditorPosition; to?: EditorPosition } }) {
+    this.v.dispatch({
+      changes: tx.changes?.map((c) => ({ from: this.off(c.from), to: c.to ? this.off(c.to) : undefined, insert: c.text })),
+      selection: tx.selection ? { anchor: this.off(tx.selection.from), head: this.off(tx.selection.to ?? tx.selection.from) } : undefined,
+    });
+  }
+  processLines<T>(read: (line: number, lineText: string) => T | null, write: (from: EditorPosition, to: EditorPosition, text: string, value: T | null) => { from: EditorPosition; to: EditorPosition; text: string } | void, ignoreEmpty = false) {
+    const doc = this.v.state.doc;
+    const changes: { from: number; to: number; insert: string }[] = [];
+    for (let n = 1; n <= doc.lines; n++) {
+      const l = doc.line(n);
+      if (ignoreEmpty && l.text === '') continue;
+      const value = read(n - 1, l.text);
+      if (value === null) continue;
+      const out = write({ line: n - 1, ch: 0 }, { line: n - 1, ch: l.text.length }, l.text, value);
+      if (out) changes.push({ from: this.off(out.from), to: this.off(out.to), insert: out.text });
+    }
+    if (changes.length) this.v.dispatch({ changes });
+  }
 }
 
 export class MarkdownView {
@@ -269,7 +356,7 @@ export class Workspace extends Events {
   }
   get activeEditor() { return getActiveEditor() ? { editor: new Editor(), file: this.getActiveFile() } : null; }
   getActiveViewOfType<T>(type: new (...a: any[]) => T): T | null {
-    if (type === (MarkdownView as any)) {
+    if (isType(type, MarkdownView)) {
       return getActiveEditor() && useStore.getState().viewMode !== 'reading' ? (new MarkdownView() as unknown as T) : null;
     }
     return null;
@@ -298,16 +385,77 @@ export class App {
   workspace = sharedWorkspace;
   metadataCache = Object.assign(new Events(), { getFileCache: (_f: unknown) => null as unknown, getCache: (_p: string) => null as unknown, resolvedLinks: {} as Record<string, unknown> });
   keymap = {};
+  scope = new Scope();
+  lastEvent: UIEvent | null = null;
   setting = { open() {}, close() {}, openTabById(_id: string) {} };
-  fileManager = {
-    async renameFile(file: TAbstractFile, to: string) { await api.rename(file.path, to); },
-    async trashFile(file: TAbstractFile) { await api.remove(file.path); },
-  };
+  fileManager = new FileManager();
+  get isDarkMode(): boolean { return document.documentElement.classList.contains('theme-dark') || document.body.classList.contains('theme-dark') || document.documentElement.dataset.theme === 'dark'; }
+  loadLocalStorage(key: string): unknown {
+    try { const v = localStorage.getItem(`wo-plugin:${key}`); return v === null ? null : JSON.parse(v); } catch { return null; }
+  }
+  saveLocalStorage(key: string, data: unknown | null): void {
+    try { if (data === null || data === undefined) localStorage.removeItem(`wo-plugin:${key}`); else localStorage.setItem(`wo-plugin:${key}`, JSON.stringify(data)); } catch { /* storage unavailable */ }
+  }
+}
+
+/** Minimal hotkey scope: plugins register handlers; modals/suggesters dispatch keydown to them. */
+export class Scope {
+  private handlers: { modifiers: string[]; key: string | null; fn: (e: KeyboardEvent, ctx: unknown) => any }[] = [];
+  constructor(public parent?: Scope) {}
+  register(modifiers: string[] | null, key: string | null, fn: (e: KeyboardEvent, ctx: unknown) => any) {
+    const h = { modifiers: modifiers ?? [], key, fn }; this.handlers.push(h); return h;
+  }
+  unregister(h: unknown) { this.handlers = this.handlers.filter((x) => x !== h); }
+  /** Returns true when a handler consumed the event. */
+  handle(e: KeyboardEvent): boolean {
+    for (const h of this.handlers) {
+      const want = new Set(h.modifiers.map((m) => (m === 'Mod' ? (Platform.isMacOS ? 'Meta' : 'Ctrl') : m)));
+      const have = new Set<string>([e.ctrlKey && 'Ctrl', e.metaKey && 'Meta', e.altKey && 'Alt', e.shiftKey && 'Shift'].filter(Boolean) as string[]);
+      if (want.size !== have.size || [...want].some((m) => !have.has(m))) continue;
+      if (h.key !== null && h.key.toLowerCase() !== e.key.toLowerCase()) continue;
+      if (h.fn(e, {}) !== false) return true;
+    }
+    return this.parent?.handle(e) ?? false;
+  }
+}
+
+export class FileManager {
+  async renameFile(file: TAbstractFile, to: string) { await api.rename(file.path, to); }
+  async trashFile(file: TAbstractFile) { await api.remove(file.path); }
+  async promptForDeletion(file: TAbstractFile): Promise<boolean> {
+    if (!window.confirm(`Delete "${file.name}"?`)) return false;
+    await api.remove(file.path); return true;
+  }
+  getNewFileParent(sourcePath: string, _newFilePath?: string): TFolder {
+    const f = useStore.getState().activePath;
+    const base = sourcePath || f || '';
+    const i = base.lastIndexOf('/');
+    return new TFolder(i < 0 ? '' : base.slice(0, i));
+  }
+  generateMarkdownLink(file: TFile, sourcePath: string, subpath?: string, alias?: string): string {
+    const isMd = /\.md$/i.test(file.path);
+    const target = isMd ? file.path.replace(/\.md$/i, '') : file.path;
+    const bare = isMd && !flattenFiles().some((f) => f !== file && f.basename === file.basename);
+    const link = `${bare ? file.basename : target}${subpath ?? ''}`;
+    void sourcePath;
+    return `${isMd ? '' : '!'}[[${link}${alias ? '|' + alias : ''}]]`;
+  }
+  async getAvailablePathForAttachment(filename: string, sourcePath?: string): Promise<string> {
+    const dir = sourcePath && sourcePath.includes('/') ? sourcePath.slice(0, sourcePath.lastIndexOf('/')) : '';
+    const dot = filename.lastIndexOf('.');
+    const stem = dot < 0 ? filename : filename.slice(0, dot), ext = dot < 0 ? '' : filename.slice(dot);
+    const taken = new Set(flattenFiles().map((f) => f.path));
+    let candidate = normalizePath(`${dir}/${filename}`), n = 0;
+    while (taken.has(candidate)) candidate = normalizePath(`${dir}/${stem} ${++n}${ext}`);
+    return candidate;
+  }
 }
 
 // ---- UI: Notice, Modal, Setting widgets ---------------------------------------------------
 export class Notice {
   noticeEl: HTMLElement;
+  get containerEl(): HTMLElement { return this.noticeEl; }
+  get messageEl(): HTMLElement { return this.noticeEl; }
   constructor(message: string | DocumentFragment, timeout = 4000) {
     this.noticeEl = document.createElement('div');
     this.noticeEl.className = 'toast notice';
@@ -327,6 +475,9 @@ export class Modal {
   modalEl = document.createElement('div');
   titleEl = document.createElement('div');
   contentEl = document.createElement('div');
+  scope = new Scope();
+  shouldRestoreSelection = false;
+  private closeCb: (() => void) | null = null;
   constructor(public app: App) {
     this.containerEl.className = 'modal-bg plugin-modal-container';
     this.modalEl.className = 'modal plugin-modal';
@@ -335,38 +486,108 @@ export class Modal {
     this.modalEl.append(this.titleEl, this.contentEl);
     this.containerEl.appendChild(this.modalEl);
     this.containerEl.addEventListener('mousedown', (e) => { if (e.target === this.containerEl) this.close(); });
-    this.modalEl.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Escape') this.close(); });
+    this.modalEl.addEventListener('keydown', (e) => {
+      if (this.scope.handle(e as KeyboardEvent)) { e.preventDefault(); return; }
+      if ((e as KeyboardEvent).key === 'Escape') this.close();
+    });
   }
+  setCloseCallback(cb: () => void) { this.closeCb = cb; return this; }
+  onHistoryBack(): boolean { return false; }
   setTitle(t: string) { this.titleEl.setText(t); return this; }
   setContent(c: string | DocumentFragment) { this.contentEl.setText(c as any); return this; }
   open() { document.body.appendChild(this.containerEl); void this.onOpen(); }
-  close() { if (!this.containerEl.isConnected) return; this.containerEl.remove(); void this.onClose(); }
+  close() { if (!this.containerEl.isConnected) return; this.containerEl.remove(); void this.onClose(); this.closeCb?.(); }
   onOpen(): void | Promise<void> {}
   onClose(): void | Promise<void> {}
 }
 
-class ValueComponent<T> {
+export class BaseComponent {
+  disabled = false;
+  then(cb: (c: this) => any) { cb(this); return this; }
+  setDisabled(d: boolean) { this.disabled = d; return this; }
+}
+export class ValueComponent<T> extends BaseComponent {
   protected cbs: ((v: T) => any)[] = [];
   protected fire(v: T) { this.cbs.forEach((c) => c(v)); }
-  disabled = false;
+  getValue(): T { throw new Error('not implemented'); }
+  setValue(_v: T): this { return this; }
+  registerOptionListener(listeners: Record<string, (value?: T) => T>, key: string) {
+    const prev = this.getValue();
+    void prev; this.setValue(listeners[key]()); this.cbs.push((v) => listeners[key](v)); return this;
+  }
 }
-export class TextComponent extends ValueComponent<string> {
-  inputEl: HTMLInputElement;
-  constructor(public containerEl: HTMLElement) { super(); this.inputEl = containerEl.createEl('input', { type: 'text' }); this.inputEl.addEventListener('input', () => this.fire(this.inputEl.value)); }
+export class DisplayValueComponent extends BaseComponent {
+  el: HTMLElement;
+  get valueEl() { return this.el; }
+  constructor(public containerEl: HTMLElement) { super(); this.el = containerEl.createSpan('setting-item-display-value'); }
+  setStatus(status: string | null) { this.el.dataset.status = status ?? ''; return this; }
+  setValue(v: string) { this.el.setText(v); return this; }
+  getValue() { return this.el.textContent ?? ''; }
+}
+export class AbstractTextComponent<T extends HTMLInputElement | HTMLTextAreaElement> extends ValueComponent<string> {
+  constructor(public inputEl: T) { super(); inputEl.addEventListener('input', () => this.fire(inputEl.value)); }
   getValue() { return this.inputEl.value; }
   setValue(v: string) { this.inputEl.value = v; return this; }
   setPlaceholder(p: string) { this.inputEl.placeholder = p; return this; }
-  setDisabled(d: boolean) { this.inputEl.disabled = d; return this; }
+  setDisabled(d: boolean) { this.inputEl.disabled = d; this.disabled = d; return this; }
+  onChange(cb: (v: string) => any) { this.cbs.push(cb); return this; }
+  onChanged() { this.fire(this.inputEl.value); }
+}
+export class SearchComponent extends AbstractTextComponent<HTMLInputElement> {
+  clearButtonEl: HTMLElement;
+  constructor(public containerEl: HTMLElement) {
+    const wrap = containerEl.createDiv('search-input-container');
+    super(wrap.createEl('input', { type: 'search' }));
+    this.clearButtonEl = wrap.createDiv('search-input-clear-button');
+    this.clearButtonEl.addEventListener('click', () => { this.setValue(''); this.fire(''); });
+  }
+}
+export class ColorComponent extends ValueComponent<string> {
+  colorPickerEl: HTMLInputElement;
+  constructor(public containerEl: HTMLElement) { super(); this.colorPickerEl = containerEl.createEl('input', { type: 'color' }); this.colorPickerEl.addEventListener('input', () => this.fire(this.colorPickerEl.value)); }
+  getValue() { return this.colorPickerEl.value; }
+  setValue(v: string) { this.colorPickerEl.value = v; return this; }
+  getValueRgb() { const h = this.colorPickerEl.value.replace('#', ''); return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) }; }
+  getValueHsl() {
+    const { r, g, b } = this.getValueRgb(); const R = r / 255, G = g / 255, B = b / 255;
+    const max = Math.max(R, G, B), min = Math.min(R, G, B), l = (max + min) / 2, d = max - min;
+    let h = 0, sat = 0;
+    if (d) { sat = d / (1 - Math.abs(2 * l - 1)); h = max === R ? ((G - B) / d) % 6 : max === G ? (B - R) / d + 2 : (R - G) / d + 4; h = (h * 60 + 360) % 360; }
+    return { h: Math.round(h), s: Math.round(sat * 100), l: Math.round(l * 100) };
+  }
+  setValueHsl(c: { h: number; s: number; l: number }) {
+    const s2 = c.s / 100, l2 = c.l / 100, k = (n: number) => (n + c.h / 30) % 12, a = s2 * Math.min(l2, 1 - l2);
+    const f = (n: number) => l2 - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return this.setValueRgb({ r: f(0) * 255, g: f(8) * 255, b: f(4) * 255 });
+  }
+  setValueRgb(c: { r: number; g: number; b: number }) { const x = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0'); return this.setValue(`#${x(c.r)}${x(c.g)}${x(c.b)}`); }
+  setDisabled(d: boolean) { this.colorPickerEl.disabled = d; this.disabled = d; return this; }
   onChange(cb: (v: string) => any) { this.cbs.push(cb); return this; }
 }
-export class TextAreaComponent extends ValueComponent<string> {
-  inputEl: HTMLTextAreaElement;
-  constructor(public containerEl: HTMLElement) { super(); this.inputEl = containerEl.createEl('textarea'); this.inputEl.addEventListener('input', () => this.fire(this.inputEl.value)); }
-  getValue() { return this.inputEl.value; }
-  setValue(v: string) { this.inputEl.value = v; return this; }
-  setPlaceholder(p: string) { this.inputEl.placeholder = p; return this; }
-  setDisabled(d: boolean) { this.inputEl.disabled = d; return this; }
-  onChange(cb: (v: string) => any) { this.cbs.push(cb); return this; }
+export class ProgressBarComponent extends ValueComponent<number> {
+  progressBar: HTMLProgressElement;
+  constructor(public containerEl: HTMLElement) { super(); this.progressBar = containerEl.createEl('progress'); this.progressBar.max = 100; }
+  getValue() { return this.progressBar.value; }
+  setValue(v: number) { this.progressBar.value = v; return this; }
+}
+export class TextComponent extends AbstractTextComponent<HTMLInputElement> {
+  constructor(public containerEl: HTMLElement) { super(containerEl.createEl('input', { type: 'text' })); }
+}
+export class TextAreaComponent extends AbstractTextComponent<HTMLTextAreaElement> {
+  constructor(public containerEl: HTMLElement) { super(containerEl.createEl('textarea')); }
+}
+export class MomentFormatComponent extends TextComponent {
+  sampleEl: HTMLElement;
+  private fmt = 'YYYY-MM-DD';
+  constructor(containerEl: HTMLElement) {
+    super(containerEl);
+    this.sampleEl = containerEl.createSpan('moment-format-sample');
+    this.inputEl.addEventListener('input', () => this.updateSample());
+  }
+  setDefaultFormat(f: string) { this.fmt = f; this.setPlaceholder(f); this.updateSample(); return this; }
+  setSampleEl(el: HTMLElement) { this.sampleEl = el; this.updateSample(); return this; }
+  updateSample() { this.sampleEl.setText(moment().format(this.inputEl.value || this.fmt)); }
+  setValue(v: string) { super.setValue(v); this.updateSample?.(); return this; }
 }
 export class ToggleComponent extends ValueComponent<boolean> {
   toggleEl: HTMLInputElement;
@@ -375,6 +596,7 @@ export class ToggleComponent extends ValueComponent<boolean> {
   setValue(v: boolean) { this.toggleEl.checked = v; return this; }
   setDisabled(d: boolean) { this.toggleEl.disabled = d; return this; }
   setTooltip(t: string) { this.toggleEl.title = t; return this; }
+  onClick() { this.toggleEl.click(); }
   onChange(cb: (v: boolean) => any) { this.cbs.push(cb); return this; }
 }
 export class DropdownComponent extends ValueComponent<string> {
@@ -393,25 +615,35 @@ export class SliderComponent extends ValueComponent<number> {
   setLimits(min: number, max: number, step: number | 'any') { this.sliderEl.min = String(min); this.sliderEl.max = String(max); this.sliderEl.step = String(step); return this; }
   getValue() { return Number(this.sliderEl.value); }
   setValue(v: number) { this.sliderEl.value = String(v); return this; }
-  setDynamicTooltip() { return this; }
+  private fmtFn: (v: number) => string = (v) => String(v);
+  setInstant(instant: boolean) { this.sliderEl.dataset.instant = String(instant); return this; }
+  getValuePretty() { return this.fmtFn(this.getValue()); }
+  setDisplayFormat(fn: (v: number) => string) { this.fmtFn = fn; this.sliderEl.title = this.getValuePretty(); return this; }
+  setDynamicTooltip() {
+    const upd = () => { this.sliderEl.title = this.getValuePretty(); };
+    this.sliderEl.addEventListener('input', upd); upd(); return this;
+  }
   setDisabled(d: boolean) { this.sliderEl.disabled = d; return this; }
   onChange(cb: (v: number) => any) { this.cbs.push(cb); return this; }
 }
-export class ButtonComponent {
+export class ButtonComponent extends BaseComponent {
   buttonEl: HTMLButtonElement;
-  constructor(public containerEl: HTMLElement) { this.buttonEl = containerEl.createEl('button'); }
+  constructor(public containerEl: HTMLElement) { super(); this.buttonEl = containerEl.createEl('button'); }
   setButtonText(t: string) { this.buttonEl.setText(t); return this; }
   setCta() { this.buttonEl.classList.add('mod-cta'); return this; }
   setWarning() { this.buttonEl.classList.add('mod-warning'); return this; }
+  removeCta() { this.buttonEl.classList.remove('mod-cta'); return this; }
+  setDestructive() { this.buttonEl.classList.add('mod-destructive'); return this; }
+  removeDestructive() { this.buttonEl.classList.remove('mod-destructive'); return this; }
   setDisabled(d: boolean) { this.buttonEl.disabled = d; return this; }
   setIcon(i: string) { this.buttonEl.innerHTML = iconSvg(i, 14); return this; }
   setTooltip(t: string) { this.buttonEl.title = t; return this; }
   setClass(c: string) { this.buttonEl.classList.add(c); return this; }
   onClick(cb: (e: MouseEvent) => any) { this.buttonEl.addEventListener('click', cb); return this; }
 }
-export class ExtraButtonComponent {
+export class ExtraButtonComponent extends BaseComponent {
   extraSettingsEl: HTMLElement;
-  constructor(public containerEl: HTMLElement) { this.extraSettingsEl = containerEl.createEl('button', { cls: 'clickable-icon' }); }
+  constructor(public containerEl: HTMLElement) { super(); this.extraSettingsEl = containerEl.createEl('button', { cls: 'clickable-icon' }); }
   setIcon(i: string) { this.extraSettingsEl.innerHTML = iconSvg(i, 16); return this; }
   setTooltip(t: string) { this.extraSettingsEl.title = t; return this; }
   setDisabled(d: boolean) { (this.extraSettingsEl as HTMLButtonElement).disabled = d; return this; }
@@ -424,6 +656,8 @@ export class Setting {
   nameEl: HTMLElement;
   descEl: HTMLElement;
   controlEl: HTMLElement;
+  errorEl: HTMLElement | null = null;
+  components: BaseComponent[] = [];
   constructor(public containerEl: HTMLElement) {
     this.settingEl = containerEl.createDiv('setting-item');
     this.infoEl = this.settingEl.createDiv('setting-item-info');
@@ -437,13 +671,27 @@ export class Setting {
   setTooltip(t: string) { this.settingEl.title = t; return this; }
   setHeading() { this.settingEl.classList.add('setting-item-heading'); return this; }
   setDisabled(d: boolean) { this.settingEl.classList.toggle('is-disabled', d); return this; }
-  addText(cb: (c: TextComponent) => any) { cb(new TextComponent(this.controlEl)); return this; }
-  addTextArea(cb: (c: TextAreaComponent) => any) { cb(new TextAreaComponent(this.controlEl)); return this; }
-  addToggle(cb: (c: ToggleComponent) => any) { cb(new ToggleComponent(this.controlEl)); return this; }
-  addDropdown(cb: (c: DropdownComponent) => any) { cb(new DropdownComponent(this.controlEl)); return this; }
-  addSlider(cb: (c: SliderComponent) => any) { cb(new SliderComponent(this.controlEl)); return this; }
-  addButton(cb: (c: ButtonComponent) => any) { cb(new ButtonComponent(this.controlEl)); return this; }
-  addExtraButton(cb: (c: ExtraButtonComponent) => any) { cb(new ExtraButtonComponent(this.controlEl)); return this; }
+  private add<C extends BaseComponent>(c: C, cb?: (c: C) => any) { this.components.push(c); cb?.(c); return this; }
+  addText(cb: (c: TextComponent) => any) { return this.add(new TextComponent(this.controlEl), cb); }
+  addTextArea(cb: (c: TextAreaComponent) => any) { return this.add(new TextAreaComponent(this.controlEl), cb); }
+  addToggle(cb: (c: ToggleComponent) => any) { return this.add(new ToggleComponent(this.controlEl), cb); }
+  addDropdown(cb: (c: DropdownComponent) => any) { return this.add(new DropdownComponent(this.controlEl), cb); }
+  addSlider(cb: (c: SliderComponent) => any) { return this.add(new SliderComponent(this.controlEl), cb); }
+  addButton(cb: (c: ButtonComponent) => any) { return this.add(new ButtonComponent(this.controlEl), cb); }
+  addExtraButton(cb: (c: ExtraButtonComponent) => any) { return this.add(new ExtraButtonComponent(this.controlEl), cb); }
+  addSearch(cb: (c: SearchComponent) => any) { return this.add(new SearchComponent(this.controlEl), cb); }
+  addColorPicker(cb: (c: ColorComponent) => any) { return this.add(new ColorComponent(this.controlEl), cb); }
+  addProgressBar(cb: (c: ProgressBarComponent) => any) { return this.add(new ProgressBarComponent(this.controlEl), cb); }
+  addMomentFormat(cb: (c: MomentFormatComponent) => any) { return this.add(new MomentFormatComponent(this.controlEl), cb); }
+  addDisplayValue(cb: (c: DisplayValueComponent) => any) { return this.add(new DisplayValueComponent(this.controlEl), cb); }
+  addComponent<C extends BaseComponent>(cb: (el: HTMLElement) => C) { return this.add(cb(this.controlEl)); }
+  setErrorMessage(msg: string | DocumentFragment | null) {
+    this.errorEl?.remove(); this.errorEl = null;
+    this.settingEl.classList.toggle('has-error', !!msg);
+    if (msg) { this.errorEl = this.infoEl.createDiv('setting-item-error'); this.errorEl.append(msg as any); }
+    return this;
+  }
+  clear() { this.controlEl.empty(); this.components = []; return this; }
   then(cb: (s: Setting) => any) { cb(this); return this; }
 }
 
@@ -502,7 +750,9 @@ export class Plugin extends Component {
     });
     return cmd;
   }
-  removeCommand(_id: string) {}
+  removeCommand(id: string) { pluginHost.removeCommand(`${this.pid()}:${id}`); }
+  onUserEnable(): void {}
+  onExternalSettingsChange(): void | Promise<void> {}
   addRibbonIcon(icon: string, title: string, cb: (e: MouseEvent) => any): HTMLElement {
     const el = document.createElement('div');
     el.className = 'clickable-icon side-dock-ribbon-action';
@@ -555,30 +805,287 @@ export async function requestUrl(req: string | { url: string; method?: string; h
 }
 
 export function setIcon(el: HTMLElement, name: string) { el.innerHTML = iconSvg(name, 16); }
-export const addIcon = (_name: string, _svg: string) => {};
+export const getIcon = (name: string): SVGSVGElement | null => { const t = document.createElement('div'); t.innerHTML = iconSvg(name, 16); return t.firstElementChild as SVGSVGElement | null; };
+export const addIcon = (name: string, svg: string) => { registerCustomIcon(name, svg); };
+export const removeIcon = (name: string) => { unregisterCustomIcon(name); };
+export const getLanguage = (): string => (document.documentElement.lang || navigator.language || 'en').split('-')[0].toLowerCase();
+export async function loadMermaid(): Promise<any> { return (await import('mermaid')).default; }
+
+// ---- tooltips (one shared bubble, shown on hover / focus) ----------------------------------
+let tipEl: HTMLElement | null = null;
+export function displayTooltip(el: HTMLElement | { x: number; y: number }, content: string | DocumentFragment, options?: { placement?: 'top' | 'bottom' | 'left' | 'right'; delay?: number; classes?: string[] }) {
+  hideTooltip();
+  const tip = (tipEl = document.createElement('div'));
+  tip.className = ['tooltip', ...(options?.classes ?? [])].join(' ');
+  tip.append(content as any);
+  tip.style.cssText = 'position:fixed;z-index:10000;pointer-events:none;';
+  document.body.appendChild(tip);
+  const r = el instanceof HTMLElement ? el.getBoundingClientRect() : new DOMRect(el.x, el.y, 0, 0);
+  const t = tip.getBoundingClientRect(), pl = options?.placement ?? 'bottom';
+  let x = r.left + r.width / 2 - t.width / 2, y = pl === 'top' ? r.top - t.height - 6 : r.bottom + 6;
+  if (pl === 'left') { x = r.left - t.width - 6; y = r.top + r.height / 2 - t.height / 2; }
+  if (pl === 'right') { x = r.right + 6; y = r.top + r.height / 2 - t.height / 2; }
+  tip.style.left = `${Math.max(4, Math.min(x, window.innerWidth - t.width - 4))}px`;
+  tip.style.top = `${Math.max(4, Math.min(y, window.innerHeight - t.height - 4))}px`;
+}
+const hideTooltip = () => { tipEl?.remove(); tipEl = null; };
+export function setTooltip(el: HTMLElement, tooltip: string, options?: { placement?: 'top' | 'bottom' | 'left' | 'right'; delay?: number; classes?: string[] }) {
+  el.setAttribute('aria-label', tooltip);
+  const w = el as HTMLElement & { __woTip?: { show: () => void } };
+  if (w.__woTip) return;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const show = () => { timer = setTimeout(() => displayTooltip(el, el.getAttribute('aria-label') ?? '', options), options?.delay ?? 300); };
+  const hide = () => { if (timer) clearTimeout(timer); hideTooltip(); };
+  el.addEventListener('mouseenter', show); el.addEventListener('mouseleave', hide); el.addEventListener('click', hide);
+  w.__woTip = { show };
+}
 export const normalizePath = (p: string) => p.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/|\/$/g, '');
+/** Subset of moment.js format tokens (YYYY MM DD HH mm ss, month/day names, A/a, [escaped]). */
+function formatDate(d: Date, fmt: string): string {
+  const p = (n: number, w = 2) => String(n).padStart(w, '0');
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const h12 = d.getHours() % 12 || 12;
+  const map: Record<string, string> = {
+    YYYY: String(d.getFullYear()), YY: p(d.getFullYear() % 100), MMMM: months[d.getMonth()], MMM: months[d.getMonth()].slice(0, 3),
+    MM: p(d.getMonth() + 1), M: String(d.getMonth() + 1), DD: p(d.getDate()), D: String(d.getDate()),
+    dddd: days[d.getDay()], ddd: days[d.getDay()].slice(0, 3), d: String(d.getDay()),
+    HH: p(d.getHours()), H: String(d.getHours()), hh: p(h12), h: String(h12),
+    mm: p(d.getMinutes()), m: String(d.getMinutes()), ss: p(d.getSeconds()), s: String(d.getSeconds()),
+    A: d.getHours() < 12 ? 'AM' : 'PM', a: d.getHours() < 12 ? 'am' : 'pm',
+  };
+  return fmt.replace(/\[([^\]]*)\]|YYYY|YY|MMMM|MMM|MM|M|DD|D|dddd|ddd|d|HH|H|hh|h|mm|m|ss|s|A|a/g, (m, esc) => (esc !== undefined ? esc : map[m] ?? m));
+}
 export const moment: any = (d?: any) => {
   const date = d ? new Date(d) : new Date();
-  return { format: (_f?: string) => date.toISOString(), valueOf: () => date.valueOf(), toDate: () => date, isValid: () => !isNaN(date.valueOf()) };
+  return { format: (f?: string) => (f === undefined ? date.toISOString() : formatDate(date, f)), valueOf: () => date.valueOf(), toDate: () => date, isValid: () => !isNaN(date.valueOf()) };
 };
 export const sanitizeHTMLToDom = (html: string) => { const t = document.createElement('template'); t.innerHTML = html; return t.content; };
-export const parseYaml = (s: string) => { try { return JSON.parse(s); } catch { return {}; } };
 
-export class Menu {
-  private items: { title?: string; cb?: () => void }[] = [];
-  addItem(cb: (i: any) => any) { const it: any = { title: '', setTitle(t: string) { it.title = t; return it; }, setIcon() { return it; }, onClick(f: () => void) { it.cb = f; return it; }, setSection() { return it; } }; cb(it); this.items.push(it); return this; }
-  addSeparator() { return this; }
-  showAtMouseEvent(e: MouseEvent) {
-    useStore.getState().openContextMenu({ x: e.clientX, y: e.clientY, items: this.items.map((i) => ({ label: i.title ?? '', onClick: i.cb })) });
+export class MenuItem {
+  title: string | DocumentFragment = '';
+  icon = '';
+  checked: boolean | null = false;
+  disabled = false;
+  warning = false;
+  isLabel = false;
+  section = '';
+  submenu: Menu | null = null;
+  cb: ((e: MouseEvent | KeyboardEvent) => any) | null = null;
+  setTitle(t: string | DocumentFragment) { this.title = t; return this; }
+  setIcon(i: string | null) { this.icon = i ?? ''; return this; }
+  setChecked(c: boolean | null) { this.checked = c; return this; }
+  setDisabled(d: boolean) { this.disabled = d; return this; }
+  setWarning(w: boolean) { this.warning = w; return this; }
+  setIsLabel(l: boolean) { this.isLabel = l; return this; }
+  setSection(s: string) { this.section = s; return this; }
+  onClick(cb: (e: MouseEvent | KeyboardEvent) => any) { this.cb = cb; return this; }
+  setSubmenu(): Menu { return (this.submenu = new Menu()); }
+}
+export class MenuSeparator {}
+
+export class Menu extends Component {
+  private items: (MenuItem | MenuSeparator)[] = [];
+  private hideCb: (() => void) | null = null;
+  addItem(cb: (i: MenuItem) => any) { const it = new MenuItem(); cb(it); this.items.push(it); return this; }
+  addSeparator() { this.items.push(new MenuSeparator()); return this; }
+  setNoIcon() { return this; }
+  setUseNativeMenu(_native: boolean) { return this; }
+  setParentElement(_el: HTMLElement | null) { return this; }
+  onHide(cb: () => any) { this.hideCb = cb; }
+  onHistoryBack(): boolean { return false; }
+  hide() { useStore.getState().closeContextMenu(); this.hideCb?.(); return this; }
+  close() { this.hide(); }
+  private build(items = this.items): ContextMenuItem[] {
+    // Items are grouped by `section`: a separator is drawn between different sections.
+    const out: ContextMenuItem[] = [];
+    let prev: string | null = null;
+    for (const it of items) {
+      if (it instanceof MenuSeparator) { out.push({ label: '', separator: true }); prev = null; continue; }
+      if (prev !== null && it.section !== prev && out.length) out.push({ label: '', separator: true });
+      prev = it.section;
+      const label = typeof it.title === 'string' ? it.title : it.title.textContent ?? '';
+      out.push({
+        label: it.checked ? `✓ ${label}` : label,
+        icon: it.icon || undefined,
+        danger: it.warning,
+        submenu: it.submenu ? this.build(it.submenu.items) : undefined,
+        onClick: it.disabled || it.isLabel ? undefined : () => it.cb?.(new MouseEvent('click')),
+      });
+    }
+    return out;
   }
-  showAtPosition(p: { x: number; y: number }) {
-    useStore.getState().openContextMenu({ x: p.x, y: p.y, items: this.items.map((i) => ({ label: i.title ?? '', onClick: i.cb })) });
+  showAtMouseEvent(e: MouseEvent) { useStore.getState().openContextMenu({ x: e.clientX, y: e.clientY, items: this.build() }); return this; }
+  showAtPosition(p: { x: number; y: number }) { useStore.getState().openContextMenu({ x: p.x, y: p.y, items: this.build() }); return this; }
+  static forEvent(evt: MouseEvent): Menu { void evt; return new Menu(); }
+}
+
+// ---- Suggesters ------------------------------------------------------------------------------
+/** Shared list logic: keyboard navigation + rendering of suggestions into `listEl`. */
+abstract class SuggestList<T> {
+  protected suggestions: T[] = [];
+  protected selected = 0;
+  abstract renderSuggestion(value: T, el: HTMLElement): void;
+  abstract selectSuggestion(value: T, evt: MouseEvent | KeyboardEvent): void;
+  protected paint(listEl: HTMLElement) {
+    listEl.empty();
+    this.suggestions.forEach((v, i) => {
+      const el = listEl.createDiv('suggestion-item');
+      el.classList.toggle('is-selected', i === this.selected);
+      this.renderSuggestion(v, el);
+      el.addEventListener('mousedown', (e) => { e.preventDefault(); this.selectSuggestion(v, e); });
+      el.addEventListener('mousemove', () => { if (this.selected !== i) { this.selected = i; this.paint(listEl); } });
+    });
+    listEl.querySelector('.is-selected')?.scrollIntoView({ block: 'nearest' });
+  }
+  protected onKey(e: KeyboardEvent, listEl: HTMLElement): boolean {
+    if (!this.suggestions.length) return false;
+    if (e.key === 'ArrowDown') this.selected = (this.selected + 1) % this.suggestions.length;
+    else if (e.key === 'ArrowUp') this.selected = (this.selected - 1 + this.suggestions.length) % this.suggestions.length;
+    else if (e.key === 'Enter') { this.selectSuggestion(this.suggestions[this.selected], e); return true; }
+    else return false;
+    this.paint(listEl);
+    return true;
   }
 }
 
-export const obsidianModule = {
+export class SuggestModal<T> extends Modal {
+  inputEl: HTMLInputElement;
+  resultContainerEl: HTMLElement;
+  limit = 100;
+  emptyStateText = 'No results found.';
+  private list: SuggestList<T>;
+  constructor(app: App) {
+    super(app);
+    this.modalEl.classList.add('prompt');
+    this.titleEl.remove();
+    this.inputEl = this.modalEl.createEl('input', { cls: 'prompt-input', type: 'text' });
+    this.resultContainerEl = this.modalEl.createDiv('prompt-results');
+    this.contentEl.remove();
+    const self = this;
+    this.list = new (class extends SuggestList<T> {
+      renderSuggestion(v: T, el: HTMLElement) { self.renderSuggestion(v, el); }
+      selectSuggestion(v: T, e: MouseEvent | KeyboardEvent) { self.choose(v, e); }
+      async refresh() {
+        const q = self.inputEl.value;
+        const got = await self.getSuggestions(q);
+        this.suggestions = got.slice(0, self.limit);
+        this.selected = 0;
+        if (!this.suggestions.length) { self.resultContainerEl.empty(); self.resultContainerEl.createDiv({ cls: 'prompt-empty', text: self.emptyStateText }); self.onNoSuggestion(); }
+        else this.paint(self.resultContainerEl);
+      }
+      key(e: KeyboardEvent) { return this.onKey(e, self.resultContainerEl); }
+      selectActive(e: MouseEvent | KeyboardEvent) { const v = this.suggestions[this.selected]; if (v !== undefined) this.selectSuggestion(v, e); }
+    })();
+    this.inputEl.addEventListener('input', () => void (this.list as any).refresh());
+    this.inputEl.addEventListener('keydown', (e) => { if ((this.list as any).key(e)) { e.preventDefault(); e.stopPropagation(); } });
+  }
+  setPlaceholder(p: string) { this.inputEl.placeholder = p; }
+  setInstructions(_i: { command: string; purpose: string }[]) {}
+  open() { super.open(); this.inputEl.focus(); void (this.list as any).refresh(); }
+  getSuggestions(_query: string): T[] | Promise<T[]> { return []; }
+  renderSuggestion(_value: T, _el: HTMLElement): void {}
+  onChooseSuggestion(_item: T, _evt: MouseEvent | KeyboardEvent): void {}
+  onNoSuggestion(): void {}
+  selectSuggestion(value: T, evt: MouseEvent | KeyboardEvent) { this.choose(value, evt); }
+  selectActiveSuggestion(evt: MouseEvent | KeyboardEvent) { (this.list as any).selectActive(evt); }
+  private choose(v: T, e: MouseEvent | KeyboardEvent) { this.close(); this.onChooseSuggestion(v, e); }
+}
+
+export interface FuzzyMatch<T> { item: T; match: utils.SearchResult }
+export abstract class FuzzySuggestModal<T> extends SuggestModal<FuzzyMatch<T>> {
+  abstract getItems(): T[];
+  abstract getItemText(item: T): string;
+  abstract onChooseItem(item: T, evt: MouseEvent | KeyboardEvent): void;
+  getSuggestions(query: string): FuzzyMatch<T>[] {
+    const items = this.getItems();
+    if (!query.trim()) return items.map((item) => ({ item, match: { score: 0, matches: [] } }));
+    const fuzzy = utils.prepareFuzzySearch(query);
+    const out: FuzzyMatch<T>[] = [];
+    for (const item of items) { const m = fuzzy(this.getItemText(item)); if (m) out.push({ item, match: m }); }
+    return out.sort((a, b) => b.match.score - a.match.score);
+  }
+  renderSuggestion(v: FuzzyMatch<T>, el: HTMLElement) { utils.renderResults(el, this.getItemText(v.item), v.match); }
+  onChooseSuggestion(v: FuzzyMatch<T>, evt: MouseEvent | KeyboardEvent) { this.onChooseItem(v.item, evt); }
+}
+
+export class PopoverSuggest<T> extends SuggestList<T> {
+  isOpen = false;
+  scope = new Scope();
+  protected listEl = document.createElement('div');
+  constructor(public app: App, scope?: Scope) {
+    super();
+    if (scope) this.scope = scope;
+    this.listEl.className = 'suggestion-container suggestion';
+    this.listEl.style.cssText = 'position:fixed;z-index:10000;';
+  }
+  renderSuggestion(_value: T, _el: HTMLElement): void {}
+  selectSuggestion(_value: T, _evt: MouseEvent | KeyboardEvent): void {}
+  onHistoryBack(): boolean { return false; }
+  open() { this.isOpen = true; if (!this.listEl.isConnected) document.body.appendChild(this.listEl); }
+  close() { this.isOpen = false; this.listEl.remove(); }
+  setSuggestions(values: T[]) { this.suggestions = values; this.selected = 0; this.paint(this.listEl); }
+  handleKey(e: KeyboardEvent) { return this.isOpen && this.onKey(e, this.listEl); }
+}
+
+export abstract class AbstractInputSuggest<T> extends PopoverSuggest<T> {
+  limit = 100;
+  constructor(app: App, public textInputEl: HTMLInputElement | HTMLDivElement) {
+    super(app);
+    const run = async () => {
+      const all = await this.getSuggestions(this.getValue());
+      const list = all.slice(0, this.limit);
+      if (!list.length) return this.close();
+      const r = textInputEl.getBoundingClientRect();
+      this.listEl.style.left = `${r.left}px`; this.listEl.style.top = `${r.bottom + 2}px`; this.listEl.style.minWidth = `${r.width}px`;
+      this.open(); this.setSuggestions(list);
+    };
+    textInputEl.addEventListener('input', () => void run());
+    textInputEl.addEventListener('focus', () => void run());
+    textInputEl.addEventListener('blur', () => setTimeout(() => this.close(), 100));
+    textInputEl.addEventListener('keydown', (e) => { if (this.handleKey(e as KeyboardEvent)) { e.preventDefault(); e.stopPropagation(); } else if ((e as KeyboardEvent).key === 'Escape') this.close(); });
+  }
+  abstract getSuggestions(query: string): T[] | Promise<T[]>;
+  getValue(): string { return this.textInputEl instanceof HTMLInputElement ? this.textInputEl.value : this.textInputEl.textContent ?? ''; }
+  setValue(v: string) { if (this.textInputEl instanceof HTMLInputElement) this.textInputEl.value = v; else this.textInputEl.textContent = v; }
+  onSelect(cb: (value: T, evt: MouseEvent | KeyboardEvent) => any) { this.onSelectCb = cb; return this; }
+  private onSelectCb: ((value: T, evt: MouseEvent | KeyboardEvent) => any) | null = null;
+  selectSuggestion(value: T, evt: MouseEvent | KeyboardEvent) { this.onSelectCb?.(value, evt); }
+}
+
+/**
+ * Older plugins are compiled to ES5, where a subclass calls its base as a plain function
+ * (`Plugin.apply(this, arguments)`). ES6 classes refuse that, so every class we export is
+ * wrapped in a Proxy whose call form constructs an instance with the caller's prototype and
+ * returns it — which is exactly what the ES5 `_super.apply(this, …) || this` idiom expects.
+ * `new` and `class X extends Base` keep working unchanged.
+ */
+const originals = new Set<unknown>();
+function callable<T extends Function>(cls: T): T {
+  originals.add(cls);
+  return new Proxy(cls, {
+    apply(target, thisArg, args) {
+      // `thisArg` was created by `new Sub()`, so its constructor is Sub: construct with it as new.target
+      // and the result gets Sub's prototype chain.
+      const sub = thisArg && typeof thisArg === 'object' && typeof thisArg.constructor === 'function' ? thisArg.constructor : target;
+      return Reflect.construct(target, args, sub);
+    },
+  });
+}
+/** True when `type` is `cls` or its callable wrapper (plugins pass the wrapper back to us). */
+const isType = (type: unknown, cls: unknown) => type === cls || (typeof type === 'function' && originals.has(cls) && (type as any).prototype === (cls as any).prototype);
+
+const rawModule = {
   App, Plugin, Component, Notice, TFile, TFolder, TAbstractFile, Vault, Workspace, Events,
   PluginSettingTab, Modal, Setting, Menu, Editor, MarkdownView, ItemView,
   TextComponent, TextAreaComponent, ToggleComponent, DropdownComponent, SliderComponent, ButtonComponent, ExtraButtonComponent,
-  Platform, debounce, requestUrl, setIcon, addIcon, normalizePath, moment, sanitizeHTMLToDom, parseYaml,
+  Platform, debounce, requestUrl, setIcon, getIcon, addIcon, removeIcon, normalizePath, moment, sanitizeHTMLToDom,
+  getLanguage, loadMermaid, setTooltip, displayTooltip, FileManager, Scope, MenuItem, MenuSeparator,
+  SuggestModal, FuzzySuggestModal, PopoverSuggest, AbstractInputSuggest,
+  BaseComponent, ValueComponent, DisplayValueComponent, AbstractTextComponent, SearchComponent, ColorComponent, ProgressBarComponent, MomentFormatComponent,
+  ...utils, apiVersion: utils.API_VERSION,
 };
+
+export const obsidianModule: Record<string, unknown> = Object.fromEntries(
+  Object.entries(rawModule).map(([k, v]) => [k, typeof v === 'function' && /^class\b/.test(Function.prototype.toString.call(v)) ? callable(v as Function) : v]),
+);

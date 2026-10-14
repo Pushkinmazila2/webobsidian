@@ -17,7 +17,8 @@
     "typecheck": "npm --workspace server run typecheck && npm --workspace web run typecheck",
     "desktop": "npm run build && npm --workspace desktop run dev",
     "desktop:dist": "npm run build && npm --workspace desktop run dist",
-    "desktop:publish": "npm run build && npm --workspace desktop run dist:publish"
+    "desktop:publish": "npm run build && npm --workspace desktop run dist:publish",
+    "plugin-api-report": "node scripts/plugin-api-report.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

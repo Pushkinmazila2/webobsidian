@@ -110,8 +110,14 @@ export default function Icon({
 }
 
 /** Same glyph as <Icon>, as an SVG string (for plugins that call setIcon() on a DOM element). */
+const CUSTOM = new Map<string, string>();
+/** Obsidian `addIcon`: `svg` is the inner markup of a 100×100 viewBox. */
+export const registerCustomIcon = (name: string, svg: string) => { CUSTOM.set(name, svg); };
+export const unregisterCustomIcon = (name: string) => { CUSTOM.delete(name); };
 export function iconSvg(name: string, size = 16): string {
+  const custom = CUSTOM.get(name);
+  if (custom !== undefined) return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" fill="currentColor" stroke="currentColor">${custom}</svg>`;
   const path = PATHS[name] ?? '';
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
 }
-export const hasIcon = (name: string): boolean => name in PATHS;
+export const hasIcon = (name: string): boolean => name in PATHS || CUSTOM.has(name);

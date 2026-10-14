@@ -1,0 +1,6446 @@
+{
+ "apiVersion": "1.14.4",
+ "totals": {
+  "ok": 333,
+  "stub": 20,
+  "missing": 396
+ },
+ "feasibility": {
+  "easy": 53,
+  "medium": 149,
+  "hard": 167,
+  "impossible": 47
+ },
+ "classes": [
+  {
+   "name": "AbstractInputSuggest",
+   "extends": "PopoverSuggest",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain overlay UI on top of the Modal we already have.",
+   "members": [
+    {
+     "name": "limit",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "selectSuggestion",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onSelect",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "AbstractTextComponent",
+   "extends": "ValueComponent",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "inputEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setDisabled",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setPlaceholder",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onChanged",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onChange",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "App",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Core object; remaining members are small.",
+   "members": [
+    {
+     "name": "keymap",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "scope",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "workspace",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "vault",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "metadataCache",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "fileManager",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "lastEvent",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "renderContext",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Core object; remaining members are small."
+    },
+    {
+     "name": "secretStorage",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "See SecretStorage."
+    },
+    {
+     "name": "isDarkMode",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "loadLocalStorage",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "saveLocalStorage",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "BaseComponent",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "disabled",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "then",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setDisabled",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "BasesEntry",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "file",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "getValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "BasesEntryGroup",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "key",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "entries",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "hasKey",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "BasesQueryResult",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "data",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "groupedData",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "properties",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "getSummaryValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "BasesView",
+   "extends": "Component",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "type",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "app",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "config",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "allProperties",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "data",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "onDataUpdated",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "createFileForView",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "BasesViewConfig",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "name",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "get",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "getAsPropertyId",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "getEvaluatedFormula",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "set",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "getOrder",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "getSort",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "getDisplayName",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "BooleanValue",
+   "extends": "PrimitiveValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "static type",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "ButtonComponent",
+   "extends": "BaseComponent",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "buttonEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setDisabled",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setCta",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "removeCta",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setWarning",
+     "kind": "method",
+     "deprecated": true,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setDestructive",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "removeDestructive",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setTooltip",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setButtonText",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setIcon",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setClass",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onClick",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "CapacitorAdapter",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "impossible",
+   "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path.",
+   "members": [
+    {
+     "name": "getName",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "mkdir",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "trashSystem",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "trashLocal",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "rmdir",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "read",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "readBinary",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "write",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "writeBinary",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "append",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "appendBinary",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "process",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "getResourcePath",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "remove",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "rename",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "copy",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "exists",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "stat",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "list",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "getFullPath",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    }
+   ]
+  },
+  {
+   "name": "ColorComponent",
+   "extends": "ValueComponent",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "setDisabled",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getValueRgb",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getValueHsl",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setValueRgb",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setValueHsl",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onChange",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "Component",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "load",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onload",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "unload",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onunload",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addChild",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "removeChild",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "register",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "registerEvent",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "registerDomEvent",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "registerInterval",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "ConfirmationButton",
+   "extends": "ButtonComponent",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "easy",
+   "note": "Plain overlay UI on top of the Modal we already have.",
+   "members": [
+    {
+     "name": "onClick",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain overlay UI on top of the Modal we already have."
+    },
+    {
+     "name": "setInitialFocus",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain overlay UI on top of the Modal we already have."
+    },
+    {
+     "name": "setSecondary",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain overlay UI on top of the Modal we already have."
+    },
+    {
+     "name": "setCancel",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain overlay UI on top of the Modal we already have."
+    }
+   ]
+  },
+  {
+   "name": "ConfirmationModal",
+   "extends": "Modal",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "easy",
+   "note": "Plain overlay UI on top of the Modal we already have.",
+   "members": [
+    {
+     "name": "buttonContainerEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain overlay UI on top of the Modal we already have."
+    },
+    {
+     "name": "addClass",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain overlay UI on top of the Modal we already have."
+    },
+    {
+     "name": "addCheckbox",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain overlay UI on top of the Modal we already have."
+    },
+    {
+     "name": "addButton",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain overlay UI on top of the Modal we already have."
+    },
+    {
+     "name": "addCancelButton",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain overlay UI on top of the Modal we already have."
+    }
+   ]
+  },
+  {
+   "name": "DateValue",
+   "extends": "NotNullValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "toString",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "dateOnly",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "relative",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "isTruthy",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "static parseFromString",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "DisplayValueComponent",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "valueEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setStatus",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "DropdownComponent",
+   "extends": "ValueComponent",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "selectEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setDisabled",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addOption",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addOptions",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onChange",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "DurationValue",
+   "extends": "NotNullValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "toString",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "isTruthy",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "addToDate",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "getMilliseconds",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "static parseFromString",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "static fromMilliseconds",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "EditableFileView",
+   "extends": "FileView",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "medium",
+   "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.",
+   "members": []
+  },
+  {
+   "name": "Editor",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Thin wrapper over CodeMirror 6, which we already use.",
+   "members": [
+    {
+     "name": "getDoc",
+     "kind": "method",
+     "deprecated": true,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "refresh",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getLine",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setLine",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "lineCount",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "lastLine",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getSelection",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "somethingSelected",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getRange",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "replaceSelection",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "replaceRange",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getCursor",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "listSelections",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setCursor",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setSelection",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setSelections",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "focus",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "blur",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "hasFocus",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getScrollInfo",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "scrollTo",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "scrollIntoView",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "undo",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "redo",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "exec",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "transaction",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "wordAt",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "posToOffset",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "offsetToPos",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "processLines",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "EditorSuggest",
+   "extends": "PopoverSuggest",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "medium",
+   "note": "Needs a CodeMirror autocomplete source driven by the plugin.",
+   "members": [
+    {
+     "name": "context",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Needs a CodeMirror autocomplete source driven by the plugin."
+    },
+    {
+     "name": "limit",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Needs a CodeMirror autocomplete source driven by the plugin."
+    },
+    {
+     "name": "setInstructions",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Needs a CodeMirror autocomplete source driven by the plugin."
+    },
+    {
+     "name": "onTrigger",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Needs a CodeMirror autocomplete source driven by the plugin."
+    },
+    {
+     "name": "getSuggestions",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Needs a CodeMirror autocomplete source driven by the plugin."
+    }
+   ]
+  },
+  {
+   "name": "Events",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Core object; remaining members are small.",
+   "members": [
+    {
+     "name": "on",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "off",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "offref",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "trigger",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "tryTrigger",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "ExtraButtonComponent",
+   "extends": "BaseComponent",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "extraSettingsEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setDisabled",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setTooltip",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setIcon",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onClick",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "FileManager",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Thin helpers over the files API (link generation, attachment paths, delete prompt).",
+   "members": [
+    {
+     "name": "getNewFileParent",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "renameFile",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "promptForDeletion",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "trashFile",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "generateMarkdownLink",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "processFrontMatter",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Parse/write YAML front matter on the client; round-trip must keep comments/ordering."
+    },
+    {
+     "name": "getAvailablePathForAttachment",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "FileSystemAdapter",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "impossible",
+   "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path.",
+   "members": [
+    {
+     "name": "getName",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "getBasePath",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "mkdir",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "trashSystem",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "trashLocal",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "rmdir",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "read",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "readBinary",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "write",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "writeBinary",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "append",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "appendBinary",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "process",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "getResourcePath",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "getFilePath",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "remove",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "rename",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "copy",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "exists",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "stat",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "list",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "getFullPath",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "static readLocalFile",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    },
+    {
+     "name": "static mkdir",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "impossible",
+     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+    }
+   ]
+  },
+  {
+   "name": "FileValue",
+   "extends": "NotNullValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "toString",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "isTruthy",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "FileView",
+   "extends": "ItemView",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "medium",
+   "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.",
+   "members": [
+    {
+     "name": "allowNoFile",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "file",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "navigation",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "getDisplayText",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "onload",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "getState",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "setState",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "onLoadFile",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "onUnloadFile",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "onRename",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "canAcceptExtension",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    }
+   ]
+  },
+  {
+   "name": "FuzzySuggestModal",
+   "extends": "SuggestModal",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain overlay UI on top of the Modal we already have.",
+   "members": [
+    {
+     "name": "getSuggestions",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "renderSuggestion",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onChooseSuggestion",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getItems",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getItemText",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onChooseItem",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "HoverPopover",
+   "extends": "Component",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "medium",
+   "note": "Popover UI is easy; hooking into link hover needs the preview pipeline.",
+   "members": [
+    {
+     "name": "hoverEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Popover UI is easy; hooking into link hover needs the preview pipeline."
+    },
+    {
+     "name": "state",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Popover UI is easy; hooking into link hover needs the preview pipeline."
+    }
+   ]
+  },
+  {
+   "name": "HTMLValue",
+   "extends": "StringValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": []
+  },
+  {
+   "name": "IconValue",
+   "extends": "StringValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": []
+  },
+  {
+   "name": "ImageValue",
+   "extends": "StringValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": []
+  },
+  {
+   "name": "ItemView",
+   "extends": "View",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "medium",
+   "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.",
+   "members": [
+    {
+     "name": "contentEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "addAction",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    }
+   ]
+  },
+  {
+   "name": "Keymap",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "medium",
+   "note": "Hotkeys: we have a global key handler; needs scopes and per-command hotkeys.",
+   "members": [
+    {
+     "name": "pushScope",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Hotkeys: we have a global key handler; needs scopes and per-command hotkeys."
+    },
+    {
+     "name": "popScope",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Hotkeys: we have a global key handler; needs scopes and per-command hotkeys."
+    },
+    {
+     "name": "static isModifier",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Hotkeys: we have a global key handler; needs scopes and per-command hotkeys."
+    },
+    {
+     "name": "static isModEvent",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Hotkeys: we have a global key handler; needs scopes and per-command hotkeys."
+    }
+   ]
+  },
+  {
+   "name": "LinkValue",
+   "extends": "StringValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "static parseFromString",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "ListValue",
+   "extends": "NotNullValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "static type",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "toString",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "isTruthy",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "includes",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "length",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "get",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "concat",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "MarkdownEditView",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer.",
+   "members": [
+    {
+     "name": "app",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    },
+    {
+     "name": "hoverPopover",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    },
+    {
+     "name": "clear",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    },
+    {
+     "name": "get",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    },
+    {
+     "name": "set",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    },
+    {
+     "name": "file",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    },
+    {
+     "name": "getSelection",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    },
+    {
+     "name": "getScroll",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    },
+    {
+     "name": "applyScroll",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    }
+   ]
+  },
+  {
+   "name": "MarkdownPreviewRenderer",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "medium",
+   "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.",
+   "members": [
+    {
+     "name": "static registerPostProcessor",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+    },
+    {
+     "name": "static unregisterPostProcessor",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+    },
+    {
+     "name": "static createCodeBlockPostProcessor",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+    }
+   ]
+  },
+  {
+   "name": "MarkdownPreviewView",
+   "extends": "MarkdownRenderer",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer.",
+   "members": [
+    {
+     "name": "containerEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    },
+    {
+     "name": "file",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    },
+    {
+     "name": "get",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    },
+    {
+     "name": "set",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    },
+    {
+     "name": "clear",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    },
+    {
+     "name": "rerender",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    },
+    {
+     "name": "getScroll",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    },
+    {
+     "name": "applyScroll",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer."
+    }
+   ]
+  },
+  {
+   "name": "MarkdownRenderChild",
+   "extends": "Component",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "medium",
+   "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.",
+   "members": [
+    {
+     "name": "containerEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+    }
+   ]
+  },
+  {
+   "name": "MarkdownRenderer",
+   "extends": "MarkdownRenderChild",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "medium",
+   "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.",
+   "members": [
+    {
+     "name": "app",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+    },
+    {
+     "name": "hoverPopover",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+    },
+    {
+     "name": "file",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+    },
+    {
+     "name": "static renderMarkdown",
+     "kind": "method",
+     "deprecated": true,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+    },
+    {
+     "name": "static render",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+    }
+   ]
+  },
+  {
+   "name": "MarkdownView",
+   "extends": "TextFileView",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "medium",
+   "note": "Needs reading/live-preview modes and the leaf facade behind it.",
+   "members": [
+    {
+     "name": "editor",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "previewMode",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Needs reading/live-preview modes and the leaf facade behind it."
+    },
+    {
+     "name": "currentMode",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Needs reading/live-preview modes and the leaf facade behind it."
+    },
+    {
+     "name": "hoverPopover",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Needs reading/live-preview modes and the leaf facade behind it."
+    },
+    {
+     "name": "getViewType",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getMode",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getViewData",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "clear",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Needs reading/live-preview modes and the leaf facade behind it."
+    },
+    {
+     "name": "setViewData",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Needs reading/live-preview modes and the leaf facade behind it."
+    },
+    {
+     "name": "showSearch",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Needs reading/live-preview modes and the leaf facade behind it."
+    }
+   ]
+  },
+  {
+   "name": "Menu",
+   "extends": "Component",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Maps onto our context menu.",
+   "members": [
+    {
+     "name": "setNoIcon",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setUseNativeMenu",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addItem",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addSeparator",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setParentElement",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "showAtMouseEvent",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "showAtPosition",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onHistoryBack",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "hide",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "close",
+     "kind": "method",
+     "deprecated": true,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onHide",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "static forEvent",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "MenuItem",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Maps onto our context menu.",
+   "members": [
+    {
+     "name": "setTitle",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setIcon",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setChecked",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setDisabled",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setWarning",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setIsLabel",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onClick",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setSection",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "MenuSeparator",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Maps onto our context menu.",
+   "members": []
+  },
+  {
+   "name": "MetadataCache",
+   "extends": "Events",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "medium",
+   "note": "The server already parses notes for search/links; getFileCache needs section/heading/link positions and change events exposed to the browser.",
+   "members": [
+    {
+     "name": "getFirstLinkpathDest",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "The server already parses notes for search/links; getFileCache needs section/heading/link positions and change events exposed to the browser."
+    },
+    {
+     "name": "getFileCache",
+     "kind": "method",
+     "deprecated": false,
+     "status": "stub",
+     "feasibility": "medium",
+     "note": "The server already parses notes for search/links; getFileCache needs section/heading/link positions and change events exposed to the browser."
+    },
+    {
+     "name": "getCache",
+     "kind": "method",
+     "deprecated": false,
+     "status": "stub",
+     "feasibility": "medium",
+     "note": "The server already parses notes for search/links; getFileCache needs section/heading/link positions and change events exposed to the browser."
+    },
+    {
+     "name": "fileToLinktext",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "The server already parses notes for search/links; getFileCache needs section/heading/link positions and change events exposed to the browser."
+    },
+    {
+     "name": "resolvedLinks",
+     "kind": "property",
+     "deprecated": false,
+     "status": "stub",
+     "feasibility": "medium",
+     "note": "The server already parses notes for search/links; getFileCache needs section/heading/link positions and change events exposed to the browser."
+    },
+    {
+     "name": "unresolvedLinks",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "The server already parses notes for search/links; getFileCache needs section/heading/link positions and change events exposed to the browser."
+    },
+    {
+     "name": "on",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "Modal",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Core object; remaining members are small.",
+   "members": [
+    {
+     "name": "app",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "scope",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "containerEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "modalEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "titleEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "contentEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "shouldRestoreSelection",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "open",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onHistoryBack",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "close",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onOpen",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onClose",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setTitle",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setContent",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setCloseCallback",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "MomentFormatComponent",
+   "extends": "TextComponent",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "sampleEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setDefaultFormat",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setSampleEl",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onChanged",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "updateSample",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "Notice",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Core object; remaining members are small.",
+   "members": [
+    {
+     "name": "noticeEl",
+     "kind": "property",
+     "deprecated": true,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "containerEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "messageEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setMessage",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "hide",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "NotNullValue",
+   "extends": "Value",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": []
+  },
+  {
+   "name": "NullValue",
+   "extends": "Value",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "toString",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "isTruthy",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "static value",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "NumberValue",
+   "extends": "PrimitiveValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "static type",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "ObjectValue",
+   "extends": "NotNullValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "static type",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "toString",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "isTruthy",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "isEmpty",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "get",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "Plugin",
+   "extends": "Component",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Core object; remaining members are small.",
+   "members": [
+    {
+     "name": "app",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "manifest",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "settings",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Core object; remaining members are small."
+    },
+    {
+     "name": "onload",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addRibbonIcon",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addStatusBarItem",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addCommand",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "removeCommand",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addSettingTab",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "registerView",
+     "kind": "method",
+     "deprecated": false,
+     "status": "stub",
+     "feasibility": "medium",
+     "note": "See View: needs a React host container for the plugin view."
+    },
+    {
+     "name": "registerHoverLinkSource",
+     "kind": "method",
+     "deprecated": false,
+     "status": "stub",
+     "feasibility": "medium",
+     "note": "Needs the link-hover preview pipeline."
+    },
+    {
+     "name": "registerExtensions",
+     "kind": "method",
+     "deprecated": false,
+     "status": "stub",
+     "feasibility": "medium",
+     "note": "Needs file-type → view mapping."
+    },
+    {
+     "name": "registerMarkdownPostProcessor",
+     "kind": "method",
+     "deprecated": false,
+     "status": "stub",
+     "feasibility": "medium",
+     "note": "Run processors on rendered preview / live-preview HTML."
+    },
+    {
+     "name": "registerMarkdownCodeBlockProcessor",
+     "kind": "method",
+     "deprecated": false,
+     "status": "stub",
+     "feasibility": "medium",
+     "note": "Same hook, selected by code-block language."
+    },
+    {
+     "name": "registerBasesView",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Core object; remaining members are small."
+    },
+    {
+     "name": "registerEditorExtension",
+     "kind": "method",
+     "deprecated": false,
+     "status": "stub",
+     "feasibility": "medium",
+     "note": "Possible because the editor is CodeMirror 6, but plugins import @codemirror/* — those modules must be provided to require() at the same version."
+    },
+    {
+     "name": "registerObsidianProtocolHandler",
+     "kind": "method",
+     "deprecated": false,
+     "status": "stub",
+     "feasibility": "impossible",
+     "note": "obsidian:// URLs are handled by the desktop app, not by a web page."
+    },
+    {
+     "name": "registerEditorSuggest",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Core object; remaining members are small."
+    },
+    {
+     "name": "registerCliHandler",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Core object; remaining members are small."
+    },
+    {
+     "name": "loadData",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "saveData",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onUserEnable",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onExternalSettingsChange",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "PluginSettingTab",
+   "extends": "SettingTab",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Settings-tab variants (definitions API) are plain DOM.",
+   "members": [
+    {
+     "name": "getSettingDefinitions",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Settings-tab variants (definitions API) are plain DOM."
+    },
+    {
+     "name": "getControlValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Settings-tab variants (definitions API) are plain DOM."
+    },
+    {
+     "name": "setControlValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Settings-tab variants (definitions API) are plain DOM."
+    }
+   ]
+  },
+  {
+   "name": "PopoverSuggest",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain overlay UI on top of the Modal we already have.",
+   "members": [
+    {
+     "name": "app",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "scope",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onHistoryBack",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "open",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "close",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "renderSuggestion",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "selectSuggestion",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "PrimitiveValue",
+   "extends": "NotNullValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "toString",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "isTruthy",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "ProgressBarComponent",
+   "extends": "ValueComponent",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "getValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "QueryController",
+   "extends": "Component",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": []
+  },
+  {
+   "name": "RegExpValue",
+   "extends": "NotNullValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "toString",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "isTruthy",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "RelativeDateValue",
+   "extends": "DateValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": []
+  },
+  {
+   "name": "RenderContext",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "medium",
+   "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.",
+   "members": [
+    {
+     "name": "hoverPopover",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+    }
+   ]
+  },
+  {
+   "name": "Scope",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "medium",
+   "note": "Hotkeys: we have a global key handler; needs scopes and per-command hotkeys.",
+   "members": [
+    {
+     "name": "register",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "unregister",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "SearchComponent",
+   "extends": "AbstractTextComponent",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "clearButtonEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onChanged",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "SecretComponent",
+   "extends": "BaseComponent",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "medium",
+   "note": "Server-side secret store plus a masked input; no OS keychain on the server.",
+   "members": [
+    {
+     "name": "setValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Server-side secret store plus a masked input; no OS keychain on the server."
+    },
+    {
+     "name": "onChange",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Server-side secret store plus a masked input; no OS keychain on the server."
+    }
+   ]
+  },
+  {
+   "name": "SecretStorage",
+   "extends": "Events",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "medium",
+   "note": "Server-side secret store plus a masked input; no OS keychain on the server.",
+   "members": [
+    {
+     "name": "setSecret",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Server-side secret store plus a masked input; no OS keychain on the server."
+    },
+    {
+     "name": "getSecret",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Server-side secret store plus a masked input; no OS keychain on the server."
+    },
+    {
+     "name": "listSecrets",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Server-side secret store plus a masked input; no OS keychain on the server."
+    }
+   ]
+  },
+  {
+   "name": "Setting",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "settingEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "infoEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "nameEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "descEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "controlEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "components",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "errorEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setErrorMessage",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addDisplayValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setName",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setDesc",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setClass",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setTooltip",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setHeading",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setDisabled",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addButton",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addExtraButton",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addToggle",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addText",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addComponent",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addSearch",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addTextArea",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addMomentFormat",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addDropdown",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addColorPicker",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addProgressBar",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "addSlider",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "then",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "clear",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "SettingGroup",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "listEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "setHeading",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "addClass",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "addSetting",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "addSearch",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "addExtraButton",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    }
+   ]
+  },
+  {
+   "name": "SettingPage",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "rootEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "titlebarEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "containerEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "title",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "display",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "hide",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    }
+   ]
+  },
+  {
+   "name": "SettingTab",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "icon",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "app",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "containerEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "settingItems",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "getSettingDefinitions",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "update",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "getControlValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "setControlValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "refreshDomState",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "display",
+     "kind": "method",
+     "deprecated": true,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    },
+    {
+     "name": "hide",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Plain DOM widgets."
+    }
+   ]
+  },
+  {
+   "name": "SliderComponent",
+   "extends": "ValueComponent",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "sliderEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setDisabled",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setInstant",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setLimits",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getValuePretty",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setDisplayFormat",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setDynamicTooltip",
+     "kind": "method",
+     "deprecated": true,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onChange",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "StringValue",
+   "extends": "PrimitiveValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "static type",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "SuggestModal",
+   "extends": "Modal",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain overlay UI on top of the Modal we already have.",
+   "members": [
+    {
+     "name": "limit",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "emptyStateText",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "inputEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "resultContainerEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setPlaceholder",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setInstructions",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onNoSuggestion",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "selectSuggestion",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "selectActiveSuggestion",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getSuggestions",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "renderSuggestion",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onChooseSuggestion",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "TAbstractFile",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Backed by the files API; events come from the WebSocket change feed.",
+   "members": [
+    {
+     "name": "vault",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "path",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "name",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "parent",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "TagValue",
+   "extends": "StringValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": []
+  },
+  {
+   "name": "Tasks",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "easy",
+   "note": "Core object; remaining members are small.",
+   "members": [
+    {
+     "name": "add",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Core object; remaining members are small."
+    },
+    {
+     "name": "addPromise",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Core object; remaining members are small."
+    },
+    {
+     "name": "isEmpty",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Core object; remaining members are small."
+    },
+    {
+     "name": "promise",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Core object; remaining members are small."
+    }
+   ]
+  },
+  {
+   "name": "TextAreaComponent",
+   "extends": "AbstractTextComponent",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": []
+  },
+  {
+   "name": "TextComponent",
+   "extends": "AbstractTextComponent",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": []
+  },
+  {
+   "name": "TExternalFile",
+   "extends": "TFile",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "easy",
+   "note": "Backed by the files API; events come from the WebSocket change feed.",
+   "members": [
+    {
+     "name": "getRealPath",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "easy",
+     "note": "Backed by the files API; events come from the WebSocket change feed."
+    }
+   ]
+  },
+  {
+   "name": "TextFileView",
+   "extends": "EditableFileView",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "medium",
+   "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.",
+   "members": [
+    {
+     "name": "data",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "requestSave",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "onUnloadFile",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "onLoadFile",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "save",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "getViewData",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "setViewData",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "clear",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    }
+   ]
+  },
+  {
+   "name": "TFile",
+   "extends": "TAbstractFile",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Backed by the files API; events come from the WebSocket change feed.",
+   "members": [
+    {
+     "name": "stat",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "basename",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "extension",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "TFolder",
+   "extends": "TAbstractFile",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Backed by the files API; events come from the WebSocket change feed.",
+   "members": [
+    {
+     "name": "children",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "isRoot",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "ToggleComponent",
+   "extends": "ValueComponent",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "toggleEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setDisabled",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setTooltip",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onClick",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onChange",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "UrlValue",
+   "extends": "StringValue",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": []
+  },
+  {
+   "name": "Value",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
+   "members": [
+    {
+     "name": "static type",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "static equals",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "static looseEquals",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "toString",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "isTruthy",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "equals",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "looseEquals",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    },
+    {
+     "name": "renderTo",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+    }
+   ]
+  },
+  {
+   "name": "ValueComponent",
+   "extends": "BaseComponent",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Plain DOM widgets.",
+   "members": [
+    {
+     "name": "registerOptionListener",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setValue",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "Vault",
+   "extends": "Events",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "easy",
+   "note": "Backed by the files API; events come from the WebSocket change feed.",
+   "members": [
+    {
+     "name": "adapter",
+     "kind": "property",
+     "deprecated": false,
+     "status": "stub",
+     "feasibility": "medium",
+     "note": "DataAdapter over the files API (read/write/list/exists/mkdir/rename/stat/remove)."
+    },
+    {
+     "name": "configDir",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getName",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getFileByPath",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getFolderByPath",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getAbstractFileByPath",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getRoot",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "create",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "createBinary",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "createFolder",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "read",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "cachedRead",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "readBinary",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getResourcePath",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "delete",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "trash",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "rename",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "modify",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "modifyBinary",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "append",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "appendBinary",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "process",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "copy",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getAllLoadedFiles",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getAllFolders",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "static recurseChildren",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getMarkdownFiles",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "getFiles",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "on",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "View",
+   "extends": "Component",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "medium",
+   "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.",
+   "members": [
+    {
+     "name": "app",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "icon",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "navigation",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "leaf",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "containerEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "scope",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "getViewType",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "getState",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "setState",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "getEphemeralState",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "setEphemeralState",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "getIcon",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "onResize",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "getDisplayText",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    },
+    {
+     "name": "onPaneMenu",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+    }
+   ]
+  },
+  {
+   "name": "Workspace",
+   "extends": "Events",
+   "deprecated": false,
+   "classStatus": "ok",
+   "feasibility": "medium",
+   "note": "Not yet analysed.",
+   "members": [
+    {
+     "name": "leftSplit",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "rightSplit",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "leftRibbon",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "rightRibbon",
+     "kind": "property",
+     "deprecated": true,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "rootSplit",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "activeLeaf",
+     "kind": "property",
+     "deprecated": true,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "containerEl",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "layoutReady",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "requestSaveLayout",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "activeEditor",
+     "kind": "property",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "onLayoutReady",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "changeLayout",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "getLayout",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "createLeafInParent",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "createLeafBySplit",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "splitActiveLeaf",
+     "kind": "method",
+     "deprecated": true,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "duplicateLeaf",
+     "kind": "method",
+     "deprecated": true,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "getUnpinnedLeaf",
+     "kind": "method",
+     "deprecated": true,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "getLeaf",
+     "kind": "method",
+     "deprecated": false,
+     "status": "stub",
+     "feasibility": "hard",
+     "note": "Only a facade that opens a file is realistic."
+    },
+    {
+     "name": "moveLeafToPopout",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "openPopoutLeaf",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "openLinkText",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "setActiveLeaf",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "getLeafById",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "getGroupLeaves",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "getMostRecentLeaf",
+     "kind": "method",
+     "deprecated": false,
+     "status": "stub",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "getLeftLeaf",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "getRightLeaf",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "ensureSideLeaf",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "getActiveViewOfType",
+     "kind": "method",
+     "deprecated": false,
+     "status": "stub",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "getActiveFile",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "iterateRootLeaves",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "iterateAllLeaves",
+     "kind": "method",
+     "deprecated": false,
+     "status": "stub",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "getLeavesOfType",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    },
+    {
+     "name": "detachLeavesOfType",
+     "kind": "method",
+     "deprecated": false,
+     "status": "stub",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "revealLeaf",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "getLastOpenFiles",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "updateOptions",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "handleLinkContextMenu",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "medium",
+     "note": "Not yet analysed."
+    },
+    {
+     "name": "on",
+     "kind": "method",
+     "deprecated": false,
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "name": "WorkspaceContainer",
+   "extends": "WorkspaceSplit",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
+   "members": [
+    {
+     "name": "win",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    },
+    {
+     "name": "doc",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    }
+   ]
+  },
+  {
+   "name": "WorkspaceFloating",
+   "extends": "WorkspaceParent",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
+   "members": [
+    {
+     "name": "parent",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    }
+   ]
+  },
+  {
+   "name": "WorkspaceItem",
+   "extends": "Events",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
+   "members": [
+    {
+     "name": "parent",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    },
+    {
+     "name": "getRoot",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    },
+    {
+     "name": "getContainer",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    }
+   ]
+  },
+  {
+   "name": "WorkspaceLeaf",
+   "extends": "WorkspaceItem",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins.",
+   "members": [
+    {
+     "name": "parent",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "view",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "hoverPopover",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "openFile",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "open",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "getViewState",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "setViewState",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "isDeferred",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "loadIfDeferred",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "getEphemeralState",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "setEphemeralState",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "togglePinned",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "setPinned",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "setGroupMember",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "setGroup",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "detach",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "getIcon",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "getDisplayText",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "onResize",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    },
+    {
+     "name": "on",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+    }
+   ]
+  },
+  {
+   "name": "WorkspaceMobileDrawer",
+   "extends": "WorkspaceParent",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
+   "members": [
+    {
+     "name": "parent",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    },
+    {
+     "name": "collapsed",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    },
+    {
+     "name": "expand",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    },
+    {
+     "name": "collapse",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    },
+    {
+     "name": "toggle",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    }
+   ]
+  },
+  {
+   "name": "WorkspaceParent",
+   "extends": "WorkspaceItem",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
+   "members": []
+  },
+  {
+   "name": "WorkspaceRibbon",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
+   "members": []
+  },
+  {
+   "name": "WorkspaceRoot",
+   "extends": "WorkspaceContainer",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
+   "members": [
+    {
+     "name": "win",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    },
+    {
+     "name": "doc",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    }
+   ]
+  },
+  {
+   "name": "WorkspaceSidedock",
+   "extends": "WorkspaceSplit",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
+   "members": [
+    {
+     "name": "collapsed",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    },
+    {
+     "name": "toggle",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    },
+    {
+     "name": "collapse",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    },
+    {
+     "name": "expand",
+     "kind": "method",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    }
+   ]
+  },
+  {
+   "name": "WorkspaceSplit",
+   "extends": "WorkspaceParent",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
+   "members": [
+    {
+     "name": "parent",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    }
+   ]
+  },
+  {
+   "name": "WorkspaceTabs",
+   "extends": "WorkspaceParent",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
+   "members": [
+    {
+     "name": "parent",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    }
+   ]
+  },
+  {
+   "name": "WorkspaceWindow",
+   "extends": "WorkspaceContainer",
+   "deprecated": false,
+   "classStatus": "missing",
+   "feasibility": "hard",
+   "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
+   "members": [
+    {
+     "name": "win",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    },
+    {
+     "name": "doc",
+     "kind": "property",
+     "deprecated": false,
+     "status": "missing",
+     "feasibility": "hard",
+     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+    }
+   ]
+  }
+ ],
+ "functions": [
+  {
+   "name": "addIcon",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "arrayBufferToBase64",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "arrayBufferToHex",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "base64ToArrayBuffer",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "debounce",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "displayTooltip",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "finishRenderMath",
+   "deprecated": false,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "Via KaTeX."
+  },
+  {
+   "name": "getAllTags",
+   "deprecated": false,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "Needs MetadataCache."
+  },
+  {
+   "name": "getBlobArrayBuffer",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "getFrontMatterInfo",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "getIcon",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "getIconIds",
+   "deprecated": false,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "Same."
+  },
+  {
+   "name": "getLanguage",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "getLinkpath",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "hexToArrayBuffer",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "htmlToMarkdown",
+   "deprecated": false,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "Needs an HTML→Markdown converter (e.g. turndown)."
+  },
+  {
+   "name": "iterateCacheRefs",
+   "deprecated": true,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "Needs MetadataCache."
+  },
+  {
+   "name": "iterateRefs",
+   "deprecated": false,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "Needs MetadataCache."
+  },
+  {
+   "name": "loadMathJax",
+   "deprecated": false,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "We ship KaTeX, not MathJax; either bundle MathJax or alias to KaTeX."
+  },
+  {
+   "name": "loadMermaid",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "loadPdfJs",
+   "deprecated": false,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "Bundle pdf.js lazily."
+  },
+  {
+   "name": "loadPrism",
+   "deprecated": false,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "We highlight with CodeMirror/lowlight, not Prism; bundle Prism lazily."
+  },
+  {
+   "name": "normalizePath",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "parseFrontMatterAliases",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "parseFrontMatterEntry",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "parseFrontMatterStringArray",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "parseFrontMatterTags",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "parseLinktext",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "parsePropertyId",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "parseYaml",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "prepareFuzzySearch",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "prepareSimpleSearch",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "removeIcon",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "renderMatches",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "renderMath",
+   "deprecated": false,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "Via KaTeX."
+  },
+  {
+   "name": "renderResults",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "request",
+   "deprecated": false,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "Same as requestUrl."
+  },
+  {
+   "name": "requestUrl",
+   "deprecated": false,
+   "status": "stub",
+   "feasibility": "medium",
+   "note": "Browsers enforce CORS, so the request has to go through a server proxy (with SSRF limits)."
+  },
+  {
+   "name": "requireApiVersion",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "resolveSubpath",
+   "deprecated": false,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "Needs MetadataCache (headings/blocks)."
+  },
+  {
+   "name": "sanitizeHTMLToDom",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "setIcon",
+   "deprecated": false,
+   "status": "stub",
+   "feasibility": "medium",
+   "note": "Works, but we only ship part of the Lucide set; add the rest on demand."
+  },
+  {
+   "name": "setTooltip",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "sortSearchResults",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "stringifyYaml",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "stripHeading",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "stripHeadingForLink",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  }
+ ],
+ "consts": [
+  {
+   "name": "apiVersion",
+   "deprecated": false,
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
+  },
+  {
+   "name": "editorEditorField",
+   "deprecated": false,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "CM6 state fields — need the same @codemirror/state build as the plugin."
+  },
+  {
+   "name": "editorInfoField",
+   "deprecated": false,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "Same."
+  },
+  {
+   "name": "editorLivePreviewField",
+   "deprecated": false,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "Same."
+  },
+  {
+   "name": "editorViewField",
+   "deprecated": true,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "Same."
+  },
+  {
+   "name": "livePreviewState",
+   "deprecated": false,
+   "status": "missing",
+   "feasibility": "medium",
+   "note": "Same."
+  },
+  {
+   "name": "moment",
+   "deprecated": false,
+   "status": "stub",
+   "feasibility": "medium",
+   "note": "Bundle the real moment (≈70 KB) instead of the stub."
+  },
+  {
+   "name": "Platform",
+   "deprecated": false,
+   "status": "stub",
+   "feasibility": "easy",
+   "note": "Plain object of booleans (present)."
+  }
+ ]
+}
