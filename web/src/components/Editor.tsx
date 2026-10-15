@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { editorInfoField } from '../lib/obsidianApi';
+import { pluginHost, useEditorExtensionsVersion, useMarkdownProcessorsVersion } from '../lib/pluginHost';
 import { Compartment, EditorState, Prec } from '@codemirror/state';
 import { EditorView, keymap, highlightActiveLine, drawSelection } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
@@ -37,6 +39,8 @@ import {
   setLivePreviewPropertyTypeSetter,
   setLivePreviewTagProvider,
   setNoteTitle,
+  pluginBlockField,
+  pluginBlocksChanged,
 } from '../lib/livePreview';
 import { renderMarkdown } from '../lib/markdown';
 import { setActiveEditor } from '../lib/activeEditor';
@@ -49,10 +53,18 @@ const titleOf = (path: string | null) =>
 const readonlyExt = (reading: boolean) =>
   reading ? [EditorView.editable.of(false), EditorState.readOnly.of(true)] : [];
 
+/** Plugin extensions are untrusted: one that fails to build must not take the editor down. */
+function safePluginExtensions() {
+  try { return [...pluginHost.editorExtensions()]; } catch { return []; }
+}
+
 export default function Editor() {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const readonlyComp = useRef(new Compartment()).current;
+  const pluginExtComp = useRef(new Compartment()).current;
+  const pluginExtVersion = useEditorExtensionsVersion();
+  const procVersion = useMarkdownProcessorsVersion();
   const applyingExternal = useRef(false);
   const activePath = useStore((s) => s.activePath);
   const content = useStore((s) => s.content);
@@ -276,12 +288,16 @@ export default function Editor() {
         livePreviewState.init(() => isMd && viewMode !== 'source'),
         livePreviewReadonly.init(() => viewMode === 'reading'),
         readonlyComp.of(readonlyExt(viewMode === 'reading')),
+        // Extensions registered by community plugins (registerEditorExtension).
+        pluginExtComp.of(safePluginExtensions()),
         noteTitleField.init(() => titleOf(activePath)),
         inlineTitleField,
         frontmatterField,
         tableField,
         htmlBlockField,
         mermaidField,
+        pluginBlockField,
+        editorInfoField,
         htmlRenderedState,
         htmlPreviewField,
         calloutFoldState,
@@ -337,6 +353,19 @@ export default function Editor() {
       ],
     });
   }, [viewMode, activePath]);
+
+  // A plugin registered/changed editor extensions (or called workspace.updateOptions()).
+  useEffect(() => {
+    const v = view.current;
+    if (!v) return;
+    try { v.dispatch({ effects: pluginExtComp.reconfigure(safePluginExtensions()) }); }
+    catch (e) { console.warn('[plugin] editor extensions rejected:', e); v.dispatch({ effects: pluginExtComp.reconfigure([]) }); }
+  }, [pluginExtVersion]);
+
+  // A plugin added/removed a code-block processor: re-render its blocks.
+  useEffect(() => {
+    view.current?.dispatch({ effects: pluginBlocksChanged.of(procVersion) });
+  }, [procVersion]);
 
   // Debounced autosave.
   useEffect(() => {

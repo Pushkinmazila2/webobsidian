@@ -118,7 +118,6 @@ const PARTIAL = new Set([
 ]);
 const provided = {
   // classes plugins receive as app.metadataCache / app.fileManager (we expose a reduced object)
-  MetadataCache: { ok: ['on', 'off', 'offref', 'trigger', 'tryTrigger'], stub: ['getFileCache', 'getCache', 'resolvedLinks'] },
 };
 
 function ourMember(cls, member) {

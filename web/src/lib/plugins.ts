@@ -10,7 +10,7 @@
 import { vaultHeaders, withVault } from './vault';
 import { api } from './api';
 import { pluginHost } from './pluginHost';
-import { App, Notice, Plugin, obsidianModule, setPluginDataBackend } from './obsidianApi';
+import { App, Notice, Plugin, obsidianModule, setPluginDataBackend, startMetadataCache } from './obsidianApi';
 import * as cmState from '@codemirror/state';
 import * as cmView from '@codemirror/view';
 import * as cmCommands from '@codemirror/commands';
@@ -181,6 +181,8 @@ export async function syncPlugins(): Promise<{ unsaved: number } | null> {
 const SYNC_EVERY_MS = 30_000;
 /** Load all enabled community plugins, then keep following the vault's plugin state. */
 export async function loadPlugins(): Promise<void> {
+  // Plugins index the vault through app.metadataCache as soon as they load, so it must be populated first.
+  await Promise.race([startMetadataCache().catch((e) => console.warn('[metadata] initial load failed:', e)), new Promise((r) => setTimeout(r, 20000))]);
   await syncPlugins();
   setInterval(() => { if (!document.hidden) void syncPlugins(); }, SYNC_EVERY_MS);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) void syncPlugins(); });

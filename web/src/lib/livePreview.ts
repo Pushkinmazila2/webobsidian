@@ -1,3 +1,6 @@
+import { pluginHost, type PostProcessorCtx } from './pluginHost';
+import { useStore } from './store';
+import { getFrontMatterInfo, parseYaml } from './obsidianUtils';
 import { withVault } from './vault';
 import {
   Decoration,
@@ -596,6 +599,100 @@ export const mermaidField = StateField.define<DecorationSet>({
   update(value, tr) {
     if (tr.docChanged || tr.selection || tr.effects.some((e) => e.is(setLivePreviewEnabled) || e.is(setLivePreviewReadonly))) {
       return buildMermaid(tr.state);
+    }
+    return value.map(tr.changes);
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
+/* ---------------- fenced blocks owned by community plugins ---------------- */
+
+/** Dispatched when a plugin registers/removes a code-block processor, so the blocks re-render. */
+export const pluginBlocksChanged = StateEffect.define<number>();
+
+class PluginBlockWidget extends WidgetType {
+  private children: { unload(): void }[] = [];
+  constructor(readonly lang: string, readonly code: string, readonly sourcePath: string, readonly fullText: string, readonly lineStart: number, readonly lineEnd: number, readonly version: number) {
+    super();
+  }
+  eq(o: PluginBlockWidget) {
+    return o.lang === this.lang && o.code === this.code && o.sourcePath === this.sourcePath && o.version === this.version && o.lineStart === this.lineStart;
+  }
+  ignoreEvent() {
+    return true; // the plugin owns clicks/keys inside its widget
+  }
+  toDOM() {
+    const el = document.createElement('div');
+    el.className = `block-language-${this.lang} cm-plugin-block`;
+    const proc = pluginHost.codeBlockProcessor(this.lang);
+    if (!proc) return el;
+    let frontmatter: Record<string, unknown> | undefined;
+    try {
+      const fm = getFrontMatterInfo(this.fullText);
+      if (fm.exists) frontmatter = parseYaml(fm.frontmatter) ?? undefined;
+    } catch { /* malformed front matter */ }
+    const text = this.fullText, lineStart = this.lineStart, lineEnd = this.lineEnd;
+    const ctx: PostProcessorCtx = {
+      sourcePath: this.sourcePath, frontmatter, docId: this.sourcePath, containerEl: el,
+      addChild: (c) => { this.children.push(c); try { c.load(); } catch (e) { console.warn('[plugin] child load failed', e); } },
+      getSectionInfo: () => ({ text, lineStart, lineEnd }),
+    };
+    const fail = (e: unknown) => {
+      console.warn(`[plugin] ${this.lang} processor failed:`, e);
+      const err = document.createElement('div');
+      err.className = 'markdown-error';
+      err.textContent = `Plugin error: ${(e as Error)?.message ?? e}`;
+      el.appendChild(err);
+    };
+    try {
+      const r = proc.fn(this.code, el, ctx);
+      if (r && typeof (r as Promise<void>).catch === 'function') (r as Promise<void>).catch(fail);
+    } catch (e) { fail(e); }
+    return el;
+  }
+  destroy() {
+    for (const c of this.children.splice(0)) { try { c.unload(); } catch { /* ignore */ } }
+  }
+}
+
+function buildPluginBlocks(state: EditorState): DecorationSet {
+  if (!state.field(livePreviewState, false)) return Decoration.none;
+  const doc = state.doc;
+  const ranges: Range<Decoration>[] = [];
+  const sourcePath = useStore.getState().activePath ?? '';
+  const version = pluginHost.processorVersion();
+  let fullText: string | null = null;
+  const ro = state.field(livePreviewReadonly, false) ?? false;
+  for (let n = 1; n <= doc.lines; n++) {
+    const line = doc.line(n);
+    const open = line.text.match(/^\s*(`{3,}|~{3,})\s*([\w-]+)/);
+    if (!open) continue;
+    let end = -1;
+    for (let j = n + 1; j <= doc.lines; j++) {
+      if (doc.line(j).text.trim().startsWith(open[1][0].repeat(3))) { end = j; break; }
+    }
+    if (end < 0) continue;
+    const lang = open[2];
+    if (pluginHost.hasCodeBlockProcessor(lang)) {
+      const from = line.from, to = doc.line(end).to;
+      let touched = false;
+      if (!ro) for (const r of state.selection.ranges) if (r.from <= to && r.to >= from) { touched = true; break; }
+      if (!touched) {
+        const code = end > n + 1 ? doc.sliceString(doc.line(n + 1).from, doc.line(end - 1).to) : '';
+        fullText ??= doc.toString();
+        ranges.push(Decoration.replace({ widget: new PluginBlockWidget(lang, code, sourcePath, fullText, n - 1, end - 1, version), block: true }).range(from, to));
+      }
+    }
+    n = end;
+  }
+  return Decoration.set(ranges, true);
+}
+
+export const pluginBlockField = StateField.define<DecorationSet>({
+  create: (state) => buildPluginBlocks(state),
+  update(value, tr) {
+    if (tr.docChanged || tr.selection || tr.effects.some((e) => e.is(setLivePreviewEnabled) || e.is(setLivePreviewReadonly) || e.is(pluginBlocksChanged))) {
+      return buildPluginBlocks(tr.state);
     }
     return value.map(tr.changes);
   },

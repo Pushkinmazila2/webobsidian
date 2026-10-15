@@ -7,6 +7,41 @@ import { renderMarkdown } from '../lib/markdown';
 import { calloutIconSvg } from '../lib/callouts';
 import { openLightbox } from '../lib/imageLightbox';
 import { api } from '../lib/api';
+import { pluginHost, useMarkdownProcessorsVersion, type PostProcessorCtx } from '../lib/pluginHost';
+import { getFrontMatterInfo, parseYaml } from '../lib/obsidianUtils';
+
+/** Run plugin code-block processors, then post-processors, over freshly rendered markdown. */
+function runPluginProcessors(root: HTMLElement, sourcePath: string, content: string, children: { unload(): void }[]) {
+  let frontmatter: Record<string, unknown> | undefined;
+  try {
+    const fm = getFrontMatterInfo(content);
+    if (fm.exists) frontmatter = parseYaml(fm.frontmatter) ?? undefined;
+  } catch { /* malformed front matter: processors just get none */ }
+  const ctx: PostProcessorCtx = {
+    sourcePath, frontmatter, docId: sourcePath, containerEl: root,
+    addChild: (c) => { children.push(c); try { c.load(); } catch (e) { console.warn('[plugin] child load failed', e); } },
+    getSectionInfo: () => null,
+  };
+  const fail = (el: HTMLElement, e: unknown) => {
+    console.warn('[plugin] markdown processor failed:', e);
+    el.createDiv?.({ cls: 'markdown-error', text: `Plugin error: ${(e as Error)?.message ?? e}` });
+  };
+  const call = (el: HTMLElement, fn: () => unknown) => {
+    try { const r = fn(); if (r && typeof (r as Promise<void>).catch === 'function') (r as Promise<void>).catch((e) => fail(el, e)); } catch (e) { fail(el, e); }
+  };
+  for (const codeEl of root.querySelectorAll<HTMLElement>('pre > code[class*="language-"]')) {
+    const lang = [...codeEl.classList].find((c) => c.startsWith('language-'))?.slice(9);
+    const proc = lang ? pluginHost.codeBlockProcessor(lang) : undefined;
+    if (!proc) continue;
+    const pre = codeEl.parentElement!;
+    const source = (codeEl.textContent ?? '').replace(/\n$/, '');
+    const el = document.createElement('div');
+    el.className = `block-language-${lang}`;
+    pre.replaceWith(el);
+    call(el, () => proc.fn(source, el, ctx));
+  }
+  for (const pp of pluginHost.postProcessors()) call(root, () => pp.fn(root, ctx));
+}
 
 /** Syntax-highlight a `<code class="language-x">` block with the SAME CodeMirror
  *  grammars Live Preview uses (token classes styled by the Obsidian palette). */
@@ -123,10 +158,14 @@ export default function Preview({ source }: { source?: string }) {
   // Post-render pass — same renderers as Live Preview so both modes match:
   // KaTeX for [data-tex] spans, mermaid for ```mermaid fences, callout icons.
   const bodyRef = useRef<HTMLDivElement>(null);
+  const procVersion = useMarkdownProcessorsVersion();
   useEffect(() => {
     const root = bodyRef.current;
     if (!root) return;
     let cancelled = false;
+    const children: { unload(): void }[] = [];
+    // A processor was added/removed since this HTML was inserted: start from a clean copy.
+    root.innerHTML = html;
     for (const el of root.querySelectorAll<HTMLElement>('.callout-icon[data-callout-icon]')) {
       el.innerHTML = calloutIconSvg(el.dataset.calloutIcon ?? 'default');
     }
@@ -182,10 +221,12 @@ export default function Preview({ source }: { source?: string }) {
         }
       });
     }
+    runPluginProcessors(root, activePath ?? '', content, children);
     return () => {
       cancelled = true;
+      for (const c of children) { try { c.unload(); } catch { /* ignore */ } }
     };
-  }, [html]);
+  }, [html, procVersion]);
 
   const onClick = (e: React.MouseEvent) => {
     // Click an embedded image → full-screen zoom/pan viewer.

@@ -6,7 +6,8 @@
  * DOM helpers (`createEl`, `setText`, …), a CodeMirror-backed Editor, vault access and events.
  * Anything not implemented is a no-op or throws a clear error — the loader reports it per plugin.
  */
-import { EditorSelection } from '@codemirror/state';
+import { EditorSelection, StateField, type Extension } from '@codemirror/state';
+import { livePreviewState } from './livePreview';
 import { EditorView } from '@codemirror/view';
 import { undo, redo, indentMore, indentLess, cursorDocStart, cursorDocEnd, selectAll, deleteLine } from '@codemirror/commands';
 import { api } from './api';
@@ -16,6 +17,7 @@ import { pluginHost } from './pluginHost';
 import { iconSvg, registerCustomIcon, unregisterCustomIcon, listIconNames } from '../components/Icon';
 import { renderMarkdown as renderMarkdownHtml } from './markdown';
 import * as utils from './obsidianUtils';
+import { installDomExtensions } from './domExtensions';
 
 // ---- DOM helpers Obsidian adds to every element ------------------------------------------
 type ElOpts = string | { cls?: string | string[]; text?: string | DocumentFragment; attr?: Record<string, string | number | boolean | null>; title?: string; parent?: Node; value?: string; type?: string; prepend?: boolean; placeholder?: string; href?: string };
@@ -111,6 +113,7 @@ function installDomHelpers() {
   w.nextFrame ??= () => new Promise<void>((r) => requestAnimationFrame(() => r()));
   // Obsidian still exposes legacy CodeMirror 5 as a global; Dataview registers a highlight mode on it.
   w.CodeMirror ??= { defineMode() {}, defineMIME() {}, defineExtension() {}, registerHelper() {}, getMode: () => ({}), modes: {}, mimeModes: {}, commands: {} };
+  installDomExtensions();
   w.activeDocument ??= document;
   w.activeWindow ??= window;
 }
@@ -162,10 +165,16 @@ export class Component {
 
 // ---- Files / vault / workspace ---------------------------------------------------------
 let sharedVault: Vault | null = null;
+const getVault = (): Vault => (sharedVault ??= new Vault());
 export class TAbstractFile {
-  get vault(): Vault { return (sharedVault ??= new Vault()); }
+  get vault(): Vault { return getVault(); }
   constructor(public path: string, public name: string = path.split('/').pop() ?? path) {}
-  get parent(): TFolder | null { const i = this.path.lastIndexOf('/'); return i < 0 ? null : new TFolder(this.path.slice(0, i)); }
+  get parent(): TFolder | null {
+    if (this.path === '' || this.path === '/') return null;
+    syncTree();
+    const i = this.path.lastIndexOf('/');
+    return folderRegistry.get(i < 0 ? '' : this.path.slice(0, i)) ?? null;
+  }
 }
 export class TFile extends TAbstractFile {
   stat = { ctime: 0, mtime: 0, size: 0 };
@@ -175,12 +184,48 @@ export class TFile extends TAbstractFile {
 export class TFolder extends TAbstractFile {
   children: TAbstractFile[] = [];
   isRoot() { return this.path === '' || this.path === '/'; }
+  getFileCount(): number { return this.children.filter((c) => c instanceof TFile).length; }
 }
 
+/** One TFile/TFolder per path (Obsidian hands out the same object every time); `stat` follows the file tree. */
+const fileRegistry = new Map<string, TFile>();
+const folderRegistry = new Map<string, TFolder>([['', new TFolder('', '')]]);
+let syncedTree: unknown = undefined;
+/** Rebuild the TFolder → children structure whenever the file tree in the store has been replaced. */
+function syncTree() {
+  const tree = useStore.getState().tree;
+  if (syncedTree === tree) return;
+  syncedTree = tree;
+  const root = folderRegistry.get('')!;
+  const seenFolders = new Set<string>(['']);
+  const build = (n: any, folder: TFolder) => {
+    folder.children = (n.children ?? []).map((c: any) => {
+      if (c.type === 'file') return fileFor(c);
+      let f = folderRegistry.get(c.path);
+      if (!f) { f = new TFolder(c.path, c.name); folderRegistry.set(c.path, f); }
+      seenFolders.add(c.path);
+      build(c, f);
+      return f;
+    });
+  };
+  if (tree) build(tree, root); else root.children = [];
+  const livePaths = new Set<string>();
+  const collect = (n: any) => { for (const c of n.children ?? []) { if (c.type === 'file') livePaths.add(c.path); else collect(c); } };
+  if (tree) collect(tree);
+  for (const k of [...fileRegistry.keys()]) if (!livePaths.has(k)) fileRegistry.delete(k);
+  for (const k of [...folderRegistry.keys()]) if (!seenFolders.has(k)) folderRegistry.delete(k);
+}
+function fileFor(n: { path: string; name?: string; mtime?: number; ctime?: number; size?: number }): TFile {
+  let f = fileRegistry.get(n.path);
+  if (!f) { f = new TFile(n.path, n.name); fileRegistry.set(n.path, f); }
+  f.stat = { ctime: n.ctime ?? n.mtime ?? 0, mtime: n.mtime ?? 0, size: n.size ?? 0 };
+  return f;
+}
 function flattenFiles(): TFile[] {
+  syncTree();
   const out: TFile[] = [];
   const walk = (n: any) => {
-    if (n.type === 'file') out.push(new TFile(n.path, n.name));
+    if (n.type === 'file') out.push(fileFor(n));
     n.children?.forEach(walk);
   };
   useStore.getState().tree?.children?.forEach(walk);
@@ -239,7 +284,7 @@ export class DataAdapter {
 export class Vault extends Events {
   adapter: DataAdapter = new DataAdapter();
   getName() { return 'WebObsidian'; }
-  getRoot() { return new TFolder(''); }
+  getRoot(): TFolder { syncTree(); return folderRegistry.get('')!; }
   async read(file: TFile) { return readText(file.path); }
   async cachedRead(file: TFile) { return readText(file.path); }
   async modify(file: TFile, data: string) { await api.write(file.path, data); }
@@ -251,19 +296,21 @@ export class Vault extends Events {
   async trash(file: TAbstractFile) { await api.remove(file.path); }
   getMarkdownFiles(): TFile[] { return flattenFiles().filter((f) => /\.(md|markdown)$/i.test(f.name)); }
   getFiles(): TFile[] { return flattenFiles(); }
-  getAllLoadedFiles(): TAbstractFile[] { return flattenFiles(); }
-  getAbstractFileByPath(path: string) { return flattenFiles().find((f) => f.path === path) ?? null; }
+  getAllLoadedFiles(): TAbstractFile[] { syncTree(); return [...folderRegistry.values(), ...flattenFiles()]; }
+  getAbstractFileByPath(path: string): TAbstractFile | null {
+    syncTree();
+    const p = normalizePath(path);
+    return fileRegistry.get(p) ?? folderRegistry.get(p) ?? null;
+  }
   getFileByPath(path: string) { const f = this.getAbstractFileByPath(path); return f instanceof TFile ? f : null; }
   configDir = '.obsidian';
   getAllFolders(includeRoot = false): TFolder[] {
-    const out: TFolder[] = includeRoot ? [new TFolder('')] : [];
-    const walk = (n: any) => { if (n.type === 'folder' || n.children) { if (n.path) out.push(new TFolder(n.path, n.name)); n.children?.forEach(walk); } };
-    useStore.getState().tree?.children?.forEach(walk);
-    return out;
+    syncTree();
+    return [...folderRegistry.values()].filter((f) => includeRoot || f.path !== '');
   }
   getFolderByPath(path: string): TFolder | null {
-    const p = normalizePath(path);
-    return p === '' ? new TFolder('') : this.getAllFolders().find((f) => f.path === p) ?? null;
+    syncTree();
+    return folderRegistry.get(normalizePath(path)) ?? null;
   }
   async readBinary(file: TFile): Promise<ArrayBuffer> {
     const r = await fetch(api.rawUrl(file.path), { credentials: 'include' });
@@ -296,6 +343,147 @@ export class Vault extends Events {
   }
 }
 
+// ---- CodeMirror state fields Obsidian exposes to editor extensions ------------------------------
+/** True while the editor shows Live Preview (as opposed to Source mode). */
+export const editorLivePreviewField = livePreviewState;
+/** `view.state.field(editorInfoField)` → { app, file, editor } of the note being edited. */
+export const editorInfoField = StateField.define<{ app: App; file: TFile | null; editor: Editor }>({
+  create: () => ({ app: new App(), get file() { return sharedWorkspace.getActiveFile(); }, editor: new Editor() }),
+  update: (v) => v,
+});
+export const editorEditorField = StateField.define<null>({ create: () => null, update: (v) => v });
+export const editorViewField = editorInfoField;
+
+// ---- MetadataCache ----------------------------------------------------------------------------
+export interface CachedMetadata {
+  frontmatter?: Record<string, any>;
+  frontmatterPosition?: unknown;
+  headings?: { heading: string; level: number; position: unknown }[];
+  links?: { link: string; original: string; displayText?: string; position: unknown }[];
+  embeds?: { link: string; original: string; displayText?: string; position: unknown }[];
+  tags?: { tag: string; position: unknown }[];
+  sections?: { type: string; position: unknown; id?: string }[];
+  listItems?: { position: unknown; parent: number; task?: string; id?: string }[];
+  blocks?: Record<string, { id: string; position: unknown }>;
+}
+const hashStr = (s: string) => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return String(h); };
+
+/**
+ * `app.metadataCache`: parsed note structure (headings, links, tags, list items, front matter) built from
+ * the server's `/api/metadata`, kept fresh whenever the file tree changes or a note is saved. Also
+ * the source of `vault` create/modify/delete events, which plugins use to keep their own indexes.
+ */
+export class MetadataCache extends Events {
+  resolvedLinks: Record<string, Record<string, number>> = {};
+  unresolvedLinks: Record<string, Record<string, number>> = {};
+  private caches = new Map<string, { sig: string; meta: CachedMetadata }>();
+  private byBase = new Map<string, TFile[]>();
+  private byPath = new Map<string, TFile>();
+  private treeSig = new Map<string, string>();
+  private started = false;
+  private initialized = false;
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private running: Promise<void> | null = null;
+  private dirtyAgain = false;
+
+  getFileCache(file: TFile | null | undefined): CachedMetadata | null { return file ? this.caches.get(file.path)?.meta ?? null : null; }
+  getCache(path: string): CachedMetadata | null { return this.caches.get(path)?.meta ?? null; }
+  getCachedFiles(): string[] { return [...this.caches.keys()]; }
+  fileToLinktext(file: TFile, sourcePath: string, omitMdExtension = true): string {
+    const base = omitMdExtension ? file.path.replace(/\.md$/i, '') : file.path;
+    const unique = (this.byBase.get(file.basename.toLowerCase()) ?? []).length <= 1;
+    const short = omitMdExtension ? file.basename : file.name;
+    void sourcePath;
+    return unique ? short : base;
+  }
+  /** `[[link]]` → file: exact path, path + .md, then basename (closest folder to `sourcePath` wins). */
+  getFirstLinkpathDest(linkpath: string, sourcePath = ''): TFile | null {
+    const lp = normalizePath(utils.getLinkpath(linkpath));
+    if (lp === '') return this.byPath.get(sourcePath) ?? null;
+    const exact = this.byPath.get(lp) ?? this.byPath.get(`${lp}.md`);
+    if (exact) return exact;
+    const dir = sourcePath.includes('/') ? sourcePath.slice(0, sourcePath.lastIndexOf('/')) : '';
+    const rel = this.byPath.get(normalizePath(`${dir}/${lp}`)) ?? this.byPath.get(normalizePath(`${dir}/${lp}.md`));
+    if (rel) return rel;
+    const name = lp.split('/').pop()!.toLowerCase().replace(/\.md$/, '');
+    const cands = (this.byBase.get(name) ?? []).filter((f) => f.path.toLowerCase().replace(/\.md$/, '').endsWith(lp.toLowerCase().replace(/\.md$/, '')));
+    if (!cands.length) return null;
+    const dist = (f: TFile) => (f.path.startsWith(dir + '/') ? 0 : 1) * 1000 + f.path.length;
+    return cands.sort((a, b) => dist(a) - dist(b))[0];
+  }
+
+  /** Begin keeping the cache fresh; resolves after the first load. */
+  async start(): Promise<void> {
+    if (!this.started) {
+      this.started = true;
+      useStore.subscribe((s, prev) => { if (s.tree !== prev.tree || (prev.dirty && !s.dirty)) this.schedule(); });
+    }
+    await this.refresh();
+  }
+  private schedule(ms = 1500) { if (this.timer) clearTimeout(this.timer); this.timer = setTimeout(() => { void this.refresh(); }, ms); }
+
+  refresh(): Promise<void> {
+    if (this.running) { this.dirtyAgain = true; return this.running; }
+    this.running = this.doRefresh().catch((e) => console.warn('[metadata] refresh failed:', e)).finally(() => {
+      this.running = null;
+      if (this.dirtyAgain) { this.dirtyAgain = false; this.schedule(200); }
+    });
+    return this.running;
+  }
+
+  private async doRefresh() {
+    const { files } = await api.metadata();
+    const all = flattenFiles();
+    this.byPath = new Map(all.map((f) => [f.path, f]));
+    this.byBase = new Map();
+    for (const f of all) { const k = f.basename.toLowerCase(); (this.byBase.get(k) ?? this.byBase.set(k, []).get(k)!).push(f); }
+
+    // metadata diff → 'changed' / 'deleted'
+    const changed: TFile[] = [];
+    const next = new Map<string, { sig: string; meta: CachedMetadata }>();
+    for (const [path, { size, cache }] of Object.entries(files)) {
+      const sig = `${size}:${hashStr(JSON.stringify(cache))}`;
+      next.set(path, { sig, meta: cache as CachedMetadata });
+      if (this.caches.get(path)?.sig !== sig) changed.push(this.byPath.get(path) ?? fileFor({ path }));
+    }
+    const removed = [...this.caches.keys()].filter((p) => !next.has(p));
+    const prevCaches = this.caches;
+    this.caches = next;
+
+    // tree diff → vault create / modify / delete (every file type)
+    const treeNow = new Map(all.map((f) => [f.path, `${f.stat.mtime}:${f.stat.size}`]));
+    const created: TFile[] = [], modified: TFile[] = [], deleted: string[] = [];
+    for (const [p, sig] of treeNow) { const old = this.treeSig.get(p); if (old === undefined) created.push(this.byPath.get(p)!); else if (old !== sig) modified.push(this.byPath.get(p)!); }
+    for (const p of this.treeSig.keys()) if (!treeNow.has(p)) deleted.push(p);
+    this.treeSig = treeNow;
+
+    this.rebuildResolved();
+    if (!this.initialized) { this.initialized = true; this.trigger('resolved'); return; }
+    const vault = getVault();
+    for (const f of created) vault.trigger('create', f);
+    for (const f of modified) vault.trigger('modify', f);
+    for (const p of deleted) { vault.trigger('delete', fileRegistry.get(p) ?? new TFile(p)); fileRegistry.delete(p); }
+    for (const p of removed) this.trigger('deleted', fileRegistry.get(p) ?? new TFile(p), prevCaches.get(p)?.meta ?? null);
+    for (const f of changed) { this.trigger('changed', f, '', this.getFileCache(f)); this.trigger('resolve', f); }
+    if (changed.length || removed.length || deleted.length) this.trigger('resolved');
+  }
+
+  private rebuildResolved() {
+    const resolved: Record<string, Record<string, number>> = {}, unresolved: Record<string, Record<string, number>> = {};
+    for (const [path, { meta }] of this.caches) {
+      const r: Record<string, number> = {}, u: Record<string, number> = {};
+      for (const l of [...(meta.links ?? []), ...(meta.embeds ?? [])]) {
+        const dest = this.getFirstLinkpathDest(l.link, path);
+        if (dest) r[dest.path] = (r[dest.path] ?? 0) + 1; else u[l.link] = (u[l.link] ?? 0) + 1;
+      }
+      resolved[path] = r; unresolved[path] = u;
+    }
+    this.resolvedLinks = resolved; this.unresolvedLinks = unresolved;
+  }
+}
+const sharedMetadataCache = new MetadataCache();
+export const startMetadataCache = (): Promise<void> => sharedMetadataCache.start();
+
 // ---- Editor (CodeMirror 6 under the hood) -----------------------------------------------
 export interface EditorPosition { line: number; ch: number }
 
@@ -314,6 +502,8 @@ export class Editor {
     const l = this.v.state.doc.lineAt(o);
     return { line: l.number - 1, ch: o - l.from };
   }
+  /** The underlying CodeMirror 6 view (Obsidian exposes it as `editor.cm`). */
+  get cm(): EditorView { return this.v; }
   getDoc() { return this; }
   exec(command: string) {
     const v = this.v;
@@ -409,7 +599,8 @@ export class View extends Component {
   icon = '';
   navigation = true;
   scope: Scope | null = null;
-  constructor(public leaf: WorkspaceLeaf = new WorkspaceLeaf()) { super(); this.containerEl.className = 'view-container'; }
+  leaf: WorkspaceLeaf;
+  constructor(leaf?: WorkspaceLeaf) { super(); this.leaf = leaf ?? new WorkspaceLeaf(); this.containerEl.className = 'view-container'; }
   getViewType(): string { return ''; }
   getDisplayText(): string { return ''; }
   getIcon(): string { return this.icon; }
@@ -475,20 +666,94 @@ export class WorkspaceItem extends Events {
 }
 export class WorkspaceParent extends WorkspaceItem { children: WorkspaceItem[] = []; }
 export class WorkspaceSplit extends WorkspaceParent { direction: 'vertical' | 'horizontal' = 'vertical'; }
+let leafSeq = 0;
+const VIEW_PATH = 'plugin-view://';
+/** Put a (virtual) tab for a plugin view into the tab bar and make it the active one. */
+function openViewTab(path: string, title: string) {
+  useStore.setState((st) => ({
+    tabs: st.tabs.some((t) => t.path === path) ? st.tabs.map((t) => (t.path === path ? { ...t, title } : t)) : [...st.tabs, { path, title }],
+    activePath: path, content: '', dirty: false,
+  }));
+}
 export class WorkspaceLeaf extends WorkspaceItem {
-  view: View = new MarkdownViewShell();
-  async openFile(f: TFile, _state?: unknown) { await useStore.getState().openFile(f.path); }
-  async open(view: View) { this.view = view; return view; }
-  async setViewState(_state: unknown, _eState?: unknown) {}
-  getViewState(): { type: string; state?: unknown } { return { type: this.view.getViewType() }; }
+  id = `leaf${++leafSeq}`;
+  location: 'main' | 'left' | 'right' = 'main';
+  private _view: View | null = null;
+  /** Tab path (a file path, or `plugin-view://<id>`) when this leaf is shown in the main area. */
+  tabPath: string | null = null;
+  get view(): View { return (this._view ??= new MarkdownViewShell(this)); }
+  set view(v: View) { this._view = v; }
+  isDeferred = false;
+
+  private attach() {
+    pluginHost.addLeaf({ id: this.id, location: this.location, leaf: this, path: this.tabPath ?? undefined });
+  }
+  private refreshTab() {
+    if (this.location === 'main' && this.tabPath) openViewTab(this.tabPath, this.view.getDisplayText() || 'View');
+  }
+  async setViewState(state: { type: string; state?: any; active?: boolean }, eState?: unknown) {
+    const reg = pluginHost.view(state.type);
+    if (!reg) { new Notice(`View "${state.type}" is not available (its plugin is not running).`); return; }
+    await this.closeView();
+    const view: View & { __pluginId?: string } = reg.creator(this);
+    view.__pluginId = reg.pluginId;
+    this._view = view;
+    const file = state.state?.file;
+    if (this.location === 'main' && !this.tabPath) this.tabPath = typeof file === 'string' && !/^plugin-view:/.test(file) ? file : `${VIEW_PATH}${this.id}`;
+    this.attach();
+    try {
+      await view.onOpen();
+      if (state.state !== undefined) await view.setState(state.state, eState ?? {});
+      if (typeof file === 'string' && view instanceof FileView) {
+        const f = getVault().getFileByPath(file);
+        if (f) { view.file = f; await view.onLoadFile(f); }
+      }
+    } catch (e) {
+      console.warn(`[plugin] view ${state.type} failed to open:`, e);
+      new Notice(`Could not open view: ${(e as Error).message}`);
+    }
+    if (state.active !== false) this.reveal();
+    else this.refreshTab();
+    pluginHost.refreshLeaves();
+  }
+  getViewState(): { type: string; state?: unknown; active?: boolean } { return { type: this.view.getViewType(), state: this.view.getState() }; }
+  async open(view: View) { this._view = view; this.attach(); await view.onOpen(); this.reveal(); return view; }
+  async openFile(f: TFile, state?: { active?: boolean; state?: unknown; eState?: unknown }) {
+    const type = pluginHost.viewTypeForFile(f.path);
+    if (type) {
+      this.tabPath = f.path;
+      await this.setViewState({ type, state: { file: f.path, ...(typeof state?.state === 'object' ? (state.state as object) : {}) }, active: state?.active }, state?.eState);
+      return;
+    }
+    await useStore.getState().openFile(f.path);
+  }
+  reveal() {
+    if (this.location === 'right') useStore.getState().setRightPanel(`plugin:${this.id}`);
+    else if (this.location === 'left') useStore.getState().setLeftPanel(`plugin:${this.id}`);
+    else if (this.tabPath) openViewTab(this.tabPath, this.view.getDisplayText() || 'View');
+  }
+  private async closeView() {
+    const v = this._view;
+    if (!v) return;
+    try {
+      if (v instanceof FileView && v.file) await v.onUnloadFile(v.file);
+      await v.onClose();
+      v.unload();
+    } catch (e) { console.warn('[plugin] view failed to close cleanly:', e); }
+    this._view = null;
+  }
+  detach() {
+    void this.closeView();
+    pluginHost.removeLeaf(this.id);
+    if (this.location === 'main' && this.tabPath) useStore.getState().closeTab(this.tabPath);
+  }
   getDisplayText() { return this.view.getDisplayText(); }
   getIcon() { return this.view.getIcon(); }
-  detach() {}
   setPinnedFlag(_p: boolean) {}
-  isDeferred = false;
   async loadIfDeferred() {}
   setGroup(_g: string) {}
-  setEphemeralState(_s: unknown) {}
+  setEphemeralState(s: unknown) { this.view.setEphemeralState(s); }
+  getEphemeralState() { return this.view.getEphemeralState(); }
   togglePinned() {}
 }
 class MarkdownViewShell extends ItemView { getViewType() { return 'markdown'; } }
@@ -545,23 +810,37 @@ export class Workspace extends Events {
     return p && !p.startsWith('__') ? new TFile(p) : null;
   }
   get activeEditor() { return getActiveEditor() ? { editor: new Editor(), file: this.getActiveFile() } : null; }
+  /** The leaf whose view fills the main area right now, if a plugin view does. */
+  private activePluginLeaf(): WorkspaceLeaf | null {
+    const p = useStore.getState().activePath;
+    return (p && pluginHost.leafByPath(p)?.leaf) || null;
+  }
+  get activeLeaf(): WorkspaceLeaf | null { return this.activePluginLeaf() ?? this.getLeaf(); }
   getActiveViewOfType<T>(type: new (...a: any[]) => T): T | null {
     if (isType(type, MarkdownView)) {
       return getActiveEditor() && useStore.getState().viewMode !== 'reading' ? (new MarkdownView() as unknown as T) : null;
     }
-    return null;
+    const v = this.activePluginLeaf()?.view;
+    return v && (v instanceof (type as any) || (type as any).prototype?.isPrototypeOf(v)) ? (v as unknown as T) : null;
   }
-  getLeaf(_new?: boolean | string) {
+  getLeaf(newLeaf?: boolean | string): WorkspaceLeaf {
     const leaf = new WorkspaceLeaf();
-    leaf.view = new MarkdownView() as unknown as View;
+    if (!newLeaf) leaf.view = new MarkdownView() as unknown as View;
     return leaf;
   }
-  getRightLeaf(_split: boolean) { return this.getLeaf(); }
-  getLeftLeaf(_split: boolean) { return this.getLeaf(); }
-  ensureSideLeaf(_type: string, _side: string, _o?: unknown) { return Promise.resolve(this.getLeaf()); }
-  revealLeaf(_leaf: WorkspaceLeaf) { return Promise.resolve(); }
-  setActiveLeaf(_leaf: WorkspaceLeaf, _o?: unknown) {}
-  getMostRecentLeaf() { return this.getLeaf(); }
+  getRightLeaf(_split: boolean): WorkspaceLeaf { const l = new WorkspaceLeaf(); l.location = 'right'; return l; }
+  getLeftLeaf(_split: boolean): WorkspaceLeaf { const l = new WorkspaceLeaf(); l.location = 'left'; return l; }
+  async ensureSideLeaf(type: string, side: 'left' | 'right', o?: { active?: boolean; reveal?: boolean; state?: unknown }): Promise<WorkspaceLeaf> {
+    let leaf = this.getLeavesOfType(type)[0];
+    if (!leaf) {
+      leaf = side === 'left' ? this.getLeftLeaf(false) : this.getRightLeaf(false);
+      await leaf.setViewState({ type, state: o?.state, active: o?.active ?? o?.reveal ?? true });
+    } else if (o?.reveal ?? o?.active) leaf.reveal();
+    return leaf;
+  }
+  revealLeaf(leaf: WorkspaceLeaf) { leaf.reveal(); return Promise.resolve(); }
+  setActiveLeaf(leaf: WorkspaceLeaf, _o?: unknown) { leaf.reveal(); }
+  getMostRecentLeaf() { return this.activeLeaf; }
   async openLinkText(link: string, _src?: string) { await useStore.getState().openFile(/\.[a-z0-9]+$/i.test(link) ? link : `${link}.md`); }
   onLayoutReady(cb: () => void) { cb(); }
   layoutReady = true;
@@ -569,18 +848,37 @@ export class Workspace extends Events {
   leftSplit = new WorkspaceSplit();
   rightSplit = new WorkspaceSplit();
   rootSplit = new WorkspaceSplit();
-  updateOptions() {}
+  updateOptions() { pluginHost.refreshEditorExtensions(); }
   requestSaveLayout() {}
   getLastOpenFiles(): string[] { return useStore.getState().tabs.map((t: any) => (typeof t === 'string' ? t : t.path)).filter(Boolean); }
   duplicateLeaf(leaf: WorkspaceLeaf) { return Promise.resolve(leaf); }
   getGroupLeaves(_g: string): WorkspaceLeaf[] { return []; }
-  getLeafById(_id: string): WorkspaceLeaf | null { return null; }
+  getLeafById(id: string): WorkspaceLeaf | null { return (pluginHost.leaf(id)?.leaf as WorkspaceLeaf) ?? null; }
   moveLeafToPopout(leaf: WorkspaceLeaf) { return leaf; }
-  iterateAllLeaves(_cb: (l: unknown) => void) {}
-  detachLeavesOfType(_t: string) {}
-  getLeavesOfType(_t: string): unknown[] { return []; }
+  iterateAllLeaves(cb: (l: WorkspaceLeaf) => void) { for (const e of pluginHost.leaves()) cb(e.leaf); }
+  detachLeavesOfType(type: string) { for (const l of this.getLeavesOfType(type)) l.detach(); }
+  getLeavesOfType(type: string): WorkspaceLeaf[] {
+    if (type === 'markdown') { const a = useStore.getState().activePath; return a && /\.(md|markdown)$/i.test(a) ? [this.getLeaf()] : []; }
+    return pluginHost.leaves().map((e) => e.leaf as WorkspaceLeaf).filter((l) => l.view.getViewType() === type);
+  }
 }
 const sharedWorkspace = new Workspace();
+// Closing a tab that shows a plugin view tears that view down.
+useStore.subscribe((st, prev) => {
+  if (st.tabs === prev.tabs) return;
+  for (const e of pluginHost.leaves('main')) if (e.path && !st.tabs.some((t) => t.path === e.path)) e.leaf.detach();
+});
+/** Leaf for a file whose extension a plugin owns (created on first display of its tab). */
+export function ensureFileLeaf(path: string): WorkspaceLeaf | null {
+  const existing = pluginHost.leafByPath(path);
+  if (existing) return existing.leaf;
+  const type = pluginHost.viewTypeForFile(path);
+  if (!type) return null;
+  const leaf = new WorkspaceLeaf();
+  leaf.tabPath = path;
+  void leaf.setViewState({ type, state: { file: path }, active: false });
+  return leaf;
+}
 useStore.subscribe((s, prev) => {
   if (s.activePath !== prev.activePath) {
     const f = sharedWorkspace.getActiveFile();
@@ -590,19 +888,9 @@ useStore.subscribe((s, prev) => {
 });
 
 export class App {
-  vault = new Vault();
+  vault = getVault();
   workspace = sharedWorkspace;
-  metadataCache = Object.assign(new Events(), { getFileCache: (_f: unknown) => null as unknown, getCache: (_p: string) => null as unknown, resolvedLinks: {} as Record<string, unknown>, unresolvedLinks: {} as Record<string, unknown>,
-    getCachedFiles: (): string[] => flattenFiles().map((f) => f.path),
-    /** Resolve `[[link]]` text to a file: exact path, then path + .md, then unique basename. */
-    getFirstLinkpathDest: (linkpath: string, _sourcePath?: string): TFile | null => {
-      const lp = normalizePath(utils.getLinkpath(linkpath));
-      const files = flattenFiles();
-      return files.find((f) => f.path === lp) ?? files.find((f) => f.path === `${lp}.md`)
-        ?? files.find((f) => f.basename.toLowerCase() === lp.toLowerCase() || f.path.toLowerCase().endsWith(`/${lp.toLowerCase()}.md`)) ?? null;
-    },
-    fileToLinktext: (file: TFile, _sourcePath: string, omitMdExtension = true): string => (omitMdExtension ? file.path.replace(/\.md$/i, '') : file.path),
-  });
+  metadataCache = sharedMetadataCache;
   keymap = {};
   secretStorage = new SecretStorage();
   /** Plugin manager as seen by other plugins (`app.plugins.plugins[id]`, `getPlugin`). */
@@ -1037,14 +1325,22 @@ export class Plugin extends Component {
   addSettingTab(tab: PluginSettingTab) { pluginHost.addTab(this.pid(), this.manifest.name, tab); }
   async loadData(): Promise<any> { return dataBackend ? dataBackend.load(this.pid()) : null; }
   async saveData(data: unknown): Promise<void> { await dataBackend?.save(this.pid(), data); }
-  registerMarkdownPostProcessor(fn: any, sortOrder?: number) { const f = typeof fn === 'function' ? fn : () => {}; f.sortOrder = sortOrder; return f; }
-  registerMarkdownCodeBlockProcessor(_lang: string, fn: any, sortOrder?: number) { const f = (typeof fn === 'function' ? fn : () => {}) as any; f.sortOrder = sortOrder; return f; }
-  registerEditorExtension(_ext: unknown) {}
+  registerMarkdownPostProcessor(fn: any, sortOrder?: number) {
+    const f = typeof fn === 'function' ? fn : () => {}; f.sortOrder = sortOrder;
+    pluginHost.addPostProcessor(this.pid(), f, sortOrder ?? 0);
+    return f;
+  }
+  registerMarkdownCodeBlockProcessor(language: string, fn: any, sortOrder?: number) {
+    const f = (typeof fn === 'function' ? fn : () => {}) as any; f.sortOrder = sortOrder;
+    pluginHost.addCodeBlockProcessor(this.pid(), language, f, sortOrder ?? 0);
+    return f;
+  }
+  registerEditorExtension(ext: Extension) { pluginHost.addEditorExtension(this.pid(), ext); }
   registerEditorSuggest(_s: unknown) {}
   registerBasesView(_id: string, _reg: unknown) {}
   registerCliHandler(_id: string, _d: string, _f: unknown, _h: unknown) {}
-  registerView(_type: string, _creator: unknown) {}
-  registerExtensions(_exts: string[], _viewType: string) {}
+  registerView(type: string, creator: (leaf: WorkspaceLeaf) => View) { pluginHost.addView(this.pid(), type, creator); }
+  registerExtensions(exts: string[], viewType: string) { pluginHost.addExtensions(this.pid(), exts, viewType); }
   registerObsidianProtocolHandler(_action: string, _handler: unknown) {}
   registerHoverLinkSource(_id: string, _info: unknown) {}
   /** Remove everything this plugin attached (commands, ribbon, status bar, settings tab, listeners, timers). */
@@ -1411,7 +1707,7 @@ const rawModule = {
   App, Plugin, Component, Notice, TFile, TFolder, TAbstractFile, Vault, Workspace, Events,
   PluginSettingTab, Modal, Setting, Menu, Editor, MarkdownView, ItemView,
   TextComponent, TextAreaComponent, ToggleComponent, DropdownComponent, SliderComponent, ButtonComponent, ExtraButtonComponent,
-  Platform, debounce, requestUrl, setIcon, getIcon, addIcon, removeIcon, normalizePath, moment, sanitizeHTMLToDom,
+  Platform, debounce, requestUrl, MetadataCache, editorLivePreviewField, editorInfoField, editorEditorField, editorViewField, setIcon, getIcon, addIcon, removeIcon, normalizePath, moment, sanitizeHTMLToDom,
   request, htmlToMarkdown, getAllTags, getIconIds, resolveSubpath, loadPdfJs,
   View, FileView, TextFileView, EditableFileView, WorkspaceItem, WorkspaceParent, WorkspaceSplit, WorkspaceLeaf,
   MarkdownRenderChild, MarkdownRenderer, EditorSuggest, SettingGroup, SecretStorage, SecretComponent,

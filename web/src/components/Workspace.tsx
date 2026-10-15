@@ -13,7 +13,18 @@ import { useIsMobile } from '../lib/useIsMobile';
 import { editorFind, getActiveEditor } from '../lib/activeEditor';
 import { triggerAddProperty } from '../lib/livePreview';
 import { pathToUrl } from '../lib/urlsync';
+import PluginViewMount from './PluginViewMount';
+import { pluginHost, useLeaves } from '../lib/pluginHost';
+import { ensureFileLeaf } from '../lib/obsidianApi';
 import { VIDEO_EXT_RE, AUDIO_EXT_RE } from '../lib/media';
+
+/** Main-area tab owned by a community plugin's View (custom view tab or a file extension it registered). */
+function PluginMainView({ path }: { path: string }) {
+  useLeaves();
+  const entry = pluginHost.leafByPath(path) ?? (() => { const l = ensureFileLeaf(path); return l ? pluginHost.leafByPath(path) : undefined; })();
+  if (!entry) return <div className="markdown-preview"><div className="preview-inner">View is not available (plugin disabled?)</div></div>;
+  return <PluginViewMount key={entry.leaf.id} leaf={entry.leaf} />;
+}
 
 function EditorPane() {
   const activePath = useStore((s) => s.activePath);
@@ -24,6 +35,9 @@ function EditorPane() {
   const isVideo = activePath ? VIDEO_EXT_RE.test(activePath) : false;
   const isAudio = activePath ? AUDIO_EXT_RE.test(activePath) : false;
 
+  if (activePath && (activePath.startsWith('plugin-view://') || pluginHost.viewTypeForFile(activePath))) {
+    return <PluginMainView path={activePath} />;
+  }
   if (activePath && isCanvas) {
     return <CanvasView />;
   }

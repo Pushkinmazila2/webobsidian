@@ -139,10 +139,11 @@ interface AppState {
   clipboard: { path: string; mode: 'copy' | 'cut' } | null;
   setClipboard: (c: { path: string; mode: 'copy' | 'cut' } | null) => void;
 
-  leftPanel: 'files' | 'search' | 'tags' | 'bookmarks';
-  setLeftPanel: (p: 'files' | 'search' | 'tags' | 'bookmarks') => void;
-  rightPanel: 'backlinks' | 'outgoing' | 'tags' | 'outline';
-  setRightPanel: (p: 'backlinks' | 'outgoing' | 'tags' | 'outline') => void;
+  /** Built-in panel id, or `plugin:<leaf id>` for a view a community plugin put in the sidebar. */
+  leftPanel: 'files' | 'search' | 'tags' | 'bookmarks' | `plugin:${string}`;
+  setLeftPanel: (p: 'files' | 'search' | 'tags' | 'bookmarks' | `plugin:${string}`) => void;
+  rightPanel: 'backlinks' | 'outgoing' | 'tags' | 'outline' | `plugin:${string}`;
+  setRightPanel: (p: 'backlinks' | 'outgoing' | 'tags' | 'outline' | `plugin:${string}`) => void;
   /** Query pushed into the search panel (e.g. clicking a tag node in the graph). */
   searchQuery: string;
   searchFor: (q: string) => void;

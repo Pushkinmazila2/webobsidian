@@ -250,6 +250,7 @@ export const api = {
 
   // plugins
   listPlugins: () => req<{ plugins: any[]; unsaved?: number }>('/api/plugins/'),
+  metadata: () => req<{ files: Record<string, { size: number; cache: any }> }>('/api/metadata'),
   pluginData: (id: string) => req<{ data: unknown }>(`/api/plugins/${encodeURIComponent(id)}/data`),
   savePluginData: (id: string, data: unknown) =>
     req<{ ok: true }>(`/api/plugins/${encodeURIComponent(id)}/data`, { method: 'PUT', body: JSON.stringify({ data }) }),

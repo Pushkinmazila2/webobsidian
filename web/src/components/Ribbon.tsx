@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useStore } from '../lib/store';
 import { api } from '../lib/api';
 import Icon, { hasIcon } from './Icon';
-import { pluginHost, usePluginHost } from '../lib/pluginHost';
+import { pluginHost, usePluginHost, useLeaves } from '../lib/pluginHost';
 
 export default function Ribbon({ onTheme }: { onTheme: () => void }) {
   const setLeftPanel = useStore((s) => s.setLeftPanel);
@@ -14,6 +14,7 @@ export default function Ribbon({ onTheme }: { onTheme: () => void }) {
   const notify = useStore((s) => s.notify);
   const loadTree = useStore((s) => s.loadTree);
   usePluginHost();
+  useLeaves();
 
   // Show the Sync-now button only when git sync is enabled in settings.
   const [gitEnabled, setGitEnabled] = useState(false);
@@ -66,6 +67,11 @@ export default function Ribbon({ onTheme }: { onTheme: () => void }) {
       {pluginHost.ribbon().map((r) => (
         <button key={r.id} title={r.title} onClick={(e) => r.onClick(e.nativeEvent)}>
           {hasIcon(r.icon) ? <Icon name={r.icon} size={18} /> : <span className="plugin-ribbon-letter">{r.title.slice(0, 1).toUpperCase()}</span>}
+        </button>
+      ))}
+      {pluginHost.leaves('left').map(({ leaf }) => (
+        <button key={leaf.id} className={leftPanel === `plugin:${leaf.id}` ? 'active' : ''} title={leaf.view?.getDisplayText?.() ?? 'Plugin'} onClick={() => setLeftPanel(`plugin:${leaf.id}`)}>
+          {hasIcon(leaf.view?.getIcon?.() ?? '') ? <Icon name={leaf.view.getIcon()} size={18} /> : <span className="plugin-ribbon-letter">{(leaf.view?.getDisplayText?.() ?? 'P').slice(0, 1).toUpperCase()}</span>}
         </button>
       ))}
       <div className="spacer" />

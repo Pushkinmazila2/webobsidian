@@ -7,6 +7,8 @@ import SearchPanel from './SearchPanel';
 import TagsPanel from './TagsPanel';
 import BookmarksPanel from './BookmarksPanel';
 import Icon from './Icon';
+import PluginViewMount from './PluginViewMount';
+import { pluginHost, useLeaves } from '../lib/pluginHost';
 
 const TITLES: Record<string, string> = {
   files: 'Files',
@@ -17,6 +19,8 @@ const TITLES: Record<string, string> = {
 
 export default function Sidebar() {
   const leftPanel = useStore((s) => s.leftPanel);
+  useLeaves();
+  const pluginLeaf = leftPanel.startsWith('plugin:') ? pluginHost.leaf(leftPanel.slice(7)) : undefined;
   const newNote = useStore((s) => s.newNote);
   const newCanvas = useStore((s) => s.newCanvas);
   const newFolder = useStore((s) => s.newFolder);
@@ -114,7 +118,7 @@ export default function Sidebar() {
   return (
     <div className="sidebar">
       <div className="nav-header">
-        <span className="nav-title">{TITLES[leftPanel]}</span>
+        <span className="nav-title">{pluginLeaf ? pluginLeaf.leaf.view?.getDisplayText?.() ?? '' : TITLES[leftPanel]}</span>
         {leftPanel === 'files' && (
           <>
             <button className="nav-action" title="New note" onClick={() => newNote()}>
@@ -154,6 +158,7 @@ export default function Sidebar() {
         {leftPanel === 'search' && <SearchPanel />}
         {leftPanel === 'tags' && <TagsPanel />}
         {leftPanel === 'bookmarks' && <BookmarksPanel />}
+        {pluginLeaf && <PluginViewMount leaf={pluginLeaf.leaf} />}
       </div>
       <div className="vault-footer">
         <span

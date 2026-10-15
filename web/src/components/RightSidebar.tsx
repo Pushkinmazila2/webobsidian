@@ -3,7 +3,9 @@ import { useStore } from '../lib/store';
 import { api, type NoteMatches } from '../lib/api';
 import { outline } from '../lib/markdown';
 import TagsPanel from './TagsPanel';
-import Icon from './Icon';
+import Icon, { hasIcon } from './Icon';
+import PluginViewMount from './PluginViewMount';
+import { pluginHost, useLeaves } from '../lib/pluginHost';
 
 const MD_RE = /\.(md|markdown)$/i;
 const name = (p: string) => p.split('/').pop()?.replace(MD_RE, '') ?? p;
@@ -237,6 +239,9 @@ function OutlinePanel() {
 export default function RightSidebar() {
   const rightPanel = useStore((s) => s.rightPanel);
   const setRightPanel = useStore((s) => s.setRightPanel);
+  useLeaves();
+  const pluginLeaves = pluginHost.leaves('right');
+  const activeLeaf = rightPanel.startsWith('plugin:') ? pluginHost.leaf(rightPanel.slice(7)) : undefined;
 
   return (
     <div className="right-sidebar">
@@ -251,7 +256,17 @@ export default function RightSidebar() {
             <Icon name={t.icon} size={16} />
           </button>
         ))}
+        {pluginLeaves.map((l) => {
+          const v = l.leaf.view;
+          const icon = v?.getIcon?.() ?? '';
+          return (
+            <button key={l.id} className={`right-tab ${rightPanel === `plugin:${l.id}` ? 'active' : ''}`} title={v?.getDisplayText?.() ?? ''} onClick={() => setRightPanel(`plugin:${l.id}`)}>
+              {hasIcon(icon) ? <Icon name={icon} size={16} /> : <span className="plugin-ribbon-letter">{(v?.getDisplayText?.() ?? '?').slice(0, 1).toUpperCase()}</span>}
+            </button>
+          );
+        })}
       </div>
+      {activeLeaf && <PluginViewMount leaf={activeLeaf.leaf} />}
       {rightPanel === 'backlinks' && <BacklinksPanel />}
       {rightPanel === 'outgoing' && <OutgoingPanel />}
       {rightPanel === 'tags' && (

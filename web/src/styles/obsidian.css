@@ -1784,3 +1784,9 @@ audio.media-embed { display: block; width: min(100%, 480px); max-width: 100%; ma
 .status-bar .plugin-status-item { display: inline-flex; align-items: center; gap: 4px; }
 .notice-container { position: fixed; bottom: 34px; right: 16px; display: flex; flex-direction: column; gap: 6px; z-index: 2000; align-items: flex-end; }
 .notice-container .toast { position: static; }
+
+/* Community-plugin views */
+.plugin-view-host { height: 100%; width: 100%; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+.plugin-view-host > .view-container, .plugin-view-host > .workspace-leaf-content { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.plugin-view-host .view-content { flex: 1; min-height: 0; overflow: auto; position: relative; }
+.plugin-view-host .view-header { display: none; }

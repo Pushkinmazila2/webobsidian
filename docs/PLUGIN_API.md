@@ -12,12 +12,12 @@ Feasibility of what is not ✅: **easy** (hours) · **medium** (a feature) · **
 
 | | count | share |
 |---|---:|---:|
-| ✅ implemented | 447 | 61.6% |
-| 🟡 stub / partial | 40 | 5.5% |
-| ❌ missing | 239 | 32.9% |
+| ✅ implemented | 470 | 64.7% |
+| 🟡 stub / partial | 26 | 3.6% |
+| ❌ missing | 230 | 31.7% |
 | **runtime API items** (class members, functions, constants, missing classes) | **726** | |
 
-Not yet working (🟡 + ❌), by feasibility: **easy 27** · **medium 75** · **hard 130** · **impossible 47**.
+Not yet working (🟡 + ❌), by feasibility: **easy 27** · **medium 56** · **hard 126** · **impossible 47**.
 112 interfaces, 30 type aliases and 1 enum(s) are type-only (no runtime behaviour) and are not counted.
 
 What typical plugins need first (a plugin is usable once these exist): commands ✅, settings tab ✅, `loadData/saveData` ✅, ribbon ✅, status bar ✅, modals ✅, notices ✅, editor commands ✅ —
@@ -43,7 +43,7 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **TExternalFile** (class) — Backed by the files API; events come from the WebSocket change feed.
 - **Platform** — Plain object of booleans (present).
 
-## Medium — not done yet (30 entries)
+## Medium — not done yet (22 entries)
 
 - **FileManager**: `processFrontMatter` — Parse/write YAML front matter on the client; round-trip must keep comments/ordering.
 - **FileView**: `setState`, `canAcceptExtension` — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
@@ -52,15 +52,11 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **MarkdownPreviewRenderer** (class) — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **MarkdownRenderer**: `app`, `hoverPopover`, `file`, `renderMarkdown`, `render` — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **MarkdownView**: `previewMode`, `currentMode`, `hoverPopover`, `clear`, `setViewData`, `showSearch` — Needs reading/live-preview modes and the leaf facade behind it.
-- **MetadataCache**: `getFirstLinkpathDest`, `getFileCache`, `getCache`, `fileToLinktext`, `resolvedLinks`, `unresolvedLinks` — The server already parses notes for search/links; getFileCache needs section/heading/link positions and change events exposed to the browser.
-- **Plugin**: `registerView` — See View: needs a React host container for the plugin view.
 - **Plugin**: `registerHoverLinkSource` — Needs the link-hover preview pipeline.
-- **Plugin**: `registerExtensions` — Needs file-type → view mapping.
-- **Plugin**: `registerEditorExtension` — Possible because the editor is CodeMirror 6, but plugins import @codemirror/* — those modules must be provided to require() at the same version.
 - **RenderContext** (class) — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **Vault**: `adapter` — DataAdapter over the files API (read/write/list/exists/mkdir/rename/stat/remove).
 - **View**: `setState`, `setEphemeralState` — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
-- **Workspace**: `leftRibbon`, `rightRibbon`, `activeLeaf`, `requestSaveLayout`, `changeLayout`, `getLayout`, `createLeafInParent`, `createLeafBySplit`, `splitActiveLeaf`, `getUnpinnedLeaf`, `openPopoutLeaf`, `setActiveLeaf`, `getLeafById`, `getMostRecentLeaf`, `getActiveViewOfType`, `iterateRootLeaves`, `iterateAllLeaves`, `detachLeavesOfType`, `updateOptions`, `handleLinkContextMenu` — Not yet analysed.
+- **Workspace**: `leftRibbon`, `rightRibbon`, `requestSaveLayout`, `changeLayout`, `getLayout`, `createLeafInParent`, `createLeafBySplit`, `splitActiveLeaf`, `getUnpinnedLeaf`, `openPopoutLeaf`, `getMostRecentLeaf`, `getActiveViewOfType`, `iterateRootLeaves`, `handleLinkContextMenu` — Not yet analysed.
 - **finishRenderMath** — Via KaTeX.
 - **iterateCacheRefs** — Needs MetadataCache.
 - **iterateRefs** — Needs MetadataCache.
@@ -69,10 +65,6 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **renderMath** — Via KaTeX.
 - **requestUrl** — Browsers enforce CORS, so the request has to go through a server proxy (with SSRF limits).
 - **setIcon** — Works, but we only ship part of the Lucide set; add the rest on demand.
-- **editorEditorField** — CM6 state fields — need the same @codemirror/state build as the plugin.
-- **editorInfoField** — Same.
-- **editorLivePreviewField** — Same.
-- **editorViewField** — Same.
 - **livePreviewState** — Same.
 - **moment** — Bundle the real moment (≈70 KB) instead of the stub.
 
@@ -107,7 +99,7 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **WorkspaceContainer** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceFloating** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceItem**: `getRoot`, `getContainer` — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-- **WorkspaceLeaf**: `hoverPopover`, `setViewState`, `loadIfDeferred`, `getEphemeralState`, `setEphemeralState`, `togglePinned`, `setPinned`, `setGroupMember`, `setGroup`, `detach`, `onResize` — Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins.
+- **WorkspaceLeaf**: `hoverPopover`, `loadIfDeferred`, `togglePinned`, `setPinned`, `setGroupMember`, `setGroup`, `onResize` — Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins.
 - **WorkspaceMobileDrawer** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceRibbon** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceRoot** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
@@ -301,10 +293,8 @@ Class not provided. Feasibility: **hard** — Internal editor/preview view objec
 
 ### ✅ MenuSeparator
 
-### 🟡 MetadataCache <small>extends Events</small>
-- ✅ `on`
-- 🟡 `getFileCache` `getCache` `resolvedLinks`
-- ❌ `getFirstLinkpathDest` `fileToLinktext` `unresolvedLinks`
+### ✅ MetadataCache <small>extends Events</small>
+- ✅ `getFirstLinkpathDest` `getFileCache` `getCache` `fileToLinktext` `resolvedLinks` `unresolvedLinks` `on`
 
 ### ✅ Modal
 - ✅ `app` `scope` `containerEl` `modalEl` `titleEl` `contentEl` `shouldRestoreSelection` `open` `onHistoryBack` `close` `onOpen` `onClose` `setTitle` `setContent` `setCloseCallback`
@@ -333,8 +323,8 @@ Class not provided. Feasibility: **hard** — Bases (database views over notes).
 - ❌ `static·type` `toString` `isTruthy` `isEmpty` `get`
 
 ### 🟡 Plugin <small>extends Component</small>
-- ✅ `app` `manifest` `onload` `addRibbonIcon` `addStatusBarItem` `addCommand` `removeCommand` `addSettingTab` `registerMarkdownPostProcessor` `registerMarkdownCodeBlockProcessor` `loadData` `saveData` `onUserEnable` `onExternalSettingsChange`
-- 🟡 `registerView` `registerHoverLinkSource` `registerExtensions` `registerBasesView` `registerEditorExtension` `registerObsidianProtocolHandler` `registerEditorSuggest` `registerCliHandler`
+- ✅ `app` `manifest` `onload` `addRibbonIcon` `addStatusBarItem` `addCommand` `removeCommand` `addSettingTab` `registerView` `registerExtensions` `registerMarkdownPostProcessor` `registerMarkdownCodeBlockProcessor` `registerEditorExtension` `loadData` `saveData` `onUserEnable` `onExternalSettingsChange`
+- 🟡 `registerHoverLinkSource` `registerBasesView` `registerObsidianProtocolHandler` `registerEditorSuggest` `registerCliHandler`
 - ❌ `settings`
 
 ### 🟡 PluginSettingTab <small>extends SettingTab</small>
@@ -458,9 +448,9 @@ Class not provided. Feasibility: **hard** — Bases (database views over notes).
 - 🟡 `setState` `setEphemeralState`
 
 ### 🟡 Workspace <small>extends Events</small>
-- ✅ `leftSplit` `rightSplit` `rootSplit` `containerEl` `layoutReady` `activeEditor` `onLayoutReady` `duplicateLeaf`*(dep.)* `moveLeafToPopout` `openLinkText` `getGroupLeaves` `getLeftLeaf` `getRightLeaf` `ensureSideLeaf` `getActiveFile` `getLeavesOfType` `revealLeaf` `getLastOpenFiles` `on`
-- 🟡 `requestSaveLayout` `getLeaf` `setActiveLeaf` `getLeafById` `getMostRecentLeaf` `getActiveViewOfType` `iterateAllLeaves` `detachLeavesOfType` `updateOptions`
-- ❌ `leftRibbon` `rightRibbon`*(dep.)* `activeLeaf`*(dep.)* `changeLayout` `getLayout` `createLeafInParent` `createLeafBySplit` `splitActiveLeaf`*(dep.)* `getUnpinnedLeaf`*(dep.)* `openPopoutLeaf` `iterateRootLeaves` `handleLinkContextMenu`
+- ✅ `leftSplit` `rightSplit` `rootSplit` `activeLeaf`*(dep.)* `containerEl` `layoutReady` `activeEditor` `onLayoutReady` `duplicateLeaf`*(dep.)* `moveLeafToPopout` `openLinkText` `setActiveLeaf` `getLeafById` `getGroupLeaves` `getLeftLeaf` `getRightLeaf` `ensureSideLeaf` `getActiveFile` `iterateAllLeaves` `getLeavesOfType` `detachLeavesOfType` `revealLeaf` `getLastOpenFiles` `updateOptions` `on`
+- 🟡 `requestSaveLayout` `getLeaf` `getMostRecentLeaf` `getActiveViewOfType`
+- ❌ `leftRibbon` `rightRibbon`*(dep.)* `changeLayout` `getLayout` `createLeafInParent` `createLeafBySplit` `splitActiveLeaf`*(dep.)* `getUnpinnedLeaf`*(dep.)* `openPopoutLeaf` `iterateRootLeaves` `handleLinkContextMenu`
 
 ### ❌ WorkspaceContainer <small>extends WorkspaceSplit</small>
 Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
@@ -477,9 +467,9 @@ Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, t
 - 🟡 `getRoot` `getContainer`
 
 ### 🟡 WorkspaceLeaf <small>extends WorkspaceItem</small>
-- ✅ `parent` `view` `openFile` `open` `getViewState` `isDeferred` `getIcon` `getDisplayText` `on`
-- 🟡 `setViewState` `loadIfDeferred` `setEphemeralState` `togglePinned` `setGroup` `detach`
-- ❌ `hoverPopover` `getEphemeralState` `setPinned` `setGroupMember` `onResize`
+- ✅ `parent` `view` `openFile` `open` `getViewState` `setViewState` `isDeferred` `getEphemeralState` `setEphemeralState` `detach` `getIcon` `getDisplayText` `on`
+- 🟡 `loadIfDeferred` `togglePinned` `setGroup`
+- ❌ `hoverPopover` `setPinned` `setGroupMember` `onResize`
 
 ### ❌ WorkspaceMobileDrawer <small>extends WorkspaceParent</small>
 Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
@@ -567,10 +557,10 @@ Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, t
 | `stripHeading` | ✅ |  |  |
 | `stripHeadingForLink` | ✅ |  |  |
 | `apiVersion` | ✅ |  |  |
-| `editorEditorField` | ❌ | medium | CM6 state fields — need the same @codemirror/state build as the plugin. |
-| `editorInfoField` | ❌ | medium | Same. |
-| `editorLivePreviewField` | ❌ | medium | Same. |
-| `editorViewField` *(dep.)* | ❌ | medium | Same. |
+| `editorEditorField` | ✅ |  |  |
+| `editorInfoField` | ✅ |  |  |
+| `editorLivePreviewField` | ✅ |  |  |
+| `editorViewField` *(dep.)* | ✅ |  |  |
 | `livePreviewState` | ❌ | medium | Same. |
 | `moment` | 🟡 | medium | Bundle the real moment (≈70 KB) instead of the stub. |
 | `Platform` | 🟡 | easy | Plain object of booleans (present). |

@@ -1,3 +1,4 @@
+import { metadataRouter } from './routes/metadata.js';
 import express, { type Response } from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -120,6 +121,7 @@ async function main() {
   app.use('/api/git', gitRouter);
   app.use('/api/keys', keysRouter);
   app.use('/api/plugins', pluginsRouter);
+  app.use('/api/metadata', metadataRouter);
   app.use('/api/uistate', uiStateRouter);
   app.use('/api/shares', sharesRouter); // manage public share links (auth)
   app.use('/public/shares', publicSharesRouter); // shared-note content (NO auth)

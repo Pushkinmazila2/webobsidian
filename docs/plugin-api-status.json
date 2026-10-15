@@ -1,14 +1,14 @@
 {
  "apiVersion": "1.14.4",
  "totals": {
-  "ok": 447,
-  "stub": 40,
-  "missing": 239
+  "ok": 470,
+  "stub": 26,
+  "missing": 230
  },
  "feasibility": {
   "easy": 27,
-  "medium": 75,
-  "hard": 130,
+  "medium": 56,
+  "hard": 126,
   "impossible": 47
  },
  "classes": [
@@ -2879,49 +2879,49 @@
      "name": "getFirstLinkpathDest",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "The server already parses notes for search/links; getFileCache needs section/heading/link positions and change events exposed to the browser."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getFileCache",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "medium",
-     "note": "The server already parses notes for search/links; getFileCache needs section/heading/link positions and change events exposed to the browser."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getCache",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "medium",
-     "note": "The server already parses notes for search/links; getFileCache needs section/heading/link positions and change events exposed to the browser."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "fileToLinktext",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "The server already parses notes for search/links; getFileCache needs section/heading/link positions and change events exposed to the browser."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "resolvedLinks",
      "kind": "property",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "medium",
-     "note": "The server already parses notes for search/links; getFileCache needs section/heading/link positions and change events exposed to the browser."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "unresolvedLinks",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "The server already parses notes for search/links; getFileCache needs section/heading/link positions and change events exposed to the browser."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "on",
@@ -3364,9 +3364,9 @@
      "name": "registerView",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "medium",
-     "note": "See View: needs a React host container for the plugin view."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "registerHoverLinkSource",
@@ -3380,9 +3380,9 @@
      "name": "registerExtensions",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "medium",
-     "note": "Needs file-type → view mapping."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "registerMarkdownPostProcessor",
@@ -3412,9 +3412,9 @@
      "name": "registerEditorExtension",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "medium",
-     "note": "Possible because the editor is CodeMirror 6, but plugins import @codemirror/* — those modules must be provided to require() at the same version."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "registerObsidianProtocolHandler",
@@ -5330,9 +5330,9 @@
      "name": "activeLeaf",
      "kind": "property",
      "deprecated": true,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "containerEl",
@@ -5466,17 +5466,17 @@
      "name": "setActiveLeaf",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getLeafById",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getGroupLeaves",
@@ -5546,9 +5546,9 @@
      "name": "iterateAllLeaves",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getLeavesOfType",
@@ -5562,9 +5562,9 @@
      "name": "detachLeavesOfType",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "revealLeaf",
@@ -5586,9 +5586,9 @@
      "name": "updateOptions",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "handleLinkContextMenu",
@@ -5746,9 +5746,9 @@
      "name": "setViewState",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "isDeferred",
@@ -5770,17 +5770,17 @@
      "name": "getEphemeralState",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setEphemeralState",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "togglePinned",
@@ -5818,9 +5818,9 @@
      "name": "detach",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getIcon",
@@ -6396,30 +6396,30 @@
   {
    "name": "editorEditorField",
    "deprecated": false,
-   "status": "missing",
-   "feasibility": "medium",
-   "note": "CM6 state fields — need the same @codemirror/state build as the plugin."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "editorInfoField",
    "deprecated": false,
-   "status": "missing",
-   "feasibility": "medium",
-   "note": "Same."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "editorLivePreviewField",
    "deprecated": false,
-   "status": "missing",
-   "feasibility": "medium",
-   "note": "Same."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "editorViewField",
    "deprecated": true,
-   "status": "missing",
-   "feasibility": "medium",
-   "note": "Same."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "livePreviewState",
