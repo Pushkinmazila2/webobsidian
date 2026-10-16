@@ -211,3 +211,20 @@ export function parsePropertyId(id: string): { type: 'note' | 'formula' | 'file'
   if (head === 'note' || head === 'formula' || head === 'file') return { type: head, name: id.slice(i + 1) };
   return { type: 'note', name: id };
 }
+
+/** Subset of moment.js format tokens (YYYY MM DD HH mm ss, month/day names, A/a, [escaped]). */
+export function formatDate(d: Date, fmt: string): string {
+  const p = (n: number, w = 2) => String(n).padStart(w, '0');
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const h12 = d.getHours() % 12 || 12;
+  const map: Record<string, string> = {
+    YYYY: String(d.getFullYear()), YY: p(d.getFullYear() % 100), MMMM: months[d.getMonth()], MMM: months[d.getMonth()].slice(0, 3),
+    MM: p(d.getMonth() + 1), M: String(d.getMonth() + 1), DD: p(d.getDate()), D: String(d.getDate()),
+    dddd: days[d.getDay()], ddd: days[d.getDay()].slice(0, 3), d: String(d.getDay()),
+    HH: p(d.getHours()), H: String(d.getHours()), hh: p(h12), h: String(h12),
+    mm: p(d.getMinutes()), m: String(d.getMinutes()), ss: p(d.getSeconds()), s: String(d.getSeconds()),
+    A: d.getHours() < 12 ? 'AM' : 'PM', a: d.getHours() < 12 ? 'am' : 'pm',
+  };
+  return fmt.replace(/\[([^\]]*)\]|YYYY|YY|MMMM|MMM|MM|M|DD|D|dddd|ddd|d|HH|H|hh|h|mm|m|ss|s|A|a/g, (m, esc) => (esc !== undefined ? esc : map[m] ?? m));
+}

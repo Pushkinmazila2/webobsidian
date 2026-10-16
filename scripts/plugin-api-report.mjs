@@ -65,7 +65,7 @@ const trivial = (body) => {
   }
   return false;
 };
-for (const n of shim.statements) {
+const scanClass = (n) => {
   if (ts.isClassDeclaration(n) && n.name) {
     const members = new Map();
     for (const m of n.members) {
@@ -84,6 +84,9 @@ for (const n of shim.statements) {
     }
     ours.classes.set(n.name.text, { extends: n.heritageClauses?.[0]?.types[0]?.expression.getText(), members });
   }
+};
+for (const n of shim.statements) {
+  scanClass(n);
   if (ts.isVariableStatement(n) || ts.isFunctionDeclaration(n)) {
     const names = ts.isFunctionDeclaration(n) ? [n.name?.text] : n.declarationList.declarations.map((d) => d.name.getText());
     for (const nm of names) if (nm) ours.exported.add(nm);
@@ -93,11 +96,23 @@ for (const n of shim.statements) {
     }
   }
 }
+// Bases classes live inside createBasesApi() in bases/api.ts (nested, so not top-level statements)
+const basesSrc = ts.createSourceFile('b.ts', fs.readFileSync(path.join(root, 'web/src/lib/bases/api.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
+const basesKeys = new Set();
+const walkBases = (n) => {
+  scanClass(n);
+  if (ts.isReturnStatement(n) && n.expression && ts.isObjectLiteralExpression(n.expression) && n.getSourceFile() === basesSrc) {
+    for (const p of n.expression.properties) if (p.name) basesKeys.add(p.name.getText());
+  }
+  ts.forEachChild(n, walkBases);
+};
+walkBases(basesSrc);
 // names reachable through require('obsidian'): the keys of rawModule
 const mod = shim.statements.find((n) => ts.isVariableStatement(n) && n.declarationList.declarations[0].name.getText() === 'rawModule');
 const moduleKeys = new Set();
 for (const p of mod.declarationList.declarations[0].initializer.properties) {
   if (p.name) moduleKeys.add(p.name.getText());
+  else if (ts.isSpreadAssignment(p) && p.expression.getText() === 'basesApi') { for (const k of basesKeys) moduleKeys.add(k); }
   else if (ts.isSpreadAssignment(p) && p.expression.getText() === 'utils') {
     // `...utils`: every export of obsidianUtils.ts is reachable through require('obsidian')
     const src = ts.createSourceFile('u.ts', fs.readFileSync(path.join(root, 'web/src/lib/obsidianUtils.ts'), 'utf8'), ts.ScriptTarget.Latest, true);

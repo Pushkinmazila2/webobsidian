@@ -202,6 +202,8 @@ interface AppState {
   newFolder: (dir?: string) => Promise<void>;
   /** Obsidian-style: create & open a fresh "Untitled.canvas" (empty JSON Canvas). `dir` = target folder. */
   newCanvas: (dir?: string) => Promise<void>;
+  /** Create & open a fresh "Untitled.base" (a Bases table over the vault). */
+  newBase: (dir?: string) => Promise<void>;
   /** Tree path currently being inline-renamed (null = none); FileTree shows an input for it. */
   renamingPath: string | null;
   setRenamingPath: (path: string | null) => void;
@@ -214,7 +216,7 @@ interface AppState {
   applyRemoteState: (state: any, originId: string) => Promise<void>;
 }
 
-const TEXT_RE = /\.(md|markdown|txt|json|csv|canvas|css|js|ya?ml)$/i;
+const TEXT_RE = /\.(md|markdown|txt|json|csv|canvas|base|css|js|ya?ml)$/i;
 
 // ---- server-side workspace persistence (shared across browsers/devices) ----
 const PERSIST_KEYS = [
@@ -556,6 +558,17 @@ export const useStore = create<AppState>()(
         for (let i = 1; taken.has(name.toLowerCase()); i++) name = `Untitled ${i}.canvas`;
         const path = base ? `${base}/${name}` : name;
         await get().createNote(path, '{\n\t"nodes":[],\n\t"edges":[]\n}');
+        if (base) get().revealInTree(path);
+      },
+
+      newBase: async (dir) => {
+        const base = (dir ?? '').replace(/\/+$/, '');
+        const folder = base ? findNode(get().tree, base) : get().tree;
+        const taken = new Set((folder?.children ?? []).map((c) => c.name.toLowerCase()));
+        let name = 'Untitled.base';
+        for (let i = 1; taken.has(name.toLowerCase()); i++) name = `Untitled ${i}.base`;
+        const path = base ? `${base}/${name}` : name;
+        await get().createNote(path, 'views:\n  - type: table\n    name: Table\n    order:\n      - file.name\n      - file.mtime\n');
         if (base) get().revealInTree(path);
       },
 

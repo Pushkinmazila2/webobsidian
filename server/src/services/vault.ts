@@ -33,7 +33,7 @@ export function setStorage(s: VaultStorage | null): void {
 }
 
 const TEXT_EXTS = new Set([
-  '.md', '.markdown', '.txt', '.json', '.csv', '.canvas', '.css', '.js', '.yml', '.yaml',
+  '.md', '.markdown', '.txt', '.json', '.csv', '.canvas', '.base', '.css', '.js', '.yml', '.yaml',
 ]);
 
 export function isTextFile(rel: string): boolean {

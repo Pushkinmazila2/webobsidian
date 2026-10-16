@@ -145,6 +145,7 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
   const setClipboard = useStore((s) => s.setClipboard);
   const newNote = useStore((s) => s.newNote);
   const newCanvas = useStore((s) => s.newCanvas);
+  const newBase = useStore((s) => s.newBase);
   const newFolder = useStore((s) => s.newFolder);
   const renamingPath = useStore((s) => s.renamingPath);
   const setRenamingPath = useStore((s) => s.setRenamingPath);
@@ -299,6 +300,7 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
       ? [
           { label: 'New note', onClick: () => newNote(node.path) },
           { label: 'New canvas', onClick: () => newCanvas(node.path) },
+          { label: 'New base', onClick: () => newBase(node.path) },
           { label: 'New folder', onClick: () => newFolder(node.path) },
           { label: '', separator: true },
           { label: 'Copy', onClick: doClipboard('copy') },
@@ -475,6 +477,7 @@ export default function FileTree() {
   const openContextMenu = useStore((s) => s.openContextMenu);
   const newNote = useStore((s) => s.newNote);
   const newCanvas = useStore((s) => s.newCanvas);
+  const newBase = useStore((s) => s.newBase);
   const newFolder = useStore((s) => s.newFolder);
   const activePath = useStore((s) => s.activePath);
   const autoReveal = useStore((s) => s.autoReveal);
@@ -558,6 +561,7 @@ export default function FileTree() {
       items: [
         { label: 'New note', onClick: () => newNote('') },
         { label: 'New canvas', onClick: () => newCanvas('') },
+        { label: 'New base', onClick: () => newBase('') },
         { label: 'New folder', onClick: () => newFolder('') },
         ...(clipboard
           ? [{ label: '', separator: true }, { label: 'Paste', onClick: pasteToRoot }]

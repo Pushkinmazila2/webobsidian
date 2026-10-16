@@ -12,12 +12,12 @@ Feasibility of what is not ✅: **easy** (hours) · **medium** (a feature) · **
 
 | | count | share |
 |---|---:|---:|
-| ✅ implemented | 470 | 64.7% |
-| 🟡 stub / partial | 26 | 3.6% |
-| ❌ missing | 230 | 31.7% |
-| **runtime API items** (class members, functions, constants, missing classes) | **726** | |
+| ✅ implemented | 523 | 74.0% |
+| 🟡 stub / partial | 25 | 3.5% |
+| ❌ missing | 159 | 22.5% |
+| **runtime API items** (class members, functions, constants, missing classes) | **707** | |
 
-Not yet working (🟡 + ❌), by feasibility: **easy 27** · **medium 56** · **hard 126** · **impossible 47**.
+Not yet working (🟡 + ❌), by feasibility: **easy 26** · **medium 56** · **hard 55** · **impossible 47**.
 112 interfaces, 30 type aliases and 1 enum(s) are type-only (no runtime behaviour) and are not counted.
 
 What typical plugins need first (a plugin is usable once these exist): commands ✅, settings tab ✅, `loadData/saveData` ✅, ribbon ✅, status bar ✅, modals ✅, notices ✅, editor commands ✅ —
@@ -36,7 +36,7 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **App**: `renderContext` — Core object; remaining members are small.
 - **ConfirmationButton** (class) — Plain overlay UI on top of the Modal we already have.
 - **ConfirmationModal** (class) — Plain overlay UI on top of the Modal we already have.
-- **Plugin**: `settings`, `registerBasesView`, `registerEditorSuggest`, `registerCliHandler` — Core object; remaining members are small.
+- **Plugin**: `settings`, `registerEditorSuggest`, `registerCliHandler` — Core object; remaining members are small.
 - **PluginSettingTab**: `setControlValue` — Settings-tab variants (definitions API) are plain DOM.
 - **SettingTab**: `setControlValue`, `refreshDomState` — Plain DOM widgets.
 - **Tasks** (class) — Core object; remaining members are small.
@@ -68,33 +68,11 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **livePreviewState** — Same.
 - **moment** — Bundle the real moment (≈70 KB) instead of the stub.
 
-## Hard — not done yet (36 entries)
+## Hard — not done yet (14 entries)
 
-- **BasesEntry** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **BasesEntryGroup** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **BasesQueryResult** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **BasesView** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **BasesViewConfig** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **DateValue**: `dateOnly`, `relative`, `parseFromString` — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **DurationValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **FileValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **HTMLValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **IconValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **ImageValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **LinkValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **ListValue**: `includes`, `concat` — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **MarkdownEditView** (class) — Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer.
 - **MarkdownPreviewView** (class) — Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer.
-- **NotNullValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **NullValue**: `isTruthy`, `value` — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **ObjectValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **PrimitiveValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **QueryController** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **RegExpValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **RelativeDateValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **TagValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **UrlValue** (class) — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-- **Value**: `equals`, `looseEquals`, `looseEquals`, `renderTo` — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
+- **NullValue**: `isTruthy` — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **Workspace**: `getLeaf` — Only a facade that opens a file is realistic.
 - **WorkspaceContainer** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceFloating** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
@@ -124,30 +102,20 @@ One line per class: ✅ implemented members, 🟡 stubs, ❌ missing. Deprecated
 ### ✅ BaseComponent
 - ✅ `disabled` `then` `setDisabled`
 
-### ❌ BasesEntry
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
+### ✅ BasesEntry
+- ✅ `file` `getValue`
 
-- ❌ `file` `getValue`
+### ✅ BasesEntryGroup
+- ✅ `key` `entries` `hasKey`
 
-### ❌ BasesEntryGroup
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
+### ✅ BasesQueryResult
+- ✅ `data` `groupedData` `properties` `getSummaryValue`
 
-- ❌ `key` `entries` `hasKey`
+### ✅ BasesView <small>extends Component</small>
+- ✅ `type` `app` `config` `allProperties` `data` `onDataUpdated` `createFileForView`
 
-### ❌ BasesQueryResult
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
-- ❌ `data` `groupedData` `properties` `getSummaryValue`
-
-### ❌ BasesView <small>extends Component</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
-- ❌ `type` `app` `config` `allProperties` `data` `onDataUpdated` `createFileForView`
-
-### ❌ BasesViewConfig
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
-- ❌ `name` `get` `getAsPropertyId` `getEvaluatedFormula` `set` `getOrder` `getSort` `getDisplayName`
+### ✅ BasesViewConfig
+- ✅ `name` `get` `getAsPropertyId` `getEvaluatedFormula` `set` `getOrder` `getSort` `getDisplayName`
 
 ### ✅ BooleanValue <small>extends PrimitiveValue</small>
 - ✅ `static·type`
@@ -176,9 +144,8 @@ Class not provided. Feasibility: **easy** — Plain overlay UI on top of the Mod
 
 - ❌ `buttonContainerEl` `addClass` `addCheckbox` `addButton` `addCancelButton`
 
-### 🟡 DateValue <small>extends NotNullValue</small>
-- ✅ `toString` `isTruthy`
-- ❌ `dateOnly` `relative` `static·parseFromString`
+### ✅ DateValue <small>extends NotNullValue</small>
+- ✅ `toString` `dateOnly` `relative` `isTruthy` `static·parseFromString`
 
 ### ✅ DisplayValueComponent
 - ✅ `valueEl` `setValue` `setStatus`
@@ -186,10 +153,8 @@ Class not provided. Feasibility: **easy** — Plain overlay UI on top of the Mod
 ### ✅ DropdownComponent <small>extends ValueComponent</small>
 - ✅ `selectEl` `setDisabled` `addOption` `addOptions` `getValue` `setValue` `onChange`
 
-### ❌ DurationValue <small>extends NotNullValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
-- ❌ `toString` `isTruthy` `addToDate` `getMilliseconds` `static·parseFromString` `static·fromMilliseconds`
+### ✅ DurationValue <small>extends NotNullValue</small>
+- ✅ `toString` `isTruthy` `addToDate` `getMilliseconds` `static·parseFromString` `static·fromMilliseconds`
 
 ### ✅ EditableFileView <small>extends FileView</small>
 
@@ -214,10 +179,8 @@ Class not provided. Feasibility: **impossible** — Node/Electron filesystem or 
 
 - ❌ `getName` `getBasePath` `mkdir` `trashSystem` `trashLocal` `rmdir` `read` `readBinary` `write` `writeBinary` `append` `appendBinary` `process` `getResourcePath` `getFilePath` `remove` `rename` `copy` `exists` `stat` `list` `getFullPath` `static·readLocalFile` `static·mkdir`
 
-### ❌ FileValue <small>extends NotNullValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
-- ❌ `toString` `isTruthy`
+### ✅ FileValue <small>extends NotNullValue</small>
+- ✅ `toString` `isTruthy`
 
 ### 🟡 FileView <small>extends ItemView</small>
 - ✅ `allowNoFile` `file` `navigation` `getDisplayText` `onload` `getState` `onLoadFile` `onUnloadFile` `onRename`
@@ -231,17 +194,11 @@ Class not provided. Feasibility: **medium** — Popover UI is easy; hooking into
 
 - ❌ `hoverEl` `state`
 
-### ❌ HTMLValue <small>extends StringValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
+### ✅ HTMLValue <small>extends StringValue</small>
 
+### ✅ IconValue <small>extends StringValue</small>
 
-### ❌ IconValue <small>extends StringValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
-
-### ❌ ImageValue <small>extends StringValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
+### ✅ ImageValue <small>extends StringValue</small>
 
 ### ✅ ItemView <small>extends View</small>
 - ✅ `contentEl` `addAction`
@@ -251,14 +208,11 @@ Class not provided. Feasibility: **medium** — Hotkeys: we have a global key ha
 
 - ❌ `pushScope` `popScope` `static·isModifier` `static·isModEvent`
 
-### ❌ LinkValue <small>extends StringValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
+### ✅ LinkValue <small>extends StringValue</small>
+- ✅ `static·parseFromString`
 
-- ❌ `static·parseFromString`
-
-### 🟡 ListValue <small>extends NotNullValue</small>
-- ✅ `static·type` `toString` `isTruthy` `length` `get`
-- ❌ `includes` `concat`
+### ✅ ListValue <small>extends NotNullValue</small>
+- ✅ `static·type` `toString` `isTruthy` `includes` `length` `get` `concat`
 
 ### ❌ MarkdownEditView
 Class not provided. Feasibility: **hard** — Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer.
@@ -305,26 +259,21 @@ Class not provided. Feasibility: **hard** — Internal editor/preview view objec
 ### ✅ Notice
 - ✅ `noticeEl`*(dep.)* `containerEl` `messageEl` `setMessage` `hide`
 
-### ❌ NotNullValue <small>extends Value</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
+### ✅ NotNullValue <small>extends Value</small>
 
 ### 🟡 NullValue <small>extends Value</small>
-- ✅ `toString`
+- ✅ `toString` `static·value`
 - 🟡 `isTruthy`
-- ❌ `static·value`
 
 ### ✅ NumberValue <small>extends PrimitiveValue</small>
 - ✅ `static·type`
 
-### ❌ ObjectValue <small>extends NotNullValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
-- ❌ `static·type` `toString` `isTruthy` `isEmpty` `get`
+### ✅ ObjectValue <small>extends NotNullValue</small>
+- ✅ `static·type` `toString` `isTruthy` `isEmpty` `get`
 
 ### 🟡 Plugin <small>extends Component</small>
-- ✅ `app` `manifest` `onload` `addRibbonIcon` `addStatusBarItem` `addCommand` `removeCommand` `addSettingTab` `registerView` `registerExtensions` `registerMarkdownPostProcessor` `registerMarkdownCodeBlockProcessor` `registerEditorExtension` `loadData` `saveData` `onUserEnable` `onExternalSettingsChange`
-- 🟡 `registerHoverLinkSource` `registerBasesView` `registerObsidianProtocolHandler` `registerEditorSuggest` `registerCliHandler`
+- ✅ `app` `manifest` `onload` `addRibbonIcon` `addStatusBarItem` `addCommand` `removeCommand` `addSettingTab` `registerView` `registerExtensions` `registerMarkdownPostProcessor` `registerMarkdownCodeBlockProcessor` `registerBasesView` `registerEditorExtension` `loadData` `saveData` `onUserEnable` `onExternalSettingsChange`
+- 🟡 `registerHoverLinkSource` `registerObsidianProtocolHandler` `registerEditorSuggest` `registerCliHandler`
 - ❌ `settings`
 
 ### 🟡 PluginSettingTab <small>extends SettingTab</small>
@@ -334,26 +283,18 @@ Class not provided. Feasibility: **hard** — Bases (database views over notes).
 ### ✅ PopoverSuggest
 - ✅ `app` `scope` `onHistoryBack` `open` `close` `renderSuggestion` `selectSuggestion`
 
-### ❌ PrimitiveValue <small>extends NotNullValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
-- ❌ `toString` `isTruthy`
+### ✅ PrimitiveValue <small>extends NotNullValue</small>
+- ✅ `toString` `isTruthy`
 
 ### ✅ ProgressBarComponent <small>extends ValueComponent</small>
 - ✅ `getValue` `setValue`
 
-### ❌ QueryController <small>extends Component</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
+### ✅ QueryController <small>extends Component</small>
 
+### ✅ RegExpValue <small>extends NotNullValue</small>
+- ✅ `toString` `isTruthy`
 
-### ❌ RegExpValue <small>extends NotNullValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
-- ❌ `toString` `isTruthy`
-
-### ❌ RelativeDateValue <small>extends DateValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
+### ✅ RelativeDateValue <small>extends DateValue</small>
 
 ### ❌ RenderContext
 Class not provided. Feasibility: **medium** — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
@@ -398,9 +339,7 @@ Class not provided. Feasibility: **medium** — We have a Markdown pipeline (ren
 ### ✅ TAbstractFile
 - ✅ `vault` `path` `name` `parent`
 
-### ❌ TagValue <small>extends StringValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
-
+### ✅ TagValue <small>extends StringValue</small>
 
 ### ❌ Tasks
 Class not provided. Feasibility: **easy** — Core object; remaining members are small.
@@ -428,13 +367,10 @@ Class not provided. Feasibility: **easy** — Backed by the files API; events co
 ### ✅ ToggleComponent <small>extends ValueComponent</small>
 - ✅ `toggleEl` `setDisabled` `getValue` `setValue` `setTooltip` `onClick` `onChange`
 
-### ❌ UrlValue <small>extends StringValue</small>
-Class not provided. Feasibility: **hard** — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
+### ✅ UrlValue <small>extends StringValue</small>
 
-
-### 🟡 Value
-- ✅ `static·type` `toString` `isTruthy` `equals`
-- ❌ `static·equals` `static·looseEquals` `looseEquals` `renderTo`
+### ✅ Value
+- ✅ `static·type` `static·equals` `static·looseEquals` `toString` `isTruthy` `equals` `looseEquals` `renderTo`
 
 ### ✅ ValueComponent <small>extends BaseComponent</small>
 - ✅ `registerOptionListener` `getValue` `setValue`

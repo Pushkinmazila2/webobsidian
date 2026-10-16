@@ -17,6 +17,7 @@ import { pluginHost } from './pluginHost';
 import { iconSvg, registerCustomIcon, unregisterCustomIcon, listIconNames } from '../components/Icon';
 import { renderMarkdown as renderMarkdownHtml } from './markdown';
 import * as utils from './obsidianUtils';
+import { createBasesApi } from './bases/api';
 import { installDomExtensions } from './domExtensions';
 
 // ---- DOM helpers Obsidian adds to every element ------------------------------------------
@@ -221,7 +222,7 @@ function fileFor(n: { path: string; name?: string; mtime?: number; ctime?: numbe
   f.stat = { ctime: n.ctime ?? n.mtime ?? 0, mtime: n.mtime ?? 0, size: n.size ?? 0 };
   return f;
 }
-function flattenFiles(): TFile[] {
+export function flattenFiles(): TFile[] {
   syncTree();
   const out: TFile[] = [];
   const walk = (n: any) => {
@@ -481,7 +482,7 @@ export class MetadataCache extends Events {
     this.resolvedLinks = resolved; this.unresolvedLinks = unresolved;
   }
 }
-const sharedMetadataCache = new MetadataCache();
+export const sharedMetadataCache = new MetadataCache();
 export const startMetadataCache = (): Promise<void> => sharedMetadataCache.start();
 
 // ---- Editor (CodeMirror 6 under the hood) -----------------------------------------------
@@ -793,15 +794,6 @@ export class SecretStorage {
   setSecret(id: string, secret: string): void { try { localStorage.setItem(this.key(id), secret); } catch { /* storage unavailable */ } }
   listSecrets(): string[] { try { return Object.keys(localStorage).filter((k) => k.startsWith('wo-secret:')).map((k) => k.slice(10)); } catch { return []; } }
 }
-// ---- Bases value types (minimal, so plugins that extend them load) ---------------------------
-export class Value { static type = 'value'; isTruthy(): boolean { return true; } toString(): string { return ''; } equals(o: Value) { return this.toString() === o.toString(); } }
-export class NullValue extends Value { static type = 'null'; isTruthy() { return false; } }
-export class PrimitiveValue<T> extends Value { constructor(public value: T) { super(); } toString() { return String(this.value); } isTruthy() { return !!this.value; } }
-export class StringValue extends PrimitiveValue<string> { static type = 'string'; }
-export class NumberValue extends PrimitiveValue<number> { static type = 'number'; }
-export class BooleanValue extends PrimitiveValue<boolean> { static type = 'boolean'; }
-export class DateValue extends PrimitiveValue<Date> { static type = 'date'; }
-export class ListValue extends Value { static type = 'list'; constructor(public value: Value[]) { super(); } isTruthy() { return this.value.length > 0; } toString() { return this.value.map(String).join(', '); } length() { return this.value.length; } get(i: number) { return this.value[i]; } }
 export interface MarkdownFileInfo { file: TFile | null; editor?: Editor }
 
 export class Workspace extends Events {
@@ -1337,7 +1329,11 @@ export class Plugin extends Component {
   }
   registerEditorExtension(ext: Extension) { pluginHost.addEditorExtension(this.pid(), ext); }
   registerEditorSuggest(_s: unknown) {}
-  registerBasesView(_id: string, _reg: unknown) {}
+  registerBasesView(viewId: string, registration: { name: string; icon: string; factory: (c: any, el: HTMLElement) => any; options?: (cfg: any) => any[] }): boolean {
+    if (!viewId || typeof registration?.factory !== 'function') return false;
+    pluginHost.addBasesView(this.pid(), { id: viewId, name: registration.name, icon: registration.icon, factory: registration.factory, options: registration.options });
+    return true;
+  }
   registerCliHandler(_id: string, _d: string, _f: unknown, _h: unknown) {}
   registerView(type: string, creator: (leaf: WorkspaceLeaf) => View) { pluginHost.addView(this.pid(), type, creator); }
   registerExtensions(exts: string[], viewType: string) { pluginHost.addExtensions(this.pid(), exts, viewType); }
@@ -1443,25 +1439,9 @@ export function setTooltip(el: HTMLElement, tooltip: string, options?: { placeme
   w.__woTip = { show };
 }
 export const normalizePath = (p: string) => p.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/|\/$/g, '');
-/** Subset of moment.js format tokens (YYYY MM DD HH mm ss, month/day names, A/a, [escaped]). */
-function formatDate(d: Date, fmt: string): string {
-  const p = (n: number, w = 2) => String(n).padStart(w, '0');
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const h12 = d.getHours() % 12 || 12;
-  const map: Record<string, string> = {
-    YYYY: String(d.getFullYear()), YY: p(d.getFullYear() % 100), MMMM: months[d.getMonth()], MMM: months[d.getMonth()].slice(0, 3),
-    MM: p(d.getMonth() + 1), M: String(d.getMonth() + 1), DD: p(d.getDate()), D: String(d.getDate()),
-    dddd: days[d.getDay()], ddd: days[d.getDay()].slice(0, 3), d: String(d.getDay()),
-    HH: p(d.getHours()), H: String(d.getHours()), hh: p(h12), h: String(h12),
-    mm: p(d.getMinutes()), m: String(d.getMinutes()), ss: p(d.getSeconds()), s: String(d.getSeconds()),
-    A: d.getHours() < 12 ? 'AM' : 'PM', a: d.getHours() < 12 ? 'am' : 'pm',
-  };
-  return fmt.replace(/\[([^\]]*)\]|YYYY|YY|MMMM|MMM|MM|M|DD|D|dddd|ddd|d|HH|H|hh|h|mm|m|ss|s|A|a/g, (m, esc) => (esc !== undefined ? esc : map[m] ?? m));
-}
 export const moment: any = (d?: any) => {
   const date = d ? new Date(d) : new Date();
-  return { format: (f?: string) => (f === undefined ? date.toISOString() : formatDate(date, f)), valueOf: () => date.valueOf(), toDate: () => date, isValid: () => !isNaN(date.valueOf()) };
+  return { format: (f?: string) => (f === undefined ? date.toISOString() : utils.formatDate(date, f)), valueOf: () => date.valueOf(), toDate: () => date, isValid: () => !isNaN(date.valueOf()) };
 };
 export const sanitizeHTMLToDom = (html: string) => { const t = document.createElement('template'); t.innerHTML = html; return t.content; };
 
@@ -1703,6 +1683,17 @@ function callable<T extends Function>(cls: T): T {
 /** True when `type` is `cls` or its callable wrapper (plugins pass the wrapper back to us). */
 const isType = (type: unknown, cls: unknown) => type === cls || (typeof type === 'function' && originals.has(cls) && (type as any).prototype === (cls as any).prototype);
 
+/** Bases: Value classes, BasesView & co (see bases/api.ts). */
+const basesApi = createBasesApi({
+  Component: Component as any,
+  getApp: () => (basesApp ??= new App()),
+  openPath: (path) => { void useStore.getState().openFile(path); },
+  createNote: (path, body) => useStore.getState().createNote(path, body),
+});
+let basesApp: App | null = null;
+export const getSharedApp = (): App => (basesApp ??= new App());
+export { basesApi };
+
 const rawModule = {
   App, Plugin, Component, Notice, TFile, TFolder, TAbstractFile, Vault, Workspace, Events,
   PluginSettingTab, Modal, Setting, Menu, Editor, MarkdownView, ItemView,
@@ -1712,7 +1703,7 @@ const rawModule = {
   View, FileView, TextFileView, EditableFileView, WorkspaceItem, WorkspaceParent, WorkspaceSplit, WorkspaceLeaf,
   MarkdownRenderChild, MarkdownRenderer, EditorSuggest, SettingGroup, SecretStorage, SecretComponent,
   SettingPage, SettingTab,
-  Value, NullValue, StringValue, NumberValue, BooleanValue, DateValue, ListValue,
+  ...basesApi,
   getLanguage, loadMermaid, setTooltip, displayTooltip, FileManager, Scope, MenuItem, MenuSeparator,
   SuggestModal, FuzzySuggestModal, PopoverSuggest, AbstractInputSuggest,
   BaseComponent, ValueComponent, DisplayValueComponent, AbstractTextComponent, SearchComponent, ColorComponent, ProgressBarComponent, MomentFormatComponent,

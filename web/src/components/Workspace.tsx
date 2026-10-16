@@ -13,6 +13,7 @@ import { useIsMobile } from '../lib/useIsMobile';
 import { editorFind, getActiveEditor } from '../lib/activeEditor';
 import { triggerAddProperty } from '../lib/livePreview';
 import { pathToUrl } from '../lib/urlsync';
+import BaseView from './BaseView';
 import PluginViewMount from './PluginViewMount';
 import { pluginHost, useLeaves } from '../lib/pluginHost';
 import { ensureFileLeaf } from '../lib/obsidianApi';
@@ -32,11 +33,15 @@ function EditorPane() {
   const isMd = activePath ? /\.(md|markdown)$/i.test(activePath) : false;
   const isImage = activePath ? /\.(png|jpe?g|gif|svg|webp)$/i.test(activePath) : false;
   const isCanvas = activePath ? /\.canvas$/i.test(activePath) : false;
+  const isBase = activePath ? /\.base$/i.test(activePath) : false;
   const isVideo = activePath ? VIDEO_EXT_RE.test(activePath) : false;
   const isAudio = activePath ? AUDIO_EXT_RE.test(activePath) : false;
 
   if (activePath && (activePath.startsWith('plugin-view://') || pluginHost.viewTypeForFile(activePath))) {
     return <PluginMainView path={activePath} />;
+  }
+  if (activePath && isBase) {
+    return <BaseView key={activePath} path={activePath} />;
   }
   if (activePath && isCanvas) {
     return <CanvasView />;

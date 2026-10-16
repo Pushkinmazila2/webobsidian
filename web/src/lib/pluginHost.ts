@@ -41,6 +41,9 @@ const editorExtensions = new Map<string, { pluginId: string; ext: Extension }>()
 /** A view type a plugin registered with `registerView(type, creator)`. */
 interface ViewReg { pluginId: string; type: string; creator: (leaf: any) => any }
 const views = new Map<string, ViewReg>();
+/** A Bases view type a plugin registered with `registerBasesView`. */
+export interface BasesViewReg { id: string; name: string; icon: string; factory: (controller: any, el: HTMLElement) => any; options?: (config: any) => any[] }
+const basesViews = new Map<string, BasesViewReg & { pluginId: string }>();
 const extensionViews = new Map<string, { pluginId: string; viewType: string }>();
 /** A workspace leaf shown somewhere: a main-area tab or a side panel. */
 export interface LeafEntry { id: string; location: 'main' | 'left' | 'right'; leaf: any; path?: string }
@@ -81,6 +84,9 @@ export const pluginHost = {
   editorExtensionsVersion: () => extVersion,
   addView(pluginId: string, type: string, creator: (leaf: any) => any) { views.set(type, { pluginId, type, creator }); bumpLeaves(); },
   view: (type: string) => views.get(type),
+  addBasesView(pluginId: string, reg: BasesViewReg) { basesViews.set(reg.id, { ...reg, pluginId }); bumpLeaves(); },
+  basesView: (id: string) => basesViews.get(id),
+  basesViews: () => [...basesViews.values()],
   addExtensions(pluginId: string, exts: string[], viewType: string) { for (const e of exts) extensionViews.set(e.toLowerCase().replace(/^\./, ''), { pluginId, viewType }); bumpLeaves(); },
   /** View type registered for a file name's extension (`.excalidraw`, `.base`, …), if any. */
   viewTypeForFile(path: string): string | undefined {
@@ -106,6 +112,7 @@ export const pluginHost = {
     for (const [k, v] of [...editorExtensions]) if (v.pluginId === pluginId) { editorExtensions.delete(k); extChanged = true; }
     let viewsChanged = false;
     for (const [k, v] of [...views]) if (v.pluginId === pluginId) { views.delete(k); viewsChanged = true; }
+    for (const [k, v] of [...basesViews]) if (v.pluginId === pluginId) { basesViews.delete(k); viewsChanged = true; }
     for (const [k, v] of [...extensionViews]) if (v.pluginId === pluginId) { extensionViews.delete(k); viewsChanged = true; }
     // leaves whose view type belonged to this plugin go away with it
     for (const [k, l] of [...leaves]) {

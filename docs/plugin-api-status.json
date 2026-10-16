@@ -1,14 +1,14 @@
 {
  "apiVersion": "1.14.4",
  "totals": {
-  "ok": 470,
-  "stub": 26,
-  "missing": 230
+  "ok": 523,
+  "stub": 25,
+  "missing": 159
  },
  "feasibility": {
-  "easy": 27,
+  "easy": 26,
   "medium": 56,
-  "hard": 126,
+  "hard": 55,
   "impossible": 47
  },
  "classes": [
@@ -269,7 +269,7 @@
   {
    "name": "BasesEntry",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -277,24 +277,24 @@
      "name": "file",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getValue",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
   {
    "name": "BasesEntryGroup",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -302,32 +302,32 @@
      "name": "key",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "entries",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "hasKey",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
   {
    "name": "BasesQueryResult",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -335,33 +335,33 @@
      "name": "data",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "groupedData",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "properties",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getSummaryValue",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -369,7 +369,7 @@
    "name": "BasesView",
    "extends": "Component",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -377,64 +377,64 @@
      "name": "type",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "app",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "config",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "allProperties",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "data",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "onDataUpdated",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "createFileForView",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
   {
    "name": "BasesViewConfig",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -442,65 +442,65 @@
      "name": "name",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "get",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getAsPropertyId",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getEvaluatedFormula",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "set",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getOrder",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getSort",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getDisplayName",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -1072,17 +1072,17 @@
      "name": "dateOnly",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "relative",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "isTruthy",
@@ -1096,9 +1096,9 @@
      "name": "static parseFromString",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -1205,7 +1205,7 @@
    "name": "DurationValue",
    "extends": "NotNullValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -1213,49 +1213,49 @@
      "name": "toString",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "isTruthy",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "addToDate",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getMilliseconds",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "static parseFromString",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "static fromMilliseconds",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -1952,7 +1952,7 @@
    "name": "FileValue",
    "extends": "NotNullValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -1960,17 +1960,17 @@
      "name": "toString",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "isTruthy",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -2160,7 +2160,7 @@
    "name": "HTMLValue",
    "extends": "StringValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": []
@@ -2169,7 +2169,7 @@
    "name": "IconValue",
    "extends": "StringValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": []
@@ -2178,7 +2178,7 @@
    "name": "ImageValue",
    "extends": "StringValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": []
@@ -2254,7 +2254,7 @@
    "name": "LinkValue",
    "extends": "StringValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -2262,9 +2262,9 @@
      "name": "static parseFromString",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -2304,9 +2304,9 @@
      "name": "includes",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "length",
@@ -2328,9 +2328,9 @@
      "name": "concat",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -3173,7 +3173,7 @@
    "name": "NotNullValue",
    "extends": "Value",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": []
@@ -3206,9 +3206,9 @@
      "name": "static value",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -3234,7 +3234,7 @@
    "name": "ObjectValue",
    "extends": "NotNullValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -3242,41 +3242,41 @@
      "name": "static type",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "toString",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "isTruthy",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "isEmpty",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "get",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -3404,9 +3404,9 @@
      "name": "registerBasesView",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "easy",
-     "note": "Core object; remaining members are small."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "registerEditorExtension",
@@ -3577,7 +3577,7 @@
    "name": "PrimitiveValue",
    "extends": "NotNullValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -3585,17 +3585,17 @@
      "name": "toString",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "isTruthy",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -3629,7 +3629,7 @@
    "name": "QueryController",
    "extends": "Component",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": []
@@ -3638,7 +3638,7 @@
    "name": "RegExpValue",
    "extends": "NotNullValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": [
@@ -3646,17 +3646,17 @@
      "name": "toString",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "isTruthy",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -3664,7 +3664,7 @@
    "name": "RelativeDateValue",
    "extends": "DateValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": []
@@ -4508,7 +4508,7 @@
    "name": "TagValue",
    "extends": "StringValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": []
@@ -4794,7 +4794,7 @@
    "name": "UrlValue",
    "extends": "StringValue",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.",
    "members": []
@@ -4818,17 +4818,17 @@
      "name": "static equals",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "static looseEquals",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "toString",
@@ -4858,17 +4858,17 @@
      "name": "looseEquals",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "renderTo",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
