@@ -12,12 +12,12 @@ Feasibility of what is not ✅: **easy** (hours) · **medium** (a feature) · **
 
 | | count | share |
 |---|---:|---:|
-| ✅ implemented | 523 | 74.0% |
+| ✅ implemented | 525 | 74.3% |
 | 🟡 stub / partial | 25 | 3.5% |
-| ❌ missing | 159 | 22.5% |
+| ❌ missing | 157 | 22.2% |
 | **runtime API items** (class members, functions, constants, missing classes) | **707** | |
 
-Not yet working (🟡 + ❌), by feasibility: **easy 26** · **medium 56** · **hard 55** · **impossible 47**.
+Not yet working (🟡 + ❌), by feasibility: **easy 26** · **medium 54** · **hard 55** · **impossible 47**.
 112 interfaces, 30 type aliases and 1 enum(s) are type-only (no runtime behaviour) and are not counted.
 
 What typical plugins need first (a plugin is usable once these exist): commands ✅, settings tab ✅, `loadData/saveData` ✅, ribbon ✅, status bar ✅, modals ✅, notices ✅, editor commands ✅ —
@@ -51,7 +51,7 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **Keymap** (class) — Hotkeys: we have a global key handler; needs scopes and per-command hotkeys.
 - **MarkdownPreviewRenderer** (class) — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **MarkdownRenderer**: `app`, `hoverPopover`, `file`, `renderMarkdown`, `render` — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
-- **MarkdownView**: `previewMode`, `currentMode`, `hoverPopover`, `clear`, `setViewData`, `showSearch` — Needs reading/live-preview modes and the leaf facade behind it.
+- **MarkdownView**: `hoverPopover`, `clear`, `setViewData`, `showSearch` — Needs reading/live-preview modes and the leaf facade behind it.
 - **Plugin**: `registerHoverLinkSource` — Needs the link-hover preview pipeline.
 - **RenderContext** (class) — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **Vault**: `adapter` — DataAdapter over the files API (read/write/list/exists/mkdir/rename/stat/remove).
@@ -236,8 +236,8 @@ Class not provided. Feasibility: **hard** — Internal editor/preview view objec
 - ❌ `app` `hoverPopover` `file` `static·renderMarkdown`*(dep.)* `static·render`
 
 ### 🟡 MarkdownView <small>extends TextFileView</small>
-- ✅ `editor` `getViewType` `getMode` `getViewData`
-- ❌ `previewMode` `currentMode` `hoverPopover` `clear` `setViewData` `showSearch`
+- ✅ `editor` `previewMode` `currentMode` `getViewType` `getMode` `getViewData`
+- ❌ `hoverPopover` `clear` `setViewData` `showSearch`
 
 ### ✅ Menu <small>extends Component</small>
 - ✅ `setNoIcon` `setUseNativeMenu` `addItem` `addSeparator` `setParentElement` `showAtMouseEvent` `showAtPosition` `onHistoryBack` `hide` `close`*(dep.)* `onHide` `static·forEvent`

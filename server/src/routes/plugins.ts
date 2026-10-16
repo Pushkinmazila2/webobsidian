@@ -36,6 +36,14 @@ pluginsRouter.patch(
   }),
 );
 
+pluginsRouter.delete(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    const removed = await plugins.uninstall(req.params.id);
+    res.status(removed ? 200 : 404).json(removed ? { ok: true } : { error: 'plugin not installed' });
+  }),
+);
+
 // Per-plugin settings: Plugin.loadData()/saveData() in the browser shim.
 pluginsRouter.get(
   '/:id/data',

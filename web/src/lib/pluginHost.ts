@@ -11,6 +11,8 @@ export interface PluginCommand {
   id: string;
   pluginId: string;
   name: string;
+  icon?: string;
+  hotkeys?: unknown[];
   /** Whether the command can run right now (checkCallback / editorCheckCallback in "checking" mode). */
   available: () => boolean;
   run: () => void;

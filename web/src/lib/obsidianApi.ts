@@ -13,11 +13,13 @@ import { undo, redo, indentMore, indentLess, cursorDocStart, cursorDocEnd, selec
 import { api } from './api';
 import { useStore, type ContextMenuItem } from './store';
 import { getActiveEditor } from './activeEditor';
+import { FORMAT_MARKS, toggleInline, toggleLinePrefix } from './editorCommands';
 import { pluginHost } from './pluginHost';
 import { iconSvg, registerCustomIcon, unregisterCustomIcon, listIconNames } from '../components/Icon';
 import { renderMarkdown as renderMarkdownHtml } from './markdown';
 import * as utils from './obsidianUtils';
 import { createBasesApi } from './bases/api';
+import realMoment from 'moment';
 import { installDomExtensions } from './domExtensions';
 
 // ---- DOM helpers Obsidian adds to every element ------------------------------------------
@@ -489,6 +491,16 @@ export const startMetadataCache = (): Promise<void> => sharedMetadataCache.start
 export interface EditorPosition { line: number; ch: number }
 
 export class Editor {
+  /** Undocumented in the public typings, but plugins (e.g. Editing Toolbar) call these on the active editor. */
+  toggleMarkdownFormatting(type: string): void {
+    const mark = FORMAT_MARKS[type];
+    if (!mark) throw new Error(`Unsupported formatting "${type}"`);
+    toggleInline(this.v, mark);
+  }
+  toggleBulletList(): void { toggleLinePrefix(this.v, 'bullet'); }
+  toggleNumberList(): void { toggleLinePrefix(this.v, 'number'); }
+  toggleCheckList(_withCheckbox?: boolean): void { toggleLinePrefix(this.v, 'check'); }
+  toggleBlockquote(): void { toggleLinePrefix(this.v, 'quote'); }
   private get v() {
     const v = getActiveEditor();
     if (!v) throw new Error('No active editor');
@@ -587,6 +599,18 @@ export class Editor {
 }
 
 export class MarkdownView {
+  private static fallbackEl: HTMLElement | null = null;
+  /** The pane the active editor lives in (`.workspace-leaf-content` in Obsidian): plugins query and decorate it. */
+  get containerEl(): HTMLElement {
+    const pane = getActiveEditor()?.dom.closest<HTMLElement>('.pane, .main-pane');
+    return pane ?? (MarkdownView.fallbackEl ??= document.createElement('div'));
+  }
+  get contentEl(): HTMLElement { return this.containerEl.querySelector<HTMLElement>('.view-content') ?? this.containerEl; }
+  get app() { return getSharedApp(); }
+  get leaf(): WorkspaceLeaf { const l = new WorkspaceLeaf(); Object.defineProperty(l, 'view', { value: this }); return l; }
+  get currentMode() { return { type: this.getMode(), editor: this.editor }; }
+  get previewMode() { return { containerEl: this.containerEl, type: 'preview' }; }
+  getState() { return { file: this.file?.path, mode: this.getMode(), source: useStore.getState().viewMode === 'source' }; }
   get editor() { return new Editor(); }
   get file(): TFile | null { return sharedWorkspace.getActiveFile(); }
   getViewType() { return 'markdown'; }
@@ -809,7 +833,8 @@ export class Workspace extends Events {
   }
   get activeLeaf(): WorkspaceLeaf | null { return this.activePluginLeaf() ?? this.getLeaf(); }
   getActiveViewOfType<T>(type: new (...a: any[]) => T): T | null {
-    if (isType(type, MarkdownView)) {
+    // the markdown editor is a MarkdownView, so it also answers for its ancestors (ItemView, FileView, TextFileView, …)
+    if (isType(type, MarkdownView) || [View, ItemView, FileView, TextFileView, EditableFileView].some((c) => isType(type, c))) {
       return getActiveEditor() && useStore.getState().viewMode !== 'reading' ? (new MarkdownView() as unknown as T) : null;
     }
     const v = this.activePluginLeaf()?.view;
@@ -889,12 +914,14 @@ export class App {
   plugins = { plugins: {} as Record<string, unknown>, enabledPlugins: new Set<string>(), manifests: {} as Record<string, unknown>, getPlugin(id: string): unknown { return this.plugins[id] ?? null; } };
   internalPlugins = { plugins: {} as Record<string, unknown>, getPluginById(_id: string): unknown { return null; }, getEnabledPluginById(_id: string): unknown { return null; } };
   commands = {
-    commands: {} as Record<string, unknown>,
+    /** id → command, always current (Obsidian keeps a plain registry object; plugins index into it). */
+    get commands(): Record<string, unknown> { return Object.fromEntries(pluginHost.commands().map((c) => [c.id, c])); },
+    editorCommands: {} as Record<string, unknown>,
     listCommands: () => pluginHost.commands().map((c) => ({ id: c.id, name: c.name })),
     findCommand: (id: string) => pluginHost.commands().find((c) => c.id === id) ?? null,
     executeCommandById: (id: string) => { const c = pluginHost.commands().find((x) => x.id === id); if (c && c.available()) { c.run(); return true; } return false; },
   };
-  hotkeyManager = { getHotkeys: (_id: string): unknown[] => [], getDefaultHotkeys: (_id: string): unknown[] => [], addDefaultHotkeys: (_id: string, _keys: unknown[]) => {}, removeDefaultHotkeys: (_id: string) => {}, setHotkeys: (_id: string, _keys: unknown[]) => {}, printHotkeyForCommand: (_id: string) => '' };
+  hotkeyManager = { customKeys: {} as Record<string, unknown[]>, defaultKeys: {} as Record<string, unknown[]>, bakedIds: [] as string[], bakedHotkeys: [] as unknown[], getHotkeys: (_id: string): unknown[] => [], getDefaultHotkeys: (_id: string): unknown[] => [], addDefaultHotkeys: (_id: string, _keys: unknown[]) => {}, removeDefaultHotkeys: (_id: string) => {}, setHotkeys: (_id: string, _keys: unknown[]) => {}, printHotkeyForCommand: (_id: string) => '' };
   scope = new Scope();
   lastEvent: UIEvent | null = null;
   setting = { open() {}, close() {}, openTabById(_id: string) {} };
@@ -1275,6 +1302,8 @@ export class Plugin extends Component {
       id: `${this.pid()}:${cmd.id}`,
       pluginId: this.pid(),
       name: `${this.manifest.name}: ${cmd.name}`,
+      icon: cmd.icon,
+      hotkeys: cmd.hotkeys,
       available: () => {
         try {
           if (cmd.editorCheckCallback) return editorOk() && cmd.editorCheckCallback(true, new Editor(), ctx()) !== false;
@@ -1439,10 +1468,8 @@ export function setTooltip(el: HTMLElement, tooltip: string, options?: { placeme
   w.__woTip = { show };
 }
 export const normalizePath = (p: string) => p.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/|\/$/g, '');
-export const moment: any = (d?: any) => {
-  const date = d ? new Date(d) : new Date();
-  return { format: (f?: string) => (f === undefined ? date.toISOString() : utils.formatDate(date, f)), valueOf: () => date.valueOf(), toDate: () => date, isValid: () => !isNaN(date.valueOf()) };
-};
+/** The real moment.js (Obsidian exposes it too): plugins call `moment.locale()`, `moment.duration()`, `.fromNow()`… */
+export const moment: any = realMoment;
 export const sanitizeHTMLToDom = (html: string) => { const t = document.createElement('template'); t.innerHTML = html; return t.content; };
 
 export class MenuItem {

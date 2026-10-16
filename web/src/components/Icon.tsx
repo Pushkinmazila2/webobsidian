@@ -80,6 +80,40 @@ const PATHS: Record<string, string> = {
 
 export type IconName = keyof typeof PATHS | string;
 
+/**
+ * The complete Lucide set (what Obsidian ships — plugins reference icons like `lucide-list-tree` or `bold`).
+ * It is a separate chunk loaded on demand (when plugins start), so the main bundle stays small.
+ */
+const LUCIDE = new Map<string, string>();
+let lucideLoad: Promise<void> | null = null;
+const kebab = (n: string) => n.replace(/([a-z])([A-Z])/g, '$1-$2').replace(/([a-zA-Z])(\d)/g, '$1-$2').replace(/(\d)([A-Z])/g, '$1-$2').toLowerCase();
+export function loadLucide(): Promise<void> {
+  return (lucideLoad ??= import('./lucideSet').then(({ lucideIcons }) => {
+    for (const [name, inner] of Object.entries(lucideIcons)) { LUCIDE.set(kebab(name), inner); LUCIDE.set(name.toLowerCase(), inner); }
+  }).catch((e) => { console.warn('[icons] could not load the Lucide set:', e); }));
+}
+/** Obsidian's older built-in `*-glyph` icon ids (plugins still use them) → the matching Lucide glyph. */
+const GLYPHS: Record<string, string> = {
+  'add-note-glyph': 'file-plus', 'bold-glyph': 'bold', 'bot-glyph': 'bot', 'box-glyph': 'box', 'bracket-glyph': 'brackets', 'bullet-list-glyph': 'list',
+  'calendar-glyph': 'calendar', 'checkbox-glyph': 'check-square', 'clock-glyph': 'clock', 'code-glyph': 'code', 'codeblock-glyph': 'square-code',
+  'command-glyph': 'command', 'compress-glyph': 'minimize-2', 'dice-glyph': 'dices', 'double-down-arrow-glyph': 'chevrons-down', 'double-up-arrow-glyph': 'chevrons-up',
+  'down-chevron-glyph': 'chevron-down', 'down-curly-arrow-glyph': 'corner-right-down', 'duplicate-glyph': 'copy', 'enlarge-glyph': 'maximize-2',
+  'file-explorer-glyph': 'folder-tree', 'github-glyph': 'github', 'graph-glyph': 'graph', 'heading-glyph': 'heading', 'highlight-glyph': 'highlighter',
+  'image-glyph': 'image', 'import-glyph': 'import', 'indent-glyph': 'indent-increase', 'italic-glyph': 'italic', 'keyboard-glyph': 'keyboard',
+  'left-chevron-glyph': 'chevron-left', 'link-glyph': 'link', 'merge-files-glyph': 'merge', 'navigate-glyph': 'navigation', 'note-glyph': 'file-text',
+  'number-list-glyph': 'list-ordered', 'open-elsewhere-glyph': 'external-link', 'paper-plane-glyph': 'send', 'percent-sign-glyph': 'percent',
+  'play-audio-glyph': 'play', 'plus-minus-glyph': 'plus-minus', 'presentation-glyph': 'presentation', 'price-tag-glyph': 'tag', 'question-mark-glyph': 'circle-help',
+  'quote-glyph': 'quote', 'redo-glyph': 'redo', 'restore-file-glyph': 'archive-restore', 'right-chevron-glyph': 'chevron-right', 'scissors-glyph': 'scissors',
+  'search-glyph': 'search', 'star-glyph': 'star', 'stop-audio-glyph': 'square', 'strikethrough-glyph': 'strikethrough', 'subscript-glyph': 'subscript',
+  'superscript-glyph': 'superscript', 'tag-glyph': 'tag', 'tomorrow-glyph': 'circle-arrow-right', 'underline-glyph': 'underline', 'undo-glyph': 'undo',
+  'unindent-glyph': 'indent-decrease', 'up-chevron-glyph': 'chevron-up', 'up-curly-arrow-glyph': 'corner-right-up', 'wand-glyph': 'wand', 'workspace-glyph': 'layout',
+  'wrench-screwdriver-glyph': 'wrench', 'yesterday-glyph': 'circle-arrow-left',
+};
+const lookup = (name: string): string | undefined => {
+  const n = name.replace(/^lucide-/, '');
+  return PATHS[name] ?? PATHS[n] ?? LUCIDE.get(n) ?? (GLYPHS[n] ? PATHS[GLYPHS[n]] ?? LUCIDE.get(GLYPHS[n]) : undefined);
+};
+
 export default function Icon({
   name,
   size = 16,
@@ -91,7 +125,7 @@ export default function Icon({
   className?: string;
   style?: CSSProperties;
 }) {
-  const path = PATHS[name] ?? '';
+  const path = lookup(name) ?? '';
   return (
     <svg
       className={className}
@@ -117,8 +151,8 @@ export const unregisterCustomIcon = (name: string) => { CUSTOM.delete(name); };
 export function iconSvg(name: string, size = 16): string {
   const custom = CUSTOM.get(name);
   if (custom !== undefined) return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" fill="currentColor" stroke="currentColor">${custom}</svg>`;
-  const path = PATHS[name] ?? '';
+  const path = lookup(name) ?? '';
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
 }
-export const listIconNames = (): string[] => [...Object.keys(PATHS), ...CUSTOM.keys()];
-export const hasIcon = (name: string): boolean => name in PATHS || CUSTOM.has(name);
+export const listIconNames = (): string[] => [...Object.keys(PATHS), ...LUCIDE.keys(), ...CUSTOM.keys()];
+export const hasIcon = (name: string): boolean => CUSTOM.has(name) || lookup(name) !== undefined;

@@ -1,13 +1,13 @@
 {
  "apiVersion": "1.14.4",
  "totals": {
-  "ok": 523,
+  "ok": 525,
   "stub": 25,
-  "missing": 159
+  "missing": 157
  },
  "feasibility": {
   "easy": 26,
-  "medium": 56,
+  "medium": 54,
   "hard": 55,
   "impossible": 47
  },
@@ -2610,17 +2610,17 @@
      "name": "previewMode",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Needs reading/live-preview modes and the leaf facade behind it."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "currentMode",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Needs reading/live-preview modes and the leaf facade behind it."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "hoverPopover",

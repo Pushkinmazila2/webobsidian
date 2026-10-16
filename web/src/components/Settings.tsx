@@ -392,6 +392,14 @@ function Plugins() {
     try { await api.installPlugin(repo); setMsg('Installed ✓'); setRepo(''); await load(); await syncPlugins(); }
     catch (e: any) { setMsg(`Error: ${e.message}`); }
   };
+  const remove = async (p: any) => {
+    if (!window.confirm(`Delete plugin "${p.name}"? Its files and saved settings are removed from the vault.`)) return;
+    try {
+      await api.uninstallPlugin(p.id);
+      setOpenOptions(null); setMsg(`Deleted ${p.name}`);
+      await syncPlugins(); await load();
+    } catch (e: any) { setMsg(`Error: ${e.message}`); }
+  };
   return (
     <div>
       <h2>Community Plugins</h2>
@@ -427,6 +435,7 @@ function Plugins() {
                       {openOptions === p.id ? 'Hide options' : 'Options'}
                     </button>
                   )}
+                  <button className="btn" title="Delete this plugin (code and settings)" style={{ background: 'transparent', color: '#e5534b', border: '1px solid #e5534b' }} onClick={() => remove(p)}>Delete</button>
                   <label>
                     <input type="checkbox" checked={p.enabled} onChange={async (e) => { await api.setPluginEnabled(p.id, e.target.checked); await syncPlugins(); load(); }} /> enabled
                   </label>

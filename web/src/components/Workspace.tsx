@@ -438,7 +438,7 @@ export default function Workspace() {
           </div>
         )}
         {activePath && activePath !== GRAPH_PATH && !activeIsFolder && (
-          <div className="pane main-pane">
+          <div className="pane main-pane workspace-leaf-content">
             <EditorPane />
           </div>
         )}

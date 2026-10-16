@@ -56,6 +56,35 @@ export function toggleInline(view: EditorView, mark: string): boolean {
   return true;
 }
 
+/** Markers behind Obsidian's `editor.toggleMarkdownFormatting(type)`. */
+export const FORMAT_MARKS: Record<string, string> = { bold: '**', italic: '*', strikethrough: '~~', highlight: '==', code: '`', math: '$', comment: '%%' };
+
+export type LineKind = 'bullet' | 'number' | 'check' | 'quote';
+const ANY_PREFIX = /^(\s*)(?:[-*+]\s+\[.\]\s+|[-*+]\s+|\d+[.)]\s+|>\s?)/;
+const KIND_RE: Record<LineKind, RegExp> = {
+  check: /^\s*[-*+]\s+\[.\]\s/, bullet: /^\s*[-*+]\s(?!\[.\]\s)/, number: /^\s*\d+[.)]\s/, quote: /^\s*>\s?/,
+};
+/** Toggle a list / checklist / quote prefix on every non-empty selected line (all already marked → remove it). */
+export function toggleLinePrefix(view: EditorView, kind: LineKind): boolean {
+  const { state } = view;
+  const a = state.doc.lineAt(state.selection.main.from).number;
+  const b = state.doc.lineAt(state.selection.main.to).number;
+  const lines = [];
+  for (let n = a; n <= b; n++) { const l = state.doc.line(n); if (l.text.trim() !== '' || a === b) lines.push(l); }
+  if (!lines.length) return false;
+  const allMarked = lines.every((l) => KIND_RE[kind].test(l.text));
+  const changes: ChangeSpec[] = [];
+  lines.forEach((l, i) => {
+    const m = ANY_PREFIX.exec(l.text);
+    const indent = m ? m[1] : (/^\s*/.exec(l.text)?.[0] ?? '');
+    const stripTo = m ? m[0].length : indent.length;
+    const mark = allMarked ? '' : kind === 'bullet' ? '- ' : kind === 'number' ? `${i + 1}. ` : kind === 'check' ? '- [ ] ' : '> ';
+    changes.push({ from: l.from + indent.length, to: l.from + stripTo, insert: mark });
+  });
+  view.dispatch({ changes, userEvent: 'input' });
+  return true;
+}
+
 /** editor:toggle-checklist-status (Mod+L): any non-space status counts as done (§7). */
 export function toggleChecklist(view: EditorView): boolean {
   const { state } = view;

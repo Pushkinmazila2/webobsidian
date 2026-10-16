@@ -64,6 +64,8 @@ export default function Ribbon({ onTheme }: { onTheme: () => void }) {
       <button title="Command palette (⌘P)" onClick={() => setPalette(true, 'commands')}>
         <Icon name="command" size={18} />
       </button>
+      {/* Icons added by plugins live in their own scrollable strip between the built-in buttons. */}
+      <div className="ribbon-plugins">
       {pluginHost.ribbon().map((r) => (
         <button key={r.id} title={r.title} onClick={(e) => r.onClick(e.nativeEvent)}>
           {hasIcon(r.icon) ? <Icon name={r.icon} size={18} /> : <span className="plugin-ribbon-letter">{r.title.slice(0, 1).toUpperCase()}</span>}
@@ -74,7 +76,7 @@ export default function Ribbon({ onTheme }: { onTheme: () => void }) {
           {hasIcon(leaf.view?.getIcon?.() ?? '') ? <Icon name={leaf.view.getIcon()} size={18} /> : <span className="plugin-ribbon-letter">{(leaf.view?.getDisplayText?.() ?? 'P').slice(0, 1).toUpperCase()}</span>}
         </button>
       ))}
-      <div className="spacer" />
+      </div>
       {gitEnabled && (
         <button title={syncing ? 'Syncing…' : 'Sync now'} onClick={sync} disabled={syncing}>
           <Icon name="refresh-cw" size={18} style={syncing ? { animation: 'spin 1s linear infinite' } : undefined} />

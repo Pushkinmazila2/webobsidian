@@ -97,3 +97,18 @@ test('[plugins] wrapPluginCode: a classic-script wrapper (CSP forbids eval) that
   assert.throws(() => g.window.__woPlugins.s(strict, strict.exports, () => ({})), ReferenceError);
   assert.throws(() => plugins.wrapPluginCode('../x', ''), (e) => status(e) === 400);
 });
+
+test('[plugins] uninstall: switches the plugin off, deletes its folder (code + data), refuses unsafe ids and unknown plugins', async () => {
+  await vault.writeFileText('.obsidian/plugins/gone/manifest.json', manifest('gone'));
+  await vault.writeFileText('.obsidian/plugins/gone/main.js', 'module.exports = {}');
+  await plugins.savePluginData('gone', { a: 1 });
+  await plugins.setEnabled('gone', true);
+  assert.equal((await enabledOnDisk()).includes('gone'), true);
+
+  assert.equal(await plugins.uninstall('gone'), true);
+  assert.equal((await enabledOnDisk()).includes('gone'), false);
+  assert.equal(await vault.exists('.obsidian/plugins/gone'), false);
+  assert.equal((await plugins.listInstalled()).some((p) => p.id === 'gone'), false);
+  assert.equal(await plugins.uninstall('gone'), false); // already gone
+  await assert.rejects(() => plugins.uninstall('../x'), (e) => status(e) === 400);
+});

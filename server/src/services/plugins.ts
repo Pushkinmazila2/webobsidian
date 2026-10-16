@@ -130,6 +130,19 @@ export async function setEnabled(id: string, enabled: boolean): Promise<void> {
   await writeEnabled([...set]);
 }
 
+/**
+ * Remove a plugin: switch it off and delete its folder (code, styles and saved settings).
+ * Returns false when there was nothing to delete.
+ */
+export async function uninstall(id: string): Promise<boolean> {
+  assertSafeId(id);
+  await setEnabled(id, false);
+  const dir = `${PLUGINS_DIR}/${id}`;
+  if (!(await vault.exists(dir))) return false;
+  await vault.remove(dir);
+  return true;
+}
+
 /** A plugin's saved settings (`data.json`); `{}` when it has none yet — like Obsidian's loadData(). */
 export async function getPluginData(id: string): Promise<unknown> {
   assertSafeId(id);

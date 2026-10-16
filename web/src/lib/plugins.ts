@@ -10,6 +10,7 @@
 import { vaultHeaders, withVault } from './vault';
 import { api } from './api';
 import { pluginHost } from './pluginHost';
+import { loadLucide } from '../components/Icon';
 import { App, Notice, Plugin, obsidianModule, setPluginDataBackend, startMetadataCache } from './obsidianApi';
 import * as cmState from '@codemirror/state';
 import * as cmView from '@codemirror/view';
@@ -23,6 +24,8 @@ import * as lezerHighlight from '@lezer/highlight';
 import * as lezerLr from '@lezer/lr';
 
 const sharedApp = new App();
+// Obsidian exposes the app as a global too (`window.app` / bare `app`); many plugins read it that way.
+(window as any).app = sharedApp;
 setPluginDataBackend({
   // Obsidian's loadData() is null when the plugin has no data.json yet; the server answers {} then.
   load: async (id) => {
@@ -157,6 +160,7 @@ export async function syncPlugins(): Promise<{ unsaved: number } | null> {
   try {
     const { plugins, unsaved } = await api.listPlugins();
     const enabled = new Set<string>(plugins.filter((x: any) => x.enabled).map((x: any) => x.id));
+    if (enabled.size > 0) await loadLucide(); // plugins refer to icons by Lucide name
     for (const id of [...loaded.keys()]) if (!enabled.has(id)) await unloadPlugin(id);
     for (const p of plugins.filter((x: any) => x.enabled)) {
       if (loaded.has(p.id)) continue;
