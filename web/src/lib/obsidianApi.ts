@@ -703,6 +703,18 @@ export class WorkspaceItem extends Events {
 }
 export class WorkspaceParent extends WorkspaceItem { children: WorkspaceItem[] = []; }
 export class WorkspaceSplit extends WorkspaceParent { direction: 'vertical' | 'horizontal' = 'vertical'; }
+/** A collapsible side dock (`workspace.leftSplit` / `rightSplit`) backed by the sidebar open state. */
+export class WorkspaceSidedock extends WorkspaceSplit {
+  constructor(private side: 'left' | 'right') {
+    super();
+    Object.defineProperty(this, 'children', { get: () => pluginHost.leaves().filter((e) => e.location === side).map((e) => e.leaf as WorkspaceItem), set: () => {}, configurable: true });
+  }
+  private get key() { return this.side === 'left' ? 'leftOpen' : 'rightOpen'; }
+  get collapsed(): boolean { return !(useStore.getState() as any)[this.key]; }
+  expand() { useStore.setState({ [this.key]: true } as any); }
+  collapse() { useStore.setState({ [this.key]: false } as any); }
+  toggle() { if (this.collapsed) this.expand(); else this.collapse(); }
+}
 let leafSeq = 0;
 const VIEW_PATH = 'plugin-view://';
 /** Put a (virtual) tab for a plugin view into the tab bar and make it the active one. */
@@ -786,14 +798,74 @@ export class WorkspaceLeaf extends WorkspaceItem {
   }
   getDisplayText() { return this.view.getDisplayText(); }
   getIcon() { return this.view.getIcon(); }
-  setPinnedFlag(_p: boolean) {}
+  pinned = false;
+  group: string | null = null;
+  setPinned(pinned: boolean) { this.pinned = pinned; if (this.tabPath) useStore.setState((st) => ({ tabs: st.tabs.map((t) => (t.path === this.tabPath ? { ...t, pinned } : t)) as any })); pluginHost.refreshLeaves(); }
+  setPinnedFlag(p: boolean) { this.setPinned(p); }
   async loadIfDeferred() {}
-  setGroup(_g: string) {}
+  setGroup(group: string) { this.group = group; }
+  setGroupMember(other: WorkspaceLeaf) { this.group = other.group ?? (other.group = `group-${other.id}`); }
   setEphemeralState(s: unknown) { this.view.setEphemeralState(s); }
   getEphemeralState() { return this.view.getEphemeralState(); }
-  togglePinned() {}
+  togglePinned() { this.setPinned(!this.pinned); }
+  getRoot(): WorkspaceItem { return this; }
 }
 class MarkdownViewShell extends ItemView { getViewType() { return 'markdown'; } }
+
+export enum PopoverState { Showing = 1, Shown = 2, Hiding = 3, Hidden = 4 }
+export interface HoverParent { hoverPopover: HoverPopover | null }
+/** A floating card next to `targetEl` (page previews, plugin hovers). Fill `hoverEl`; it hides when the pointer leaves. */
+export class HoverPopover extends Component {
+  hoverEl: HTMLElement;
+  state: PopoverState = PopoverState.Showing;
+  targetEl: HTMLElement | null;
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private hideTimer: ReturnType<typeof setTimeout> | undefined;
+  constructor(public parent: HoverParent, targetEl: HTMLElement | null, waitTime = 300, public staticPos: { x: number; y: number } | null = null) {
+    super();
+    this.targetEl = targetEl;
+    this.hoverEl = document.createElement('div');
+    this.hoverEl.className = 'popover hover-popover';
+    this.hoverEl.style.cssText = 'position:fixed;z-index:10001;visibility:hidden;';
+    try { parent.hoverPopover?.hide(); } catch { /* ignore */ }
+    parent.hoverPopover = this;
+    const leave = () => { clearTimeout(this.hideTimer); this.hideTimer = setTimeout(() => { if (!this.hoverEl.matches(':hover') && !targetEl?.matches(':hover')) this.hide(); }, 300); };
+    this.hoverEl.addEventListener('mouseleave', leave);
+    targetEl?.addEventListener('mouseleave', leave);
+    this.register(() => targetEl?.removeEventListener('mouseleave', leave));
+    this.load();
+    this.timer = setTimeout(() => this.show(), waitTime);
+  }
+  shouldShow(): boolean { return this.state === PopoverState.Showing; }
+  onShow(): void {}
+  onHide(): void {}
+  show(): void {
+    clearTimeout(this.timer);
+    if (!this.shouldShow()) return;
+    document.body.appendChild(this.hoverEl);
+    this.position(this.staticPos);
+    this.hoverEl.style.visibility = 'visible';
+    this.state = PopoverState.Shown;
+    this.onShow();
+  }
+  position(pos?: { x: number; y: number } | null): void {
+    const r = this.targetEl?.getBoundingClientRect();
+    const x = pos?.x ?? r?.left ?? 0, y = pos?.y ?? (r ? r.bottom + 6 : 0);
+    const w = this.hoverEl.offsetWidth, h = this.hoverEl.offsetHeight;
+    this.hoverEl.style.left = `${Math.max(8, Math.min(x, innerWidth - w - 8))}px`;
+    this.hoverEl.style.top = `${Math.max(8, y + h > innerHeight ? (r?.top ?? y) - h - 6 : y)}px`;
+  }
+  hide(): void {
+    clearTimeout(this.timer); clearTimeout(this.hideTimer);
+    if (this.state === PopoverState.Hidden) return;
+    this.state = PopoverState.Hidden;
+    this.hoverEl.remove();
+    if (this.parent.hoverPopover === this) this.parent.hoverPopover = null;
+    this.onHide();
+    this.unload();
+  }
+  onunload() { this.hoverEl.remove(); }
+}
 
 export class MarkdownRenderChild extends Component {
   constructor(public containerEl: HTMLElement) { super(); }
@@ -878,8 +950,8 @@ export class Workspace extends Events {
   onLayoutReady(cb: () => void) { cb(); }
   layoutReady = true;
   containerEl: HTMLElement = document.body;
-  leftSplit = new WorkspaceSplit();
-  rightSplit = new WorkspaceSplit();
+  leftSplit = new WorkspaceSidedock('left');
+  rightSplit = new WorkspaceSidedock('right');
   rootSplit = new WorkspaceSplit();
   updateOptions() { pluginHost.refreshEditorExtensions(); }
   requestSaveLayout() {}
@@ -896,7 +968,7 @@ export class Workspace extends Events {
   rightRibbon = { addActionItem: (_o: unknown) => document.createElement('div'), collapseButtonEl: document.createElement('div') };
   getLastOpenFiles(): string[] { return useStore.getState().tabs.map((t: any) => (typeof t === 'string' ? t : t.path)).filter(Boolean); }
   duplicateLeaf(leaf: WorkspaceLeaf) { return Promise.resolve(leaf); }
-  getGroupLeaves(_g: string): WorkspaceLeaf[] { return []; }
+  getGroupLeaves(group: string): WorkspaceLeaf[] { return pluginHost.leaves().map((e) => e.leaf as WorkspaceLeaf).filter((l) => l.group === group); }
   getLeafById(id: string): WorkspaceLeaf | null { return (pluginHost.leaf(id)?.leaf as WorkspaceLeaf) ?? null; }
   moveLeafToPopout(leaf: WorkspaceLeaf) { return leaf; }
   iterateAllLeaves(cb: (l: WorkspaceLeaf) => void) { for (const e of pluginHost.leaves()) cb(e.leaf); }
@@ -1477,7 +1549,7 @@ export class Plugin extends Component {
   registerView(type: string, creator: (leaf: WorkspaceLeaf) => View) { pluginHost.addView(this.pid(), type, creator); }
   registerExtensions(exts: string[], viewType: string) { pluginHost.addExtensions(this.pid(), exts, viewType); }
   registerObsidianProtocolHandler(_action: string, _handler: unknown) {}
-  registerHoverLinkSource(_id: string, _info: unknown) {}
+  registerHoverLinkSource(id: string, info: { display: string; defaultMod: boolean }) { pluginHost.addHoverLinkSource(this.pid(), id, info); }
   /** Remove everything this plugin attached (commands, ribbon, status bar, settings tab, listeners, timers). */
   teardown() { this.unload(); pluginHost.removePlugin(this.pid()); }
 }
@@ -1902,7 +1974,7 @@ const rawModule = {
   MarkdownRenderChild, MarkdownRenderer, EditorSuggest, SettingGroup, SecretStorage, SecretComponent,
   SettingPage, SettingTab,
   ...basesApi,
-  Keymap, Tasks, ConfirmationModal, ConfirmationButton, renderMath, finishRenderMath, loadMathJax, loadPrism,
+  Keymap, Tasks, HoverPopover, PopoverState, ConfirmationModal, ConfirmationButton, renderMath, finishRenderMath, loadMathJax, loadPrism,
   getLanguage, loadMermaid, setTooltip, displayTooltip, FileManager, Scope, MenuItem, MenuSeparator,
   SuggestModal, FuzzySuggestModal, PopoverSuggest, AbstractInputSuggest,
   BaseComponent, ValueComponent, DisplayValueComponent, AbstractTextComponent, SearchComponent, ColorComponent, ProgressBarComponent, MomentFormatComponent,

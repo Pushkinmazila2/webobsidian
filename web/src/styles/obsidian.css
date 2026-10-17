@@ -1845,3 +1845,20 @@ audio.media-embed { display: block; width: min(100%, 480px); max-width: 100%; ma
 .bases-error-box { padding: 6px 12px; font-size: 12px; font-family: var(--font-monospace); }
 .bases-img { max-height: 48px; }
 .bases-plugin-view { height: 100%; }
+
+/* Hover popovers (page preview, plugin hovers) */
+.hover-popover {
+  max-width: 420px; max-height: 340px; overflow: auto; padding: 10px 14px;
+  background: var(--background-primary, #1e1e1e); color: var(--text-normal, inherit);
+  border: 1px solid var(--background-modifier-border, #444); border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35); font-size: 13px;
+}
+.hover-popover .markdown-embed-content { padding: 0; }
+
+/* Bases: cell editing + filter panel */
+.bases-cell-editable { min-height: 1.4em; cursor: text; }
+.bases-cell-input { width: 100%; box-sizing: border-box; font: inherit; padding: 1px 4px; }
+.bases-filter-menu { min-width: 420px; padding: 10px; right: 0; left: auto; }
+.bases-filter-head, .bases-filter-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.bases-filter-row input { flex: 1; min-width: 90px; }
+.bases-filter-raw { flex: 1; opacity: 0.8; font-size: 12px; word-break: break-all; }

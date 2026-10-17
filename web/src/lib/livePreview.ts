@@ -1,6 +1,7 @@
 import { pluginHost, type PostProcessorCtx } from './pluginHost';
 import { useStore } from './store';
 import { getFrontMatterInfo, parseYaml } from './obsidianUtils';
+import { runPluginProcessors } from './markdownProcessing';
 import { withVault } from './vault';
 import {
   Decoration,
@@ -129,6 +130,7 @@ class WikilinkWidget extends WidgetType {
     a.className = 'cm-hmd-internal-link cm-wikilink internal-link' + (this.embed ? ' embed' : '');
     a.textContent = this.label;
     if (this.aria) a.setAttribute('aria-label', this.aria);
+    a.setAttribute('data-href', this.target);
     a.onmousedown = (e) => {
       e.preventDefault();
       openLink(this.target);
@@ -480,6 +482,8 @@ class BaseEmbedWidget extends WidgetType {
 }
 
 class NoteEmbedWidget extends WidgetType {
+  private children: { unload(): void }[] = [];
+  destroy() { for (const c of this.children.splice(0)) { try { c.unload(); } catch { /* ignore */ } } }
   constructor(readonly target: string) {
     super();
   }
@@ -516,6 +520,8 @@ class NoteEmbedWidget extends WidgetType {
         return;
       }
       content.innerHTML = res.html; // sanitized upstream (rehype-sanitize)
+      // Plugin post-processors / code-block processors / Bases also run inside transclusions.
+      try { runPluginProcessors(content, useStore.getState().activePath ?? '', '', this.children); } catch (err) { console.warn('[plugin] embed processors failed', err); }
       content.addEventListener('mousedown', (e) => {
         const a = (e.target as HTMLElement).closest('[data-wikilink]') as HTMLElement | null;
         if (!a) return;
@@ -664,6 +670,10 @@ class PluginBlockWidget extends WidgetType {
       const r = proc.fn(this.code, el, ctx);
       if (r && typeof (r as Promise<void>).catch === 'function') (r as Promise<void>).catch(fail);
     } catch (e) { fail(e); }
+    // Like Obsidian, post-processors also see what a code-block processor rendered.
+    for (const pp of pluginHost.postProcessors()) {
+      try { const r = pp.fn(el, ctx); if (r && typeof (r as Promise<void>).catch === 'function') (r as Promise<void>).catch(fail); } catch (e) { fail(e); }
+    }
     return el;
   }
   destroy() {

@@ -1,14 +1,14 @@
 {
  "apiVersion": "1.14.4",
  "totals": {
-  "ok": 561,
-  "stub": 24,
-  "missing": 118
+  "ok": 568,
+  "stub": 21,
+  "missing": 113
  },
  "feasibility": {
   "easy": 8,
-  "medium": 32,
-  "hard": 55,
+  "medium": 28,
+  "hard": 51,
   "impossible": 47
  },
  "classes": [
@@ -2134,7 +2134,7 @@
    "name": "HoverPopover",
    "extends": "Component",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "medium",
    "note": "Popover UI is easy; hooking into link hover needs the preview pipeline.",
    "members": [
@@ -2142,17 +2142,17 @@
      "name": "hoverEl",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Popover UI is easy; hooking into link hover needs the preview pipeline."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "state",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Popover UI is easy; hooking into link hover needs the preview pipeline."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -3372,9 +3372,9 @@
      "name": "registerHoverLinkSource",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "medium",
-     "note": "Needs the link-hover preview pipeline."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "registerExtensions",
@@ -5786,33 +5786,33 @@
      "name": "togglePinned",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setPinned",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setGroupMember",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setGroup",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "detach",

@@ -168,3 +168,19 @@ test('[bases] summaries', () => {
   assert.equal(r.summaries['note.pages'], 1003);
   assert.equal(r.summaries['note.rating'], 4);
 });
+
+import { condToExpr, exprToCond, filterToModel, modelToFilter } from '../../web/src/lib/bases/filterModel.ts';
+test('[bases] filter model round-trips conditions and keeps what the UI cannot express', () => {
+  const cases = ['note.age > 30', 'note.city == "Paris"', 'note.done == true', 'note.city != "Rome"', 'note.title.contains("a \\"q\\"")', '!note.title.contains("x")',
+    'file.name.startsWith("A")', 'note.x.isEmpty()', '!note.x.isEmpty()', 'file.hasTag("t")', 'file.inFolder("People")', 'note.n <= 3'];
+  for (const c of cases) { const cond = exprToCond(c); assert.ok(cond, c); assert.equal(condToExpr(cond!), c); }
+  assert.equal(exprToCond('note.a + note.b > 3'), null);
+  assert.equal(exprToCond('!note.t.startsWith("x")'), null);
+  const node = { or: ['note.age > 30', 'file.mtime > now() - "7d"', { and: ['note.a == 1'] }] } as any;
+  const m = filterToModel(node);
+  assert.equal(m.mode, 'or');
+  assert.deepEqual(m.items.map((i) => i.kind), ['cond', 'raw', 'raw']);
+  assert.deepEqual(modelToFilter(m), node);
+  assert.deepEqual(filterToModel('file.hasTag("a")'), { mode: 'and', items: [{ kind: 'cond', cond: { prop: 'file.name', op: 'hasTag', value: 'a' } }] });
+  assert.equal(modelToFilter({ mode: 'and', items: [] }), undefined);
+});

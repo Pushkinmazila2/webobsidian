@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { useStore } from '../lib/store';
 import { pluginHost, useLeaves } from '../lib/pluginHost';
-import { basesApi, getSharedApp, sharedMetadataCache, startMetadataCache } from '../lib/obsidianApi';
+import { basesApi, getSharedApp, sharedMetadataCache, startMetadataCache, TFile } from '../lib/obsidianApi';
+import { OPS, filterToModel, modelToFilter, type FilterModel, type Op } from '../lib/bases/filterModel';
 import { buildBaseEnv } from '../lib/bases/vaultEnv';
 import {
   BaseContext, DEFAULT_BASE, normalizeId, parseBase, runView, stringifyBase, BUILTIN_SUMMARIES,
@@ -46,6 +47,46 @@ function FileNameCell({ row }: { row: Row }) {
   const f = row.file;
   return <a className="internal-link" href="#" onClick={(e) => { e.preventDefault(); openPath(f.path, e.ctrlKey || e.metaKey); }}>{f.ext === 'md' ? f.basename : f.name}</a>;
 }
+/** Write one front-matter property of a note, then refresh the metadata cache so the base re-queries. */
+async function setNoteProp(path: string, key: string, parse: (old: unknown) => unknown) {
+  try {
+    await getSharedApp().fileManager.processFrontMatter(new TFile(path), (fm: any) => {
+      const next = parse(fm[key]);
+      if (next === undefined) delete fm[key]; else fm[key] = next;
+    });
+    await sharedMetadataCache.refresh();
+  } catch (e) { useStore.getState().notify(`Could not edit property: ${(e as Error).message}`); }
+}
+const toEditText = (v: unknown) => (Array.isArray(v) ? v.map((x) => display(x)).join(', ') : v == null ? '' : display(v));
+const fromEditText = (text: string, old: unknown): unknown => {
+  const t = text.trim();
+  if (t === '') return undefined;
+  if (Array.isArray(old)) return t.split(',').map((x) => x.trim()).filter(Boolean);
+  if (typeof old === 'number' && /^-?\d+(\.\d+)?$/.test(t)) return Number(t);
+  if (typeof old === 'boolean' && /^(true|false)$/i.test(t)) return t.toLowerCase() === 'true';
+  return t;
+};
+
+/** A table cell: double-click edits a `note.*` property in place (checkboxes toggle with one click). */
+function EditableCell({ row, id }: { row: Row; id: string }) {
+  const nid = normalizeId(id);
+  const editable = nid.startsWith('note.') && row.file.ext === 'md';
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState('');
+  if (!editable) return <ValueCell row={row} id={id} />;
+  const key = nid.slice(5);
+  const v = row.get(nid);
+  if (typeof v === 'boolean') {
+    return <input type="checkbox" checked={v} onChange={() => void setNoteProp(row.file.path, key, () => !v)} />;
+  }
+  if (editing) {
+    const commit = () => { setEditing(false); if (text !== toEditText(v)) void setNoteProp(row.file.path, key, (old) => fromEditText(text, old ?? v)); };
+    return <input className="bases-cell-input" autoFocus value={text} onChange={(e) => setText(e.target.value)} onBlur={commit}
+      onKeyDown={(e) => { if (e.key === 'Enter') commit(); else if (e.key === 'Escape') setEditing(false); }} />;
+  }
+  return <div className="bases-cell-editable" title="Double-click to edit" onDoubleClick={() => { setText(toEditText(v)); setEditing(true); }}><ValueCell row={row} id={id} /></div>;
+}
+
 function ValueCell({ row, id }: { row: Row; id: string }) {
   const nid = normalizeId(id);
   if (nid === 'file.name') return <FileNameCell row={row} />;
@@ -65,7 +106,7 @@ function TableView({ res, cfg, vi, change, search }: { res: ViewResult; cfg: Bas
   };
   const match = (r: Row) => !search || cols.some((c) => display(r.get(normalizeId(c.id))).toLowerCase().includes(search)) || r.file.name.toLowerCase().includes(search);
   const body = (rows: Row[]) => rows.filter(match).map((r) => (
-    <tr key={r.file.path}>{cols.map((c) => <td key={c.id}><ValueCell row={r} id={c.id} /></td>)}</tr>
+    <tr key={r.file.path}>{cols.map((c) => <td key={c.id}><EditableCell row={r} id={c.id} /></td>)}</tr>
   ));
   return (
     <div className="bases-table-wrap">
@@ -90,6 +131,55 @@ function TableView({ res, cfg, vi, change, search }: { res: ViewResult; cfg: Bas
           })}</tr></tfoot>
         )}
       </table>
+    </div>
+  );
+}
+function FilterPanel({ cfg, idx, change, props }: { cfg: BaseConfig; idx: number; change: (c: BaseConfig) => void; props: string[] }) {
+  const [scope, setScope] = useState<'view' | 'base'>('view');
+  const views = cfg.views ?? [];
+  const node = scope === 'view' ? views[idx]?.filters : cfg.filters;
+  const model = filterToModel(node);
+  const save = (m: FilterModel) => {
+    const f = modelToFilter(m);
+    if (scope === 'base') { const next = { ...cfg }; if (f) next.filters = f; else delete next.filters; change(next); return; }
+    const vs = [...views]; const v = { ...vs[idx] }; if (f) v.filters = f; else delete v.filters; vs[idx] = v; change({ ...cfg, views: vs });
+  };
+  const upd = (i: number, patch: Partial<{ prop: string; op: Op; value: string }>) =>
+    save({ ...model, items: model.items.map((it, j) => (j === i && it.kind === 'cond' ? { kind: 'cond', cond: { ...it.cond, ...patch } } : it)) });
+  return (
+    <div className="bases-filter-panel">
+      <div className="bases-filter-head">
+        <select value={scope} onChange={(e) => setScope(e.target.value as 'view' | 'base')}>
+          <option value="view">This view</option><option value="base">All views</option>
+        </select>
+        <span>Match</span>
+        <select value={model.mode} onChange={(e) => save({ ...model, mode: e.target.value as 'and' | 'or' })}>
+          <option value="and">all</option><option value="or">any</option>
+        </select>
+        <span>of the following:</span>
+      </div>
+      {model.items.map((it, i) => it.kind === 'raw' ? (
+        <div key={i} className="bases-filter-row">
+          <code className="bases-filter-raw">{typeof it.node === 'string' ? it.node : JSON.stringify(it.node)}</code>
+          <button className="bases-btn" title="Remove" onClick={() => save({ ...model, items: model.items.filter((_, j) => j !== i) })}>✕</button>
+        </div>
+      ) : (
+        <div key={i} className="bases-filter-row">
+          {!OPS.find((o) => o.op === it.cond.op)?.fileOnly && (
+            <select value={it.cond.prop} onChange={(e) => upd(i, { prop: e.target.value })}>
+              {[...new Set([it.cond.prop, ...props])].map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          )}
+          <select value={it.cond.op} onChange={(e) => upd(i, { op: e.target.value as Op })}>
+            {OPS.map((o) => <option key={o.op} value={o.op}>{o.label}</option>)}
+          </select>
+          {OPS.find((o) => o.op === it.cond.op)?.needsValue && (
+            <input value={it.cond.value} placeholder="value" onChange={(e) => upd(i, { value: e.target.value })} />
+          )}
+          <button className="bases-btn" title="Remove" onClick={() => save({ ...model, items: model.items.filter((_, j) => j !== i) })}>✕</button>
+        </div>
+      ))}
+      <button className="bases-btn" onClick={() => save({ ...model, items: [...model.items, { kind: 'cond', cond: { prop: 'file.name', op: 'contains', value: '' } }] })}>＋ Add filter</button>
     </div>
   );
 }
@@ -189,7 +279,7 @@ export default function BaseView({ path = '', source, embedded = false, thisPath
   const [draft, setDraft] = useState('');
   const [search, setSearch] = useState('');
   const [tick, setTick] = useState(0);
-  const [menu, setMenu] = useState<'props' | null>(null);
+  const [menu, setMenu] = useState<'props' | 'filter' | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -295,6 +385,10 @@ export default function BaseView({ path = '', source, embedded = false, thisPath
               </div>
             )}
           </div>}
+          <div className="bases-menu-wrap">
+            <button className={`bases-btn${menu === 'filter' ? ' active' : ''}`} onClick={() => setMenu(menu === 'filter' ? null : 'filter')} title="Filter">Filter</button>
+            {menu === 'filter' && <div className="bases-menu bases-filter-menu"><FilterPanel cfg={cfgWithView} idx={idx} change={change} props={allProps} /></div>}
+          </div>
           <button className={`bases-btn${src ? ' active' : ''}`} onClick={() => { setSrc(!src); setDraft(text); }} title="Edit .base source">Source</button>
         </div>
       </div>

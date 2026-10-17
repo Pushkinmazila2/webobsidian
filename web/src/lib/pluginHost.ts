@@ -44,6 +44,7 @@ export interface EditorSuggestReg { pluginId: string; suggest: any; env: { edito
 /** Mounts a Bases view into an element (set by the app: `![[x.base]]` embeds and ```base blocks). Returns an unmount fn. */
 export type BaseEmbedRenderer = (el: HTMLElement, o: { path?: string; source?: string; thisPath: string; viewName?: string }) => () => void;
 let baseEmbedRenderer: BaseEmbedRenderer | null = null;
+const hoverLinkSources = new Map<string, { pluginId: string; display: string; defaultMod: boolean }>();
 const editorSuggests = new Map<string, EditorSuggestReg>();
 const editorExtensions = new Map<string, { pluginId: string; ext: Extension }>();
 /** A view type a plugin registered with `registerView(type, creator)`. */
@@ -88,6 +89,8 @@ export const pluginHost = {
   addEditorExtension(pluginId: string, ext: Extension) { editorExtensions.set(`ee${++procSeq}`, { pluginId, ext }); pluginHost.refreshEditorExtensions(); },
   setBaseEmbedRenderer(fn: BaseEmbedRenderer | null) { baseEmbedRenderer = fn; },
   baseEmbedRenderer: (): BaseEmbedRenderer | null => baseEmbedRenderer,
+  addHoverLinkSource(pluginId: string, id: string, info: { display: string; defaultMod: boolean }) { hoverLinkSources.set(id, { pluginId, ...info }); },
+  hoverLinkSources: () => [...hoverLinkSources].map(([id, v]) => ({ id, ...v })),
   addEditorSuggest(pluginId: string, suggest: any, env: EditorSuggestReg['env']) { editorSuggests.set(`es${++procSeq}`, { pluginId, suggest, env }); },
   editorSuggests: (): EditorSuggestReg[] => [...editorSuggests.values()],
   editorExtensions: (): Extension[] => [...editorExtensions.values()].map((e) => e.ext),
@@ -121,6 +124,7 @@ export const pluginHost = {
     }
     let procChanged = false, extChanged = false;
     for (const m of [postProcessors, codeBlockProcessors] as Map<string, any>[]) for (const [k, v] of [...m]) if (v.pluginId === pluginId) { m.delete(k); procChanged = true; }
+    for (const [k, v] of [...hoverLinkSources]) if (v.pluginId === pluginId) hoverLinkSources.delete(k);
     for (const [k, v] of [...editorSuggests]) if (v.pluginId === pluginId) { try { v.suggest.close?.(); } catch { /* ignore */ } editorSuggests.delete(k); }
     for (const [k, v] of [...editorExtensions]) if (v.pluginId === pluginId) { editorExtensions.delete(k); extChanged = true; }
     let viewsChanged = false;
