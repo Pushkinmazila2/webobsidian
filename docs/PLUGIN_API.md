@@ -12,12 +12,12 @@ Feasibility of what is not ✅: **easy** (hours) · **medium** (a feature) · **
 
 | | count | share |
 |---|---:|---:|
-| ✅ implemented | 525 | 74.3% |
-| 🟡 stub / partial | 25 | 3.5% |
-| ❌ missing | 157 | 22.2% |
-| **runtime API items** (class members, functions, constants, missing classes) | **707** | |
+| ✅ implemented | 561 | 79.8% |
+| 🟡 stub / partial | 24 | 3.4% |
+| ❌ missing | 118 | 16.8% |
+| **runtime API items** (class members, functions, constants, missing classes) | **703** | |
 
-Not yet working (🟡 + ❌), by feasibility: **easy 26** · **medium 54** · **hard 55** · **impossible 47**.
+Not yet working (🟡 + ❌), by feasibility: **easy 8** · **medium 32** · **hard 55** · **impossible 47**.
 112 interfaces, 30 type aliases and 1 enum(s) are type-only (no runtime behaviour) and are not counted.
 
 What typical plugins need first (a plugin is usable once these exist): commands ✅, settings tab ✅, `loadData/saveData` ✅, ribbon ✅, status bar ✅, modals ✅, notices ✅, editor commands ✅ —
@@ -31,24 +31,18 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **Node/Electron modules** (`require("fs")`, `"path"`, `"electron"`, `child_process`, …) — not part of obsidian.d.ts, but many desktop-only plugins call them. A page cannot run them; such plugins show "unsupported module" and stay off. Plugins with `isDesktopOnly: true` are the likely casualties.
 - **Other plugins' internals** (`app.plugins.plugins[...]`, `app.internalPlugins`) — undocumented; reachable only if we imitate them.
 
-## Easy — not done yet (9 entries)
+## Easy — not done yet (5 entries)
 
 - **App**: `renderContext` — Core object; remaining members are small.
-- **ConfirmationButton** (class) — Plain overlay UI on top of the Modal we already have.
-- **ConfirmationModal** (class) — Plain overlay UI on top of the Modal we already have.
-- **Plugin**: `settings`, `registerEditorSuggest`, `registerCliHandler` — Core object; remaining members are small.
-- **PluginSettingTab**: `setControlValue` — Settings-tab variants (definitions API) are plain DOM.
+- **Plugin**: `settings`, `registerCliHandler` — Core object; remaining members are small.
 - **SettingTab**: `setControlValue`, `refreshDomState` — Plain DOM widgets.
-- **Tasks** (class) — Core object; remaining members are small.
 - **TExternalFile** (class) — Backed by the files API; events come from the WebSocket change feed.
 - **Platform** — Plain object of booleans (present).
 
-## Medium — not done yet (22 entries)
+## Medium — not done yet (14 entries)
 
-- **FileManager**: `processFrontMatter` — Parse/write YAML front matter on the client; round-trip must keep comments/ordering.
 - **FileView**: `setState`, `canAcceptExtension` — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
 - **HoverPopover** (class) — Popover UI is easy; hooking into link hover needs the preview pipeline.
-- **Keymap** (class) — Hotkeys: we have a global key handler; needs scopes and per-command hotkeys.
 - **MarkdownPreviewRenderer** (class) — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **MarkdownRenderer**: `app`, `hoverPopover`, `file`, `renderMarkdown`, `render` — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **MarkdownView**: `hoverPopover`, `clear`, `setViewData`, `showSearch` — Needs reading/live-preview modes and the leaf facade behind it.
@@ -56,13 +50,7 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **RenderContext** (class) — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **Vault**: `adapter` — DataAdapter over the files API (read/write/list/exists/mkdir/rename/stat/remove).
 - **View**: `setState`, `setEphemeralState` — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
-- **Workspace**: `leftRibbon`, `rightRibbon`, `requestSaveLayout`, `changeLayout`, `getLayout`, `createLeafInParent`, `createLeafBySplit`, `splitActiveLeaf`, `getUnpinnedLeaf`, `openPopoutLeaf`, `getMostRecentLeaf`, `getActiveViewOfType`, `iterateRootLeaves`, `handleLinkContextMenu` — Not yet analysed.
-- **finishRenderMath** — Via KaTeX.
-- **iterateCacheRefs** — Needs MetadataCache.
-- **iterateRefs** — Needs MetadataCache.
-- **loadMathJax** — We ship KaTeX, not MathJax; either bundle MathJax or alias to KaTeX.
-- **loadPrism** — We highlight with CodeMirror/lowlight, not Prism; bundle Prism lazily.
-- **renderMath** — Via KaTeX.
+- **Workspace**: `requestSaveLayout`, `getMostRecentLeaf`, `getActiveViewOfType`, `handleLinkContextMenu` — Not yet analysed.
 - **requestUrl** — Browsers enforce CORS, so the request has to go through a server proxy (with SSRF limits).
 - **setIcon** — Works, but we only ship part of the Lucide set; add the rest on demand.
 - **livePreviewState** — Same.
@@ -134,15 +122,11 @@ Class not provided. Feasibility: **impossible** — Node/Electron filesystem or 
 ### ✅ Component
 - ✅ `load` `onload` `unload` `onunload` `addChild` `removeChild` `register` `registerEvent` `registerDomEvent` `registerInterval`
 
-### ❌ ConfirmationButton <small>extends ButtonComponent</small>
-Class not provided. Feasibility: **easy** — Plain overlay UI on top of the Modal we already have.
+### ✅ ConfirmationButton <small>extends ButtonComponent</small>
+- ✅ `onClick` `setInitialFocus` `setSecondary` `setCancel`
 
-- ❌ `onClick` `setInitialFocus` `setSecondary` `setCancel`
-
-### ❌ ConfirmationModal <small>extends Modal</small>
-Class not provided. Feasibility: **easy** — Plain overlay UI on top of the Modal we already have.
-
-- ❌ `buttonContainerEl` `addClass` `addCheckbox` `addButton` `addCancelButton`
+### ✅ ConfirmationModal <small>extends Modal</small>
+- ✅ `buttonContainerEl` `addClass` `addCheckbox` `addButton` `addCancelButton`
 
 ### ✅ DateValue <small>extends NotNullValue</small>
 - ✅ `toString` `dateOnly` `relative` `isTruthy` `static·parseFromString`
@@ -170,9 +154,8 @@ Class not provided. Feasibility: **easy** — Plain overlay UI on top of the Mod
 ### ✅ ExtraButtonComponent <small>extends BaseComponent</small>
 - ✅ `extraSettingsEl` `setDisabled` `setTooltip` `setIcon` `onClick`
 
-### 🟡 FileManager
-- ✅ `getNewFileParent` `renameFile` `promptForDeletion` `trashFile` `generateMarkdownLink` `getAvailablePathForAttachment`
-- ❌ `processFrontMatter`
+### ✅ FileManager
+- ✅ `getNewFileParent` `renameFile` `promptForDeletion` `trashFile` `generateMarkdownLink` `processFrontMatter` `getAvailablePathForAttachment`
 
 ### ❌ FileSystemAdapter
 Class not provided. Feasibility: **impossible** — Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path.
@@ -203,10 +186,8 @@ Class not provided. Feasibility: **medium** — Popover UI is easy; hooking into
 ### ✅ ItemView <small>extends View</small>
 - ✅ `contentEl` `addAction`
 
-### ❌ Keymap
-Class not provided. Feasibility: **medium** — Hotkeys: we have a global key handler; needs scopes and per-command hotkeys.
-
-- ❌ `pushScope` `popScope` `static·isModifier` `static·isModEvent`
+### ✅ Keymap
+- ✅ `pushScope` `popScope` `static·isModifier` `static·isModEvent`
 
 ### ✅ LinkValue <small>extends StringValue</small>
 - ✅ `static·parseFromString`
@@ -272,13 +253,12 @@ Class not provided. Feasibility: **hard** — Internal editor/preview view objec
 - ✅ `static·type` `toString` `isTruthy` `isEmpty` `get`
 
 ### 🟡 Plugin <small>extends Component</small>
-- ✅ `app` `manifest` `onload` `addRibbonIcon` `addStatusBarItem` `addCommand` `removeCommand` `addSettingTab` `registerView` `registerExtensions` `registerMarkdownPostProcessor` `registerMarkdownCodeBlockProcessor` `registerBasesView` `registerEditorExtension` `loadData` `saveData` `onUserEnable` `onExternalSettingsChange`
-- 🟡 `registerHoverLinkSource` `registerObsidianProtocolHandler` `registerEditorSuggest` `registerCliHandler`
+- ✅ `app` `manifest` `onload` `addRibbonIcon` `addStatusBarItem` `addCommand` `removeCommand` `addSettingTab` `registerView` `registerExtensions` `registerMarkdownPostProcessor` `registerMarkdownCodeBlockProcessor` `registerBasesView` `registerEditorExtension` `registerEditorSuggest` `loadData` `saveData` `onUserEnable` `onExternalSettingsChange`
+- 🟡 `registerHoverLinkSource` `registerObsidianProtocolHandler` `registerCliHandler`
 - ❌ `settings`
 
-### 🟡 PluginSettingTab <small>extends SettingTab</small>
-- ✅ `getSettingDefinitions` `getControlValue`
-- 🟡 `setControlValue`
+### ✅ PluginSettingTab <small>extends SettingTab</small>
+- ✅ `getSettingDefinitions` `getControlValue` `setControlValue`
 
 ### ✅ PopoverSuggest
 - ✅ `app` `scope` `onHistoryBack` `open` `close` `renderSuggestion` `selectSuggestion`
@@ -324,8 +304,7 @@ Class not provided. Feasibility: **medium** — We have a Markdown pipeline (ren
 
 ### 🟡 SettingTab
 - ✅ `icon` `app` `containerEl` `settingItems` `getSettingDefinitions` `update` `getControlValue` `display`*(dep.)* `hide`
-- 🟡 `setControlValue`
-- ❌ `refreshDomState`
+- 🟡 `setControlValue` `refreshDomState`
 
 ### ✅ SliderComponent <small>extends ValueComponent</small>
 - ✅ `sliderEl` `setDisabled` `setInstant` `setLimits` `getValue` `setValue` `getValuePretty` `setDisplayFormat` `setDynamicTooltip`*(dep.)* `onChange`
@@ -341,10 +320,8 @@ Class not provided. Feasibility: **medium** — We have a Markdown pipeline (ren
 
 ### ✅ TagValue <small>extends StringValue</small>
 
-### ❌ Tasks
-Class not provided. Feasibility: **easy** — Core object; remaining members are small.
-
-- ❌ `add` `addPromise` `isEmpty` `promise`
+### ✅ Tasks
+- ✅ `add` `addPromise` `isEmpty` `promise`
 
 ### ✅ TextAreaComponent <small>extends AbstractTextComponent</small>
 
@@ -384,9 +361,9 @@ Class not provided. Feasibility: **easy** — Backed by the files API; events co
 - 🟡 `setState` `setEphemeralState`
 
 ### 🟡 Workspace <small>extends Events</small>
-- ✅ `leftSplit` `rightSplit` `rootSplit` `activeLeaf`*(dep.)* `containerEl` `layoutReady` `activeEditor` `onLayoutReady` `duplicateLeaf`*(dep.)* `moveLeafToPopout` `openLinkText` `setActiveLeaf` `getLeafById` `getGroupLeaves` `getLeftLeaf` `getRightLeaf` `ensureSideLeaf` `getActiveFile` `iterateAllLeaves` `getLeavesOfType` `detachLeavesOfType` `revealLeaf` `getLastOpenFiles` `updateOptions` `on`
+- ✅ `leftSplit` `rightSplit` `leftRibbon` `rightRibbon`*(dep.)* `rootSplit` `activeLeaf`*(dep.)* `containerEl` `layoutReady` `activeEditor` `onLayoutReady` `changeLayout` `getLayout` `createLeafInParent` `createLeafBySplit` `splitActiveLeaf`*(dep.)* `duplicateLeaf`*(dep.)* `getUnpinnedLeaf`*(dep.)* `moveLeafToPopout` `openPopoutLeaf` `openLinkText` `setActiveLeaf` `getLeafById` `getGroupLeaves` `getLeftLeaf` `getRightLeaf` `ensureSideLeaf` `getActiveFile` `iterateRootLeaves` `iterateAllLeaves` `getLeavesOfType` `detachLeavesOfType` `revealLeaf` `getLastOpenFiles` `updateOptions` `on`
 - 🟡 `requestSaveLayout` `getLeaf` `getMostRecentLeaf` `getActiveViewOfType`
-- ❌ `leftRibbon` `rightRibbon`*(dep.)* `changeLayout` `getLayout` `createLeafInParent` `createLeafBySplit` `splitActiveLeaf`*(dep.)* `getUnpinnedLeaf`*(dep.)* `openPopoutLeaf` `iterateRootLeaves` `handleLinkContextMenu`
+- ❌ `handleLinkContextMenu`
 
 ### ❌ WorkspaceContainer <small>extends WorkspaceSplit</small>
 Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
@@ -451,7 +428,7 @@ Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, t
 | `base64ToArrayBuffer` | ✅ |  |  |
 | `debounce` | ✅ |  |  |
 | `displayTooltip` | ✅ |  |  |
-| `finishRenderMath` | ❌ | medium | Via KaTeX. |
+| `finishRenderMath` | ✅ |  |  |
 | `getAllTags` | ✅ |  |  |
 | `getBlobArrayBuffer` | ✅ |  |  |
 | `getFrontMatterInfo` | ✅ |  |  |
@@ -461,12 +438,12 @@ Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, t
 | `getLinkpath` | ✅ |  |  |
 | `hexToArrayBuffer` | ✅ |  |  |
 | `htmlToMarkdown` | ✅ |  |  |
-| `iterateCacheRefs` *(dep.)* | ❌ | medium | Needs MetadataCache. |
-| `iterateRefs` | ❌ | medium | Needs MetadataCache. |
-| `loadMathJax` | ❌ | medium | We ship KaTeX, not MathJax; either bundle MathJax or alias to KaTeX. |
+| `iterateCacheRefs` *(dep.)* | ✅ |  |  |
+| `iterateRefs` | ✅ |  |  |
+| `loadMathJax` | ✅ |  |  |
 | `loadMermaid` | ✅ |  |  |
 | `loadPdfJs` | ✅ |  |  |
-| `loadPrism` | ❌ | medium | We highlight with CodeMirror/lowlight, not Prism; bundle Prism lazily. |
+| `loadPrism` | ✅ |  |  |
 | `normalizePath` | ✅ |  |  |
 | `parseFrontMatterAliases` | ✅ |  |  |
 | `parseFrontMatterEntry` | ✅ |  |  |
@@ -479,7 +456,7 @@ Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, t
 | `prepareSimpleSearch` | ✅ |  |  |
 | `removeIcon` | ✅ |  |  |
 | `renderMatches` | ✅ |  |  |
-| `renderMath` | ❌ | medium | Via KaTeX. |
+| `renderMath` | ✅ |  |  |
 | `renderResults` | ✅ |  |  |
 | `request` | ✅ |  |  |
 | `requestUrl` | 🟡 | medium | Browsers enforce CORS, so the request has to go through a server proxy (with SSRF limits). |

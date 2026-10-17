@@ -39,6 +39,9 @@ export type PostProcessorFn = (el: HTMLElement, ctx: PostProcessorCtx) => void |
 export type CodeBlockFn = (source: string, el: HTMLElement, ctx: PostProcessorCtx) => void | Promise<void>;
 const postProcessors = new Map<string, { pluginId: string; fn: PostProcessorFn; sortOrder: number }>();
 const codeBlockProcessors = new Map<string, { pluginId: string; lang: string; fn: CodeBlockFn; sortOrder: number }>();
+/** An `EditorSuggest` a plugin registered, plus how to build the `Editor`/`TFile` it is called with. */
+export interface EditorSuggestReg { pluginId: string; suggest: any; env: { editor: () => any; file: () => any } }
+const editorSuggests = new Map<string, EditorSuggestReg>();
 const editorExtensions = new Map<string, { pluginId: string; ext: Extension }>();
 /** A view type a plugin registered with `registerView(type, creator)`. */
 interface ViewReg { pluginId: string; type: string; creator: (leaf: any) => any }
@@ -80,6 +83,8 @@ export const pluginHost = {
   processorVersion: () => procVersion,
   /** Editor extensions: plugins keep the array they registered and mutate it, so it is flattened on demand. */
   addEditorExtension(pluginId: string, ext: Extension) { editorExtensions.set(`ee${++procSeq}`, { pluginId, ext }); pluginHost.refreshEditorExtensions(); },
+  addEditorSuggest(pluginId: string, suggest: any, env: EditorSuggestReg['env']) { editorSuggests.set(`es${++procSeq}`, { pluginId, suggest, env }); },
+  editorSuggests: (): EditorSuggestReg[] => [...editorSuggests.values()],
   editorExtensions: (): Extension[] => [...editorExtensions.values()].map((e) => e.ext),
   refreshEditorExtensions() { extVersion++; extListeners.forEach((l) => l()); },
   subscribeEditorExtensions(l: () => void) { extListeners.add(l); return () => { extListeners.delete(l); }; },
@@ -111,6 +116,7 @@ export const pluginHost = {
     }
     let procChanged = false, extChanged = false;
     for (const m of [postProcessors, codeBlockProcessors] as Map<string, any>[]) for (const [k, v] of [...m]) if (v.pluginId === pluginId) { m.delete(k); procChanged = true; }
+    for (const [k, v] of [...editorSuggests]) if (v.pluginId === pluginId) { try { v.suggest.close?.(); } catch { /* ignore */ } editorSuggests.delete(k); }
     for (const [k, v] of [...editorExtensions]) if (v.pluginId === pluginId) { editorExtensions.delete(k); extChanged = true; }
     let viewsChanged = false;
     for (const [k, v] of [...views]) if (v.pluginId === pluginId) { views.delete(k); viewsChanged = true; }

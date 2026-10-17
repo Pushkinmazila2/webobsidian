@@ -256,6 +256,8 @@ export const api = {
     req<{ ok: true }>(`/api/plugins/${encodeURIComponent(id)}/data`, { method: 'PUT', body: JSON.stringify({ data }) }),
   installPlugin: (repo: string) =>
     req<{ plugin: any }>('/api/plugins/install', { method: 'POST', body: JSON.stringify({ repo }) }),
+  proxyRequest: (payload: { url: string; method?: string; headers?: Record<string, string>; body?: string; bodyBase64?: string; contentType?: string }) =>
+    req<{ status: number; headers: Record<string, string>; bodyBase64: string; url: string }>('/api/proxy/request', { method: 'POST', body: JSON.stringify(payload) }),
   uninstallPlugin: (id: string) => req<{ ok: true }>(`/api/plugins/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   setPluginEnabled: (id: string, enabled: boolean) =>
     req<{ ok: true }>(`/api/plugins/${id}/enabled`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),

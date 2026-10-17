@@ -228,3 +228,32 @@ export function formatDate(d: Date, fmt: string): string {
   };
   return fmt.replace(/\[([^\]]*)\]|YYYY|YY|MMMM|MMM|MM|M|DD|D|dddd|ddd|d|HH|H|hh|h|mm|m|ss|s|A|a/g, (m, esc) => (esc !== undefined ? esc : map[m] ?? m));
 }
+
+// ---- references & front matter editing --------------------------------------------------------
+/** Call `cb` for each reference; stop (and return `true`) as soon as it returns `true`. */
+export function iterateRefs<T>(refs: T[], cb: (ref: T) => boolean | void): boolean {
+  for (const r of refs) if (cb(r) === true) return true;
+  return false;
+}
+/** Links and embeds of a note's cache (deprecated in Obsidian, still used by older plugins). */
+export function iterateCacheRefs(cache: { links?: unknown[]; embeds?: unknown[] }, cb: (ref: any) => boolean | void): boolean {
+  return iterateRefs([...(cache?.links ?? []), ...(cache?.embeds ?? [])], cb);
+}
+
+/**
+ * Apply `fn` to a note's parsed front matter and return the new file text — the body is untouched.
+ * A note without front matter gets a block only if `fn` adds something. (YAML comments are not kept.)
+ */
+export function processFrontMatterText(content: string, fn: (frontmatter: any) => void): string {
+  const info = getFrontMatterInfo(content);
+  const parsed = info.exists ? parseYaml(info.frontmatter) : {};
+  if (parsed != null && (typeof parsed !== 'object' || Array.isArray(parsed))) throw new Error('The front matter is not a YAML mapping');
+  const fm: Record<string, unknown> = (parsed as Record<string, unknown>) ?? {};
+  const before = JSON.stringify(fm);
+  fn(fm);
+  if (JSON.stringify(fm) === before) return content;
+  const keys = Object.keys(fm);
+  const nl = /\r\n/.test(content.slice(0, 200)) ? '\r\n' : '\n';
+  const block = keys.length ? `---${nl}${stringifyYaml(fm).trimEnd().replace(/\n/g, nl)}${nl}---${nl}` : `---${nl}---${nl}`;
+  return info.exists ? block + content.slice(info.contentStart) : block + content;
+}

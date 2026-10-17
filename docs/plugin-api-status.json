@@ -1,13 +1,13 @@
 {
  "apiVersion": "1.14.4",
  "totals": {
-  "ok": 525,
-  "stub": 25,
-  "missing": 157
+  "ok": 561,
+  "stub": 24,
+  "missing": 118
  },
  "feasibility": {
-  "easy": 26,
-  "medium": 54,
+  "easy": 8,
+  "medium": 32,
   "hard": 55,
   "impossible": 47
  },
@@ -964,7 +964,7 @@
    "name": "ConfirmationButton",
    "extends": "ButtonComponent",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "easy",
    "note": "Plain overlay UI on top of the Modal we already have.",
    "members": [
@@ -972,33 +972,33 @@
      "name": "onClick",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain overlay UI on top of the Modal we already have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setInitialFocus",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain overlay UI on top of the Modal we already have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setSecondary",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain overlay UI on top of the Modal we already have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setCancel",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain overlay UI on top of the Modal we already have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -1006,7 +1006,7 @@
    "name": "ConfirmationModal",
    "extends": "Modal",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "easy",
    "note": "Plain overlay UI on top of the Modal we already have.",
    "members": [
@@ -1014,41 +1014,41 @@
      "name": "buttonContainerEl",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain overlay UI on top of the Modal we already have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "addClass",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain overlay UI on top of the Modal we already have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "addCheckbox",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain overlay UI on top of the Modal we already have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "addButton",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain overlay UI on top of the Modal we already have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "addCancelButton",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Plain overlay UI on top of the Modal we already have."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -1733,9 +1733,9 @@
      "name": "processFrontMatter",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Parse/write YAML front matter on the client; round-trip must keep comments/ordering."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getAvailablePathForAttachment",
@@ -2212,7 +2212,7 @@
   {
    "name": "Keymap",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "medium",
    "note": "Hotkeys: we have a global key handler; needs scopes and per-command hotkeys.",
    "members": [
@@ -2220,33 +2220,33 @@
      "name": "pushScope",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Hotkeys: we have a global key handler; needs scopes and per-command hotkeys."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "popScope",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Hotkeys: we have a global key handler; needs scopes and per-command hotkeys."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "static isModifier",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Hotkeys: we have a global key handler; needs scopes and per-command hotkeys."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "static isModEvent",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Hotkeys: we have a global key handler; needs scopes and per-command hotkeys."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -3428,9 +3428,9 @@
      "name": "registerEditorSuggest",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "easy",
-     "note": "Core object; remaining members are small."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "registerCliHandler",
@@ -3502,9 +3502,9 @@
      "name": "setControlValue",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "feasibility": "easy",
-     "note": "Settings-tab variants (definitions API) are plain DOM."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -4227,7 +4227,7 @@
      "name": "refreshDomState",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
+     "status": "stub",
      "feasibility": "easy",
      "note": "Plain DOM widgets."
     },
@@ -4516,7 +4516,7 @@
   {
    "name": "Tasks",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "easy",
    "note": "Core object; remaining members are small.",
    "members": [
@@ -4524,33 +4524,33 @@
      "name": "add",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Core object; remaining members are small."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "addPromise",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Core object; remaining members are small."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "isEmpty",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Core object; remaining members are small."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "promise",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Core object; remaining members are small."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -5306,17 +5306,17 @@
      "name": "leftRibbon",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "rightRibbon",
      "kind": "property",
      "deprecated": true,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "rootSplit",
@@ -5378,41 +5378,41 @@
      "name": "changeLayout",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getLayout",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "createLeafInParent",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "createLeafBySplit",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "splitActiveLeaf",
      "kind": "method",
      "deprecated": true,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "duplicateLeaf",
@@ -5426,9 +5426,9 @@
      "name": "getUnpinnedLeaf",
      "kind": "method",
      "deprecated": true,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getLeaf",
@@ -5450,9 +5450,9 @@
      "name": "openPopoutLeaf",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "openLinkText",
@@ -5538,9 +5538,9 @@
      "name": "iterateRootLeaves",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "iterateAllLeaves",
@@ -6100,9 +6100,9 @@
   {
    "name": "finishRenderMath",
    "deprecated": false,
-   "status": "missing",
-   "feasibility": "medium",
-   "note": "Via KaTeX."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "getAllTags",
@@ -6170,23 +6170,23 @@
   {
    "name": "iterateCacheRefs",
    "deprecated": true,
-   "status": "missing",
-   "feasibility": "medium",
-   "note": "Needs MetadataCache."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "iterateRefs",
    "deprecated": false,
-   "status": "missing",
-   "feasibility": "medium",
-   "note": "Needs MetadataCache."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "loadMathJax",
    "deprecated": false,
-   "status": "missing",
-   "feasibility": "medium",
-   "note": "We ship KaTeX, not MathJax; either bundle MathJax or alias to KaTeX."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "loadMermaid",
@@ -6205,9 +6205,9 @@
   {
    "name": "loadPrism",
    "deprecated": false,
-   "status": "missing",
-   "feasibility": "medium",
-   "note": "We highlight with CodeMirror/lowlight, not Prism; bundle Prism lazily."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "normalizePath",
@@ -6296,9 +6296,9 @@
   {
    "name": "renderMath",
    "deprecated": false,
-   "status": "missing",
-   "feasibility": "medium",
-   "note": "Via KaTeX."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "renderResults",

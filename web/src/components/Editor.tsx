@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { editorInfoField } from '../lib/obsidianApi';
+import { editorSuggestExtension } from '../lib/editorSuggestExt';
 import { pluginHost, useEditorExtensionsVersion, useMarkdownProcessorsVersion } from '../lib/pluginHost';
 import { Compartment, EditorState, Prec } from '@codemirror/state';
 import { EditorView, keymap, highlightActiveLine, drawSelection } from '@codemirror/view';
@@ -55,7 +56,7 @@ const readonlyExt = (reading: boolean) =>
 
 /** Plugin extensions are untrusted: one that fails to build must not take the editor down. */
 function safePluginExtensions() {
-  try { return [...pluginHost.editorExtensions()]; } catch { return []; }
+  try { return [editorSuggestExtension, ...pluginHost.editorExtensions()]; } catch { return [editorSuggestExtension]; }
 }
 
 export default function Editor() {

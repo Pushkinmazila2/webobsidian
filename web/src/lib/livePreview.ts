@@ -403,7 +403,7 @@ class CalloutHeadWidget extends WidgetType {
 /* ---------------- math (KaTeX, lazy-loaded like Obsidian's MathJax) ---------------- */
 
 let katexPromise: Promise<typeof import('katex')['default']> | null = null;
-function ensureKatex() {
+export function ensureKatex() {
   if (!katexPromise) {
     katexPromise = Promise.all([import('katex'), import('katex/dist/katex.min.css')]).then(
       ([k]) => k.default,

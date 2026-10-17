@@ -1,7 +1,8 @@
 # PRD — WebObsidian
 
 > Product Requirements Document
-> Phiên bản: 2.4 · Cập nhật: 2026-10-17 · Trạng thái: Draft
+> Phiên bản: 2.5 · Cập nhật: 2026-10-17 · Trạng thái: Draft
+> Changelog 2.5 (FR-8 — API plugin): `requestUrl`/`request` đi qua proxy server `POST /api/proxy/request` có chống SSRF (env `WEBOBSIDIAN_PROXY=off` để tắt, `WEBOBSIDIAN_PROXY_ALLOW_PRIVATE=1` cho phép mạng nội bộ); `EditorSuggest` hoạt động; thêm `processFrontMatter`, `Keymap`, `Tasks`, `ConfirmationModal`, `renderMath`, `loadPrism`…
 > Changelog 2.4 (FR-8 — quản lý plugin): xoá plugin từ UI (`DELETE /api/plugins/:id`, gỡ thư mục plugin khỏi vault); ribbon tách vùng cuộn cho icon của plugin; bộ icon Lucide đầy đủ (tải theo nhu cầu) và ánh xạ icon `*-glyph` cũ; `moment` là moment.js thật; bổ sung `window.app`, `Editor.toggleMarkdownFormatting/…`, `app.commands.commands` để plugin như Editing Toolbar chạy được.
 > Changelog 2.3 (FR-8 — Bases): hỗ trợ file `.base` (YAML của Obsidian Bases) — bộ lọc `and/or/not`, formulas, properties, summaries, view `table`/`list`/`cards`, sắp xếp/nhóm/limit; tính toán phía client trên `MetadataCache`. Thêm API plugin `registerBasesView`, `BasesView`, `BasesEntry`, `BasesQueryResult`, `BasesViewConfig` và các lớp `*Value`. `.base` là file văn bản (đọc/ghi qua `/api/files/content`).
 > Changelog 2.2 (FR-8 — plugin render thật): `MetadataCache` thật (`GET /api/metadata`), `registerMarkdownCodeBlockProcessor`/`PostProcessor`, `registerEditorExtension`, `registerView`/`registerExtensions` + `WorkspaceLeaf` (tab chính, sidebar trái/phải). Biến `WEBOBSIDIAN_ALLOW_UNSAFE_EVAL=1` (tùy chọn, mặc định tắt) thêm `'unsafe-eval'` cho plugin như Excalidraw.

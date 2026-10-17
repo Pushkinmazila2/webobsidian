@@ -7,7 +7,7 @@
  * Anything not implemented is a no-op or throws a clear error — the loader reports it per plugin.
  */
 import { EditorSelection, StateField, type Extension } from '@codemirror/state';
-import { livePreviewState } from './livePreview';
+import { livePreviewState, ensureKatex } from './livePreview';
 import { EditorView } from '@codemirror/view';
 import { undo, redo, indentMore, indentLess, cursorDocStart, cursorDocEnd, selectAll, deleteLine } from '@codemirror/commands';
 import { api } from './api';
@@ -236,7 +236,18 @@ export function flattenFiles(): TFile[] {
 }
 
 const asFile = (f: TFile | string) => (typeof f === 'string' ? f : f.path);
-const readText = async (path: string) => { const r: any = await api.read(path); return typeof r === 'string' ? r : r.content; };
+/** Text of a note; the open note's unsaved editor content wins over what is on disk. */
+const readText = async (path: string) => {
+  const st = useStore.getState();
+  if (st.activePath === path && st.dirty) return st.content;
+  const r: any = await api.read(path); return typeof r === 'string' ? r : r.content;
+};
+/** Write a note; if it is the open one, the editor is updated too so its autosave cannot overwrite the change. */
+const writeText = async (path: string, data: string) => {
+  await api.write(path, data);
+  const st = useStore.getState();
+  if (st.activePath === path && st.content !== data) useStore.setState({ content: data, dirty: false });
+};
 
 function treeNode(path: string): any | null {
   const p = normalizePath(path);
@@ -251,9 +262,9 @@ export class DataAdapter {
   getName() { return 'WebObsidian'; }
   async exists(p: string, _sensitive?: boolean) { try { await api.read(p); return true; } catch { return treeNode(p) !== null; } }
   async read(p: string) { return readText(p); }
-  async write(p: string, data: string) { await api.write(p, data); }
-  async append(p: string, data: string) { let old = ''; try { old = await readText(p); } catch { /* new file */ } await api.write(p, old + data); }
-  async process(p: string, fn: (d: string) => string) { const next = fn(await readText(p)); await api.write(p, next); return next; }
+  async write(p: string, data: string) { await writeText(p, data); }
+  async append(p: string, data: string) { let old = ''; try { old = await readText(p); } catch { /* new file */ } await writeText(p, old + data); }
+  async process(p: string, fn: (d: string) => string) { const next = fn(await readText(p)); await writeText(p, next); return next; }
   async readBinary(p: string): Promise<ArrayBuffer> {
     const r = await fetch(api.rawUrl(p), { credentials: 'include' });
     if (!r.ok) throw new Error(`Cannot read ${p} (${r.status})`);
@@ -290,10 +301,10 @@ export class Vault extends Events {
   getRoot(): TFolder { syncTree(); return folderRegistry.get('')!; }
   async read(file: TFile) { return readText(file.path); }
   async cachedRead(file: TFile) { return readText(file.path); }
-  async modify(file: TFile, data: string) { await api.write(file.path, data); }
-  async process(file: TFile, fn: (data: string) => string) { const next = fn(await readText(file.path)); await api.write(file.path, next); return next; }
-  async append(file: TFile, data: string) { await api.write(file.path, (await readText(file.path)) + data); }
-  async create(path: string, data: string) { await api.write(path, data); return new TFile(path); }
+  async modify(file: TFile, data: string) { await writeText(file.path, data); }
+  async process(file: TFile, fn: (data: string) => string) { const next = fn(await readText(file.path)); await writeText(file.path, next); return next; }
+  async append(file: TFile, data: string) { await writeText(file.path, (await readText(file.path)) + data); }
+  async create(path: string, data: string) { await writeText(path, data); return new TFile(path); }
   async createFolder(path: string) { await api.createFolder(path); }
   async delete(file: TAbstractFile) { await api.remove(file.path); }
   async trash(file: TAbstractFile) { await api.remove(file.path); }
@@ -867,6 +878,17 @@ export class Workspace extends Events {
   rootSplit = new WorkspaceSplit();
   updateOptions() { pluginHost.refreshEditorExtensions(); }
   requestSaveLayout() {}
+  getLayout(): Record<string, unknown> { return { main: { type: 'split', children: [] }, left: { type: 'split', children: [] }, right: { type: 'split', children: [] }, active: this.getActiveFile()?.path ?? null }; }
+  changeLayout(_layout: unknown): Promise<void> { return Promise.resolve(); }
+  iterateRootLeaves(cb: (l: WorkspaceLeaf) => void) { for (const e of pluginHost.leaves()) if (e.location === 'main') cb(e.leaf); }
+  /** The browser has one pane: splits and "unpinned" leaves all resolve to the main leaf. */
+  getUnpinnedLeaf(): WorkspaceLeaf { return this.getLeaf(); }
+  createLeafInParent(_parent: unknown, _index?: number): WorkspaceLeaf { return this.getLeaf(true); }
+  createLeafBySplit(_leaf: WorkspaceLeaf, _direction?: string, _before?: boolean): WorkspaceLeaf { return this.getLeaf(true); }
+  splitActiveLeaf(_direction?: string): WorkspaceLeaf { return this.getLeaf(true); }
+  openPopoutLeaf(_data?: unknown): WorkspaceLeaf { return this.getLeaf(true); }
+  leftRibbon = { addActionItem: (_o: unknown) => document.createElement('div'), collapseButtonEl: document.createElement('div') };
+  rightRibbon = { addActionItem: (_o: unknown) => document.createElement('div'), collapseButtonEl: document.createElement('div') };
   getLastOpenFiles(): string[] { return useStore.getState().tabs.map((t: any) => (typeof t === 'string' ? t : t.path)).filter(Boolean); }
   duplicateLeaf(leaf: WorkspaceLeaf) { return Promise.resolve(leaf); }
   getGroupLeaves(_g: string): WorkspaceLeaf[] { return []; }
@@ -908,7 +930,7 @@ export class App {
   vault = getVault();
   workspace = sharedWorkspace;
   metadataCache = sharedMetadataCache;
-  keymap = {};
+  keymap = new Keymap();
   secretStorage = new SecretStorage();
   /** Plugin manager as seen by other plugins (`app.plugins.plugins[id]`, `getPlugin`). */
   plugins = { plugins: {} as Record<string, unknown>, enabledPlugins: new Set<string>(), manifests: {} as Record<string, unknown>, getPlugin(id: string): unknown { return this.plugins[id] ?? null; } };
@@ -957,7 +979,50 @@ export class Scope {
   }
 }
 
+/** Stack of hotkey scopes (modals push theirs); `Keymap.isModifier` & co. mirror Obsidian's statics. */
+export class Keymap {
+  private stack: Scope[] = [];
+  pushScope(scope: Scope) { this.stack.push(scope); }
+  popScope(scope: Scope) { const i = this.stack.lastIndexOf(scope); if (i >= 0) this.stack.splice(i, 1); }
+  get currentScope(): Scope | undefined { return this.stack[this.stack.length - 1]; }
+  static isModifier(evt: Event, modifier: string): boolean {
+    const e = evt as KeyboardEvent;
+    return modifier === 'Mod' ? (Platform.isMacOS ? e.metaKey : e.ctrlKey) : modifier === 'Ctrl' ? e.ctrlKey : modifier === 'Meta' ? e.metaKey : modifier === 'Alt' ? e.altKey : modifier === 'Shift' ? e.shiftKey : false;
+  }
+  static isModEvent(evt?: UserEvent | null): PaneType | boolean {
+    const e = evt as MouseEvent | undefined;
+    if (!e) return false;
+    const mod = Platform.isMacOS ? e.metaKey : e.ctrlKey;
+    if (mod && e.altKey && e.shiftKey) return 'window';
+    if (mod && e.altKey) return 'split';
+    if (mod) return 'tab';
+    return false;
+  }
+}
+type PaneType = 'tab' | 'split' | 'window';
+type UserEvent = MouseEvent | KeyboardEvent | TouchEvent | PointerEvent;
+
+export class Tasks {
+  private pending = 0;
+  private waiters: (() => void)[] = [];
+  private settle() { if (this.pending === 0) { const w = this.waiters; this.waiters = []; w.forEach((f) => f()); } }
+  add(callback: () => Promise<unknown> | void): void { this.addPromise(Promise.resolve().then(callback)); }
+  addPromise(promise: Promise<unknown>): void {
+    this.pending++;
+    const done = () => { this.pending--; this.settle(); };
+    promise.then(done, done);
+  }
+  isEmpty(): boolean { return this.pending === 0; }
+  promise(): Promise<void> { return this.pending === 0 ? Promise.resolve() : new Promise((r) => this.waiters.push(r)); }
+}
+
 export class FileManager {
+  /** Edit a note's front matter in place; the callback mutates the parsed object. */
+  async processFrontMatter(file: TFile, fn: (frontmatter: any) => void, _options?: unknown): Promise<void> {
+    const text = await readText(file.path);
+    const next = utils.processFrontMatterText(text, fn);
+    if (next !== text) await writeText(file.path, next);
+  }
   async renameFile(file: TAbstractFile, to: string) { await api.rename(file.path, to); }
   async trashFile(file: TAbstractFile) { await api.remove(file.path); }
   async promptForDeletion(file: TAbstractFile): Promise<boolean> {
@@ -1044,9 +1109,10 @@ export class Modal {
   open() {
     document.body.appendChild(this.containerEl);
     openModals.push(this);
+    this.app?.keymap?.pushScope?.(this.scope);
     void this.onOpen();
   }
-  close() { if (!this.containerEl.isConnected) return; const i = openModals.indexOf(this); if (i >= 0) openModals.splice(i, 1); this.containerEl.remove(); void this.onClose(); this.closeCb?.(); }
+  close() { if (!this.containerEl.isConnected) return; const i = openModals.indexOf(this); if (i >= 0) openModals.splice(i, 1); this.app?.keymap?.popScope?.(this.scope); this.containerEl.remove(); void this.onClose(); this.closeCb?.(); }
   onOpen(): void | Promise<void> {}
   onClose(): void | Promise<void> {}
 }
@@ -1191,6 +1257,35 @@ export class ButtonComponent extends BaseComponent {
   setClass(c: string) { this.buttonEl.classList.add(c); return this; }
   onClick(cb: (e: MouseEvent) => any) { this.buttonEl.addEventListener('click', cb); return this; }
 }
+export class ConfirmationButton extends ButtonComponent {
+  setInitialFocus(): this { queueMicrotask(() => this.buttonEl.focus()); return this; }
+  setSecondary(): this { this.buttonEl.classList.add('mod-secondary'); return this; }
+  setCancel(): this { this.buttonEl.classList.add('mod-cancel'); return this; }
+}
+export class ConfirmationModal extends Modal {
+  buttonContainerEl: HTMLElement;
+  constructor(app: App) {
+    super(app);
+    this.modalEl.classList.add('mod-confirmation');
+    this.buttonContainerEl = this.modalEl.createDiv({ cls: 'modal-button-container' });
+  }
+  addClass(cls: string): this { this.modalEl.classList.add(cls); return this; }
+  addCheckbox(label: string, onChange: (value: boolean) => void): this {
+    const row = this.buttonContainerEl.createEl('label', { cls: 'mod-checkbox' });
+    const box = row.createEl('input', { type: 'checkbox' } as any) as HTMLInputElement;
+    row.createSpan({ text: label });
+    box.addEventListener('change', () => onChange(box.checked));
+    return this;
+  }
+  addButton(cb: (button: ConfirmationButton) => unknown): this { cb(new ConfirmationButton(this.buttonContainerEl)); return this; }
+  addCancelButton(cb?: (button: ConfirmationButton) => unknown): this {
+    const b = new ConfirmationButton(this.buttonContainerEl).setButtonText('Cancel').setCancel() as ConfirmationButton;
+    b.onClick(() => this.close());
+    cb?.(b);
+    return this;
+  }
+}
+
 export class ExtraButtonComponent extends BaseComponent {
   extraSettingsEl: HTMLElement;
   constructor(public containerEl: HTMLElement) { super(); this.extraSettingsEl = containerEl.createEl('button', { cls: 'clickable-icon' }); }
@@ -1268,11 +1363,20 @@ export abstract class SettingTab {
   update(): void { this.settingItems = this.getSettingDefinitions(); }
   getControlValue(_key: string): unknown { return undefined; }
   setControlValue(_key: string, _value: unknown): void | Promise<void> {}
+  /** Re-render after a value changed from outside (declarative settings); the base tab just redraws. */
+  refreshDomState(): void { /* imperative tabs re-render via display() */ }
   abstract display(): void;
   hide(): void {}
 }
 export class PluginSettingTab extends SettingTab {
   constructor(public app: App, public plugin: Plugin) { super(); this.containerEl.className = 'vertical-tab-content'; }
+  /** Defaults read/write `plugin.settings` (the common convention) and persist with `saveData`. */
+  getControlValue(key: string): unknown { return ((this.plugin as any).settings ?? {})[key]; }
+  async setControlValue(key: string, value: unknown): Promise<void> {
+    const p = this.plugin as any;
+    p.settings = { ...(p.settings ?? {}), [key]: value };
+    await p.saveData?.(p.settings);
+  }
   display(): void {}
 }
 
@@ -1357,13 +1461,14 @@ export class Plugin extends Component {
     return f;
   }
   registerEditorExtension(ext: Extension) { pluginHost.addEditorExtension(this.pid(), ext); }
-  registerEditorSuggest(_s: unknown) {}
+  registerEditorSuggest(s: EditorSuggest<any>) { pluginHost.addEditorSuggest(this.pid(), s, { editor: () => new Editor(), file: () => sharedWorkspace.getActiveFile() }); }
   registerBasesView(viewId: string, registration: { name: string; icon: string; factory: (c: any, el: HTMLElement) => any; options?: (cfg: any) => any[] }): boolean {
     if (!viewId || typeof registration?.factory !== 'function') return false;
     pluginHost.addBasesView(this.pid(), { id: viewId, name: registration.name, icon: registration.icon, factory: registration.factory, options: registration.options });
     return true;
   }
-  registerCliHandler(_id: string, _d: string, _f: unknown, _h: unknown) {}
+  /** Obsidian's CLI does not exist in the browser: accepted and ignored. */
+  registerCliHandler(_command: string, _description: string, _flags: unknown, _handler: unknown) {}
   registerView(type: string, creator: (leaf: WorkspaceLeaf) => View) { pluginHost.addView(this.pid(), type, creator); }
   registerExtensions(exts: string[], viewType: string) { pluginHost.addExtensions(this.pid(), exts, viewType); }
   registerObsidianProtocolHandler(_action: string, _handler: unknown) {}
@@ -1373,7 +1478,7 @@ export class Plugin extends Component {
 }
 
 // ---- Small utilities ------------------------------------------------------------------------
-export const Platform = { isDesktop: true, isMobile: false, isDesktopApp: false, isMobileApp: false, isIosApp: false, isAndroidApp: false, isPhone: false, isTablet: false, isMacOS: /Mac/.test(navigator.platform), isWin: /Win/.test(navigator.platform), isLinux: /Linux/.test(navigator.platform), isSafari: /^((?!chrome|android).)*safari/i.test(navigator.userAgent) };
+export const Platform = { isDesktop: true, isMobile: false, isDesktopApp: false, isMobileApp: false, isIosApp: false, isAndroidApp: false, isPhone: false, isTablet: false, isMacOS: /Mac/.test(navigator.platform), isWin: /Win/.test(navigator.platform), isLinux: /Linux/.test(navigator.platform), isSafari: /^((?!chrome|android).)*safari/i.test(navigator.userAgent), resourcePathPrefix: '/api/files/raw/' };
 
 export function debounce<T extends (...a: any[]) => any>(cb: T, timeout = 0, resetTimer = false) {
   let t: ReturnType<typeof setTimeout> | undefined;
@@ -1387,19 +1492,38 @@ export function debounce<T extends (...a: any[]) => any>(cb: T, timeout = 0, res
   return fn as unknown as T & { cancel(): void };
 }
 
-export async function requestUrl(req: string | { url: string; method?: string; headers?: Record<string, string>; body?: string; contentType?: string }) {
-  const r = typeof req === 'string' ? { url: req } : req;
-  const res = await fetch(r.url, { method: (r as any).method, headers: { ...(r as any).headers, ...((r as any).contentType ? { 'Content-Type': (r as any).contentType } : {}) }, body: (r as any).body });
-  const buf = await res.arrayBuffer();
-  const text = new TextDecoder().decode(buf);
-  return { status: res.status, headers: Object.fromEntries(res.headers.entries()), arrayBuffer: buf, text, get json() { return JSON.parse(text); } };
+export interface RequestUrlParam { url: string; method?: string; contentType?: string; body?: string | ArrayBuffer; headers?: Record<string, string>; throw?: boolean }
+const b64encode = (buf: ArrayBuffer) => { let s = ''; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
+const b64decode = (b64: string): ArrayBuffer => { const s = atob(b64); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u.buffer; };
+/**
+ * Obsidian's `requestUrl`: the request is made by the server (browsers would block it with CORS), within
+ * its SSRF limits. Like Obsidian, a status >= 400 throws unless `throw: false`.
+ */
+export function requestUrl(req: string | RequestUrlParam): Promise<{ status: number; headers: Record<string, string>; arrayBuffer: ArrayBuffer; text: string; json: any }> & { then: Promise<any>['then'] } {
+  const r: RequestUrlParam = typeof req === 'string' ? { url: req } : req;
+  const run = async () => {
+    const payload: Parameters<typeof api.proxyRequest>[0] = { url: r.url, method: r.method, headers: r.headers, contentType: r.contentType };
+    if (typeof r.body === 'string') payload.body = r.body; else if (r.body) payload.bodyBase64 = b64encode(r.body);
+    const res = await api.proxyRequest(payload);
+    const buf = b64decode(res.bodyBase64);
+    const headers: Record<string, string> = {};
+    for (const [k, v] of Object.entries(res.headers)) headers[k.toLowerCase()] = v;
+    const out = {
+      status: res.status, headers, arrayBuffer: buf,
+      get text() { return new TextDecoder().decode(buf); },
+      get json() { return JSON.parse(new TextDecoder().decode(buf)); },
+    };
+    if (res.status >= 400 && r.throw !== false) throw Object.assign(new Error(`Request failed, status ${res.status}`), { status: res.status, headers, response: out });
+    return out;
+  };
+  return run() as any;
 }
 
 export function setIcon(el: HTMLElement, name: string) { el.innerHTML = iconSvg(name, 16); }
 export const getIcon = (name: string): SVGSVGElement | null => { const t = document.createElement('div'); t.innerHTML = iconSvg(name, 16); return t.firstElementChild as SVGSVGElement | null; };
 export const addIcon = (name: string, svg: string) => { registerCustomIcon(name, svg); };
 export const removeIcon = (name: string) => { unregisterCustomIcon(name); };
-export async function request(req: string | { url: string; method?: string; headers?: Record<string, string>; body?: string; contentType?: string }): Promise<string> { return (await requestUrl(req)).text; }
+export async function request(req: string | RequestUrlParam): Promise<string> { return (await requestUrl(req)).text; }
 export function htmlToMarkdown(html: string | HTMLElement | Document | DocumentFragment): string {
   const root: Node = typeof html === 'string' ? new DOMParser().parseFromString(html, 'text/html').body : html;
   const walk = (n: Node): string => {
@@ -1721,6 +1845,48 @@ let basesApp: App | null = null;
 export const getSharedApp = (): App => (basesApp ??= new App());
 export { basesApi };
 
+/** Obsidian's `renderMath`: returns an element that KaTeX fills in once it has loaded. */
+export function renderMath(source: string, display: boolean): HTMLElement {
+  const el = document.createElement('span');
+  el.className = display ? 'math math-block' : 'math math-inline';
+  el.textContent = source;
+  void ensureKatex().then((katex) => { try { katex.render(source, el, { displayMode: display, throwOnError: false }); } catch { /* keep the source text */ } });
+  return el;
+}
+/** Resolves once pending math has rendered (KaTeX renders in a microtask after load). */
+export async function finishRenderMath(): Promise<void> { await ensureKatex(); await new Promise((r) => setTimeout(r, 0)); }
+
+let mathJaxShim: unknown = null;
+/** Minimal MathJax v3 facade backed by KaTeX (tex2chtml / tex2svg / tex2mml → element). */
+export async function loadMathJax(): Promise<void> {
+  if (mathJaxShim) return;
+  const katex = await ensureKatex();
+  const toEl = (tex: string, opts?: { display?: boolean }) => {
+    const wrap = document.createElement('mjx-container');
+    katex.render(tex, wrap, { displayMode: !!opts?.display, throwOnError: false });
+    return wrap;
+  };
+  mathJaxShim = { tex2chtml: toEl, tex2svg: toEl, tex2mml: toEl, startup: { promise: Promise.resolve() }, typesetPromise: async () => {}, typeset: () => {}, version: 'katex-shim' };
+  (window as any).MathJax = mathJaxShim;
+}
+
+let prismPromise: Promise<any> | null = null;
+/** Lazy Prism with the languages notes most often contain. */
+export function loadPrism(): Promise<any> {
+  prismPromise ??= (async () => {
+    const mod: any = await import('prismjs');
+    const Prism = mod.default ?? mod;
+    (window as any).Prism = Prism;
+    await Promise.all([
+      import('prismjs/components/prism-bash'), import('prismjs/components/prism-json'), import('prismjs/components/prism-yaml'),
+      import('prismjs/components/prism-python'), import('prismjs/components/prism-typescript'), import('prismjs/components/prism-markdown'),
+      import('prismjs/components/prism-sql'), import('prismjs/components/prism-java'), import('prismjs/components/prism-rust'), import('prismjs/components/prism-go'),
+    ]).catch(() => { /* a missing grammar only loses highlighting for it */ });
+    return Prism;
+  })();
+  return prismPromise;
+}
+
 const rawModule = {
   App, Plugin, Component, Notice, TFile, TFolder, TAbstractFile, Vault, Workspace, Events,
   PluginSettingTab, Modal, Setting, Menu, Editor, MarkdownView, ItemView,
@@ -1731,6 +1897,7 @@ const rawModule = {
   MarkdownRenderChild, MarkdownRenderer, EditorSuggest, SettingGroup, SecretStorage, SecretComponent,
   SettingPage, SettingTab,
   ...basesApi,
+  Keymap, Tasks, ConfirmationModal, ConfirmationButton, renderMath, finishRenderMath, loadMathJax, loadPrism,
   getLanguage, loadMermaid, setTooltip, displayTooltip, FileManager, Scope, MenuItem, MenuSeparator,
   SuggestModal, FuzzySuggestModal, PopoverSuggest, AbstractInputSuggest,
   BaseComponent, ValueComponent, DisplayValueComponent, AbstractTextComponent, SearchComponent, ColorComponent, ProgressBarComponent, MomentFormatComponent,

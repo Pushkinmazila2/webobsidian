@@ -1,3 +1,4 @@
+import { proxyRouter } from './routes/proxy.js';
 import { metadataRouter } from './routes/metadata.js';
 import express, { type Response } from 'express';
 import cookieParser from 'cookie-parser';
@@ -122,6 +123,7 @@ async function main() {
   app.use('/api/keys', keysRouter);
   app.use('/api/plugins', pluginsRouter);
   app.use('/api/metadata', metadataRouter);
+  app.use('/api/proxy', proxyRouter); // plugin requestUrl() — SSRF-fenced
   app.use('/api/uistate', uiStateRouter);
   app.use('/api/shares', sharesRouter); // manage public share links (auth)
   app.use('/public/shares', publicSharesRouter); // shared-note content (NO auth)

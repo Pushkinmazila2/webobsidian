@@ -95,3 +95,28 @@ test('[obsidian-utils] versions and property ids', () => {
   assert.deepEqual(u.parsePropertyId('formula.total'), { type: 'formula', name: 'total' });
   assert.deepEqual(u.parsePropertyId('author'), { type: 'note', name: 'author' });
 });
+
+test('[obsidian-utils] iterateRefs / iterateCacheRefs stop when the callback returns true', () => {
+  const seen: number[] = [];
+  assert.equal(u.iterateRefs([1, 2, 3], (r) => { seen.push(r); return r === 2; }), true);
+  assert.deepEqual(seen, [1, 2]);
+  assert.equal(u.iterateRefs([1, 2], () => {}), false);
+  const got: string[] = [];
+  assert.equal(u.iterateCacheRefs({ links: [{ link: 'a' }], embeds: [{ link: 'b' }] }, (r) => { got.push(r.link); }), false);
+  assert.deepEqual(got, ['a', 'b']);
+  assert.equal(u.iterateCacheRefs({}, () => true), false);
+});
+
+test('[obsidian-utils] processFrontMatterText: edit, add, delete keys; create a block; leave untouched notes alone', () => {
+  const note = '---\ntitle: Hi\ntags:\n  - a\n---\n# Body\ntext\n';
+  const edited = u.processFrontMatterText(note, (fm) => { fm.title = 'Yo'; fm.tags.push('b'); fm.count = 3; });
+  assert.equal(edited, '---\ntitle: Yo\ntags:\n  - a\n  - b\ncount: 3\n---\n# Body\ntext\n');
+  assert.equal(u.processFrontMatterText(note, () => {}), note);
+  assert.equal(u.processFrontMatterText(note, (fm) => { delete fm.tags; }), '---\ntitle: Hi\n---\n# Body\ntext\n');
+  assert.equal(u.processFrontMatterText('# Just a note\n', (fm) => { fm.status = 'done'; }), '---\nstatus: done\n---\n# Just a note\n');
+  assert.equal(u.processFrontMatterText('# Just a note\n', () => {}), '# Just a note\n');
+  assert.equal(u.processFrontMatterText(note, (fm) => { for (const k of Object.keys(fm)) delete fm[k]; }), '---\n---\n# Body\ntext\n');
+  assert.equal(u.processFrontMatterText('---\r\na: 1\r\n---\r\nbody\r\n', (fm) => { fm.a = 2; }), '---\r\na: 2\r\n---\r\nbody\r\n');
+  assert.throws(() => u.processFrontMatterText('---\n- a\n- b\n---\nx', () => {}), /mapping/);
+  assert.throws(() => u.processFrontMatterText(note, () => { throw new Error('boom'); }), /boom/);
+});
