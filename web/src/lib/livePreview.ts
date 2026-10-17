@@ -463,6 +463,22 @@ function embedNotFound(el: HTMLElement, target: string) {
   el.textContent = `"${target}" could not be found.`;
 }
 
+/** `![[x.base]]` embed or inline ```base block: a live Bases view (the app supplies the renderer). */
+class BaseEmbedWidget extends WidgetType {
+  private unmount: (() => void) | null = null;
+  constructor(readonly path: string | undefined, readonly source: string | undefined, readonly viewName: string | undefined, readonly sourcePath: string) { super(); }
+  eq(o: BaseEmbedWidget) { return o.path === this.path && o.source === this.source && o.viewName === this.viewName && o.sourcePath === this.sourcePath; }
+  ignoreEvent() { return true; }
+  toDOM() {
+    const el = document.createElement('div');
+    el.className = this.path ? 'internal-embed bases-embed cm-note-embed' : 'block-language-base cm-plugin-block';
+    const render = pluginHost.baseEmbedRenderer();
+    if (render) this.unmount = render(el, { path: this.path, source: this.source, thisPath: this.sourcePath, viewName: this.viewName });
+    return el;
+  }
+  destroy() { this.unmount?.(); this.unmount = null; }
+}
+
 class NoteEmbedWidget extends WidgetType {
   constructor(readonly target: string) {
     super();
@@ -673,14 +689,15 @@ function buildPluginBlocks(state: EditorState): DecorationSet {
     }
     if (end < 0) continue;
     const lang = open[2];
-    if (pluginHost.hasCodeBlockProcessor(lang)) {
+    if (pluginHost.hasCodeBlockProcessor(lang) || (lang === 'base' && pluginHost.baseEmbedRenderer())) {
       const from = line.from, to = doc.line(end).to;
       let touched = false;
       if (!ro) for (const r of state.selection.ranges) if (r.from <= to && r.to >= from) { touched = true; break; }
       if (!touched) {
         const code = end > n + 1 ? doc.sliceString(doc.line(n + 1).from, doc.line(end - 1).to) : '';
         fullText ??= doc.toString();
-        ranges.push(Decoration.replace({ widget: new PluginBlockWidget(lang, code, sourcePath, fullText, n - 1, end - 1, version), block: true }).range(from, to));
+        if (lang === 'base' && !pluginHost.hasCodeBlockProcessor(lang)) ranges.push(Decoration.replace({ widget: new BaseEmbedWidget(undefined, code, undefined, sourcePath), block: true }).range(from, to));
+        else ranges.push(Decoration.replace({ widget: new PluginBlockWidget(lang, code, sourcePath, fullText, n - 1, end - 1, version), block: true }).range(from, to));
       }
     }
     n = end;
@@ -2473,6 +2490,9 @@ function buildDecorations(view: EditorView): DecorationSet {
             if (sm) w = Number(sm[1]);
           }
           pushReplace(s, e, Decoration.replace({ widget: new MediaWidget(attachmentUrl(href), href, kind, w) }));
+        } else if (isEmbed && /\.base(#.*)?$/i.test(href)) {
+          const [file, ...view] = href.split('#');
+          pushReplace(s, e, Decoration.replace({ widget: new BaseEmbedWidget(file, undefined, view.join('#') || undefined, useStore.getState().activePath ?? '') }));
         } else if (isEmbed && !/\.[a-z0-9]{1,5}$/i.test(href.split('#')[0])) {
           // `![[note]]` (no binary extension) → real transclusion like Obsidian.
           pushReplace(s, e, Decoration.replace({ widget: new NoteEmbedWidget(href) }));

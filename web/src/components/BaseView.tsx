@@ -178,7 +178,9 @@ function PluginBasesView({ type, base, ctx, thisFile, vi, onChange }: { type: st
   return <>{err && <div className="bases-error-box">View failed: {err}</div>}<div ref={box} className="bases-plugin-view" /></>;
 }
 
-export default function BaseView({ path, embedded = false, thisPath }: { path: string; embedded?: boolean; thisPath?: string }) {
+export default function BaseView({ path = '', source, embedded = false, thisPath, viewName }: { path?: string; source?: string; embedded?: boolean; thisPath?: string; viewName?: string }) {
+  /** An inline ```base block: its YAML lives in the note, so edits stay in memory (use the Source button to preview). */
+  const inline = source !== undefined;
   useLeaves(); // plugin views registering/unregistering
   const tree = useStore((s) => s.tree);
   const [text, setText] = useState<string | null>(null);
@@ -191,10 +193,11 @@ export default function BaseView({ path, embedded = false, thisPath }: { path: s
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (inline) { setText(source!); setDraft(source!); return; }
     let alive = true;
     api.read(path).then((r: any) => { if (alive) { const t = typeof r === 'string' ? r : r.content; setText(t); setDraft(t); } }).catch(() => alive && setText(''));
     return () => { alive = false; };
-  }, [path]);
+  }, [path, inline, source]);
 
   useEffect(() => {
     void startMetadataCache();
@@ -212,7 +215,8 @@ export default function BaseView({ path, embedded = false, thisPath }: { path: s
 
   const cfg = parsed?.cfg ?? { views: [] };
   const views: ViewConfig[] = cfg.views?.length ? cfg.views : [{ type: 'table', name: 'Table' }];
-  const idx = Math.min(vi, views.length - 1);
+  const named = viewName ? views.findIndex((v) => (v.name ?? v.type).toLowerCase() === viewName.toLowerCase()) : -1;
+  const idx = Math.min(vi === 0 && named > 0 ? named : vi, views.length - 1);
   const cfgWithView: BaseConfig = cfg.views?.length ? cfg : { ...cfg, views };
 
   const { ctx, thisFile } = useMemo(() => {
@@ -227,10 +231,12 @@ export default function BaseView({ path, embedded = false, thisPath }: { path: s
   }, [parsed, cfgWithView, idx, ctx, thisFile]);
 
   const persist = useCallback(async (nextText: string) => {
-    setText(nextText); setSaving(true);
+    setText(nextText);
+    if (inline) return;
+    setSaving(true);
     try { await api.write(path, nextText); } catch (e) { useStore.getState().notify(`Could not save base: ${(e as Error).message}`); }
     setSaving(false);
-  }, [path]);
+  }, [path, inline]);
   const change = useCallback((c: BaseConfig) => { void persist(stringifyBase(c)); }, [persist]);
 
   if (text == null || !parsed) return <div className="bases-root"><div className="bases-empty">Loading…</div></div>;

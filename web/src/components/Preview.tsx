@@ -7,41 +7,8 @@ import { renderMarkdown } from '../lib/markdown';
 import { calloutIconSvg } from '../lib/callouts';
 import { openLightbox } from '../lib/imageLightbox';
 import { api } from '../lib/api';
-import { pluginHost, useMarkdownProcessorsVersion, type PostProcessorCtx } from '../lib/pluginHost';
-import { getFrontMatterInfo, parseYaml } from '../lib/obsidianUtils';
-
-/** Run plugin code-block processors, then post-processors, over freshly rendered markdown. */
-function runPluginProcessors(root: HTMLElement, sourcePath: string, content: string, children: { unload(): void }[]) {
-  let frontmatter: Record<string, unknown> | undefined;
-  try {
-    const fm = getFrontMatterInfo(content);
-    if (fm.exists) frontmatter = parseYaml(fm.frontmatter) ?? undefined;
-  } catch { /* malformed front matter: processors just get none */ }
-  const ctx: PostProcessorCtx = {
-    sourcePath, frontmatter, docId: sourcePath, containerEl: root,
-    addChild: (c) => { children.push(c); try { c.load(); } catch (e) { console.warn('[plugin] child load failed', e); } },
-    getSectionInfo: () => null,
-  };
-  const fail = (el: HTMLElement, e: unknown) => {
-    console.warn('[plugin] markdown processor failed:', e);
-    el.createDiv?.({ cls: 'markdown-error', text: `Plugin error: ${(e as Error)?.message ?? e}` });
-  };
-  const call = (el: HTMLElement, fn: () => unknown) => {
-    try { const r = fn(); if (r && typeof (r as Promise<void>).catch === 'function') (r as Promise<void>).catch((e) => fail(el, e)); } catch (e) { fail(el, e); }
-  };
-  for (const codeEl of root.querySelectorAll<HTMLElement>('pre > code[class*="language-"]')) {
-    const lang = [...codeEl.classList].find((c) => c.startsWith('language-'))?.slice(9);
-    const proc = lang ? pluginHost.codeBlockProcessor(lang) : undefined;
-    if (!proc) continue;
-    const pre = codeEl.parentElement!;
-    const source = (codeEl.textContent ?? '').replace(/\n$/, '');
-    const el = document.createElement('div');
-    el.className = `block-language-${lang}`;
-    pre.replaceWith(el);
-    call(el, () => proc.fn(source, el, ctx));
-  }
-  for (const pp of pluginHost.postProcessors()) call(root, () => pp.fn(root, ctx));
-}
+import { useMarkdownProcessorsVersion } from '../lib/pluginHost';
+import { runPluginProcessors } from '../lib/markdownProcessing';
 
 /** Syntax-highlight a `<code class="language-x">` block with the SAME CodeMirror
  *  grammars Live Preview uses (token classes styled by the Obsidian palette). */

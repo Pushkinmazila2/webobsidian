@@ -41,6 +41,9 @@ const postProcessors = new Map<string, { pluginId: string; fn: PostProcessorFn; 
 const codeBlockProcessors = new Map<string, { pluginId: string; lang: string; fn: CodeBlockFn; sortOrder: number }>();
 /** An `EditorSuggest` a plugin registered, plus how to build the `Editor`/`TFile` it is called with. */
 export interface EditorSuggestReg { pluginId: string; suggest: any; env: { editor: () => any; file: () => any } }
+/** Mounts a Bases view into an element (set by the app: `![[x.base]]` embeds and ```base blocks). Returns an unmount fn. */
+export type BaseEmbedRenderer = (el: HTMLElement, o: { path?: string; source?: string; thisPath: string; viewName?: string }) => () => void;
+let baseEmbedRenderer: BaseEmbedRenderer | null = null;
 const editorSuggests = new Map<string, EditorSuggestReg>();
 const editorExtensions = new Map<string, { pluginId: string; ext: Extension }>();
 /** A view type a plugin registered with `registerView(type, creator)`. */
@@ -83,6 +86,8 @@ export const pluginHost = {
   processorVersion: () => procVersion,
   /** Editor extensions: plugins keep the array they registered and mutate it, so it is flattened on demand. */
   addEditorExtension(pluginId: string, ext: Extension) { editorExtensions.set(`ee${++procSeq}`, { pluginId, ext }); pluginHost.refreshEditorExtensions(); },
+  setBaseEmbedRenderer(fn: BaseEmbedRenderer | null) { baseEmbedRenderer = fn; },
+  baseEmbedRenderer: (): BaseEmbedRenderer | null => baseEmbedRenderer,
   addEditorSuggest(pluginId: string, suggest: any, env: EditorSuggestReg['env']) { editorSuggests.set(`es${++procSeq}`, { pluginId, suggest, env }); },
   editorSuggests: (): EditorSuggestReg[] => [...editorSuggests.values()],
   editorExtensions: (): Extension[] => [...editorExtensions.values()].map((e) => e.ext),

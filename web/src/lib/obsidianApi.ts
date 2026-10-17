@@ -17,6 +17,7 @@ import { FORMAT_MARKS, toggleInline, toggleLinePrefix } from './editorCommands';
 import { pluginHost } from './pluginHost';
 import { iconSvg, registerCustomIcon, unregisterCustomIcon, listIconNames } from '../components/Icon';
 import { renderMarkdown as renderMarkdownHtml } from './markdown';
+import { runPluginProcessors } from './markdownProcessing';
 import * as utils from './obsidianUtils';
 import { createBasesApi } from './bases/api';
 import realMoment from 'moment';
@@ -798,8 +799,12 @@ export class MarkdownRenderChild extends Component {
   constructor(public containerEl: HTMLElement) { super(); }
 }
 export const MarkdownRenderer = {
-  async render(_app: App, markdown: string, el: HTMLElement, _sourcePath: string, _component: Component) {
+  /** Render Markdown into `el`, then run plugin code-block / post-processors over it (as Reading view does). */
+  async render(_app: App, markdown: string, el: HTMLElement, sourcePath: string, component: Component) {
     el.innerHTML = await renderMarkdownHtml(markdown, { rawUrl: (p: string) => api.rawUrl(p) });
+    const children: { unload(): void }[] = [];
+    runPluginProcessors(el, sourcePath, markdown, children);
+    component?.register?.(() => { for (const c of children.splice(0)) { try { c.unload(); } catch { /* ignore */ } } });
   },
   async renderMarkdown(markdown: string, el: HTMLElement, sourcePath: string, component: Component) {
     return MarkdownRenderer.render(new App(), markdown, el, sourcePath, component);
