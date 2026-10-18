@@ -5,7 +5,7 @@
 import yaml from 'js-yaml';
 
 /** The API level we declare to plugins (`apiVersion`, `requireApiVersion`). Only raise it when the matching surface exists. */
-export const API_VERSION = '1.8.10';
+export const API_VERSION = '1.12.7';
 
 // ---- binary <-> text ------------------------------------------------------------------------
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -34,10 +34,11 @@ export const getBlobArrayBuffer = (blob: Blob): Promise<ArrayBuffer> => blob.arr
 
 // ---- YAML / front matter ----------------------------------------------------------------------
 export function parseYaml(text: string): any {
-  return yaml.load(text);
+  // CORE schema: dates stay plain strings like in Obsidian (the default schema would produce Date objects)
+  return yaml.load(text, { schema: yaml.CORE_SCHEMA });
 }
 export function stringifyYaml(obj: unknown): string {
-  return yaml.dump(obj, { lineWidth: -1 });
+  return yaml.dump(obj, { lineWidth: -1, schema: yaml.CORE_SCHEMA });
 }
 
 export interface FrontMatterInfo {

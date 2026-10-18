@@ -203,7 +203,10 @@ export class LocalFsStorage implements VaultStorage {
 
   async openFile(rel: string): Promise<ReadHandle> {
     const abs = await this.resolve(rel);
-    const { size } = await fs.stat(abs);
+    const st = await fs.stat(abs);
+    // A folder is not a file: fail now (404) instead of streaming it, which would hang the request on EISDIR.
+    if (st.isDirectory()) throw Object.assign(new Error('Not a file'), { status: 404 });
+    const { size } = st;
     return {
       size,
       createReadStream: (range?: ByteRange) => createReadStream(abs, range),

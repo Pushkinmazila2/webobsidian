@@ -11,7 +11,7 @@ import { vaultHeaders, withVault } from './vault';
 import { api } from './api';
 import { pluginHost } from './pluginHost';
 import { loadLucide } from '../components/Icon';
-import { App, Notice, Plugin, obsidianModule, setPluginDataBackend, startMetadataCache } from './obsidianApi';
+import { App, Notice, Plugin, moment, obsidianModule, setPluginDataBackend, startMetadataCache } from './obsidianApi';
 import * as cmState from '@codemirror/state';
 import * as cmView from '@codemirror/view';
 import * as cmCommands from '@codemirror/commands';
@@ -26,6 +26,8 @@ import * as lezerLr from '@lezer/lr';
 const sharedApp = new App();
 // Obsidian exposes the app as a global too (`window.app` / bare `app`); many plugins read it that way.
 (window as any).app = sharedApp;
+// Obsidian also exposes moment.js globally (`window.moment`).
+(window as any).moment = moment;
 setPluginDataBackend({
   // Obsidian's loadData() is null when the plugin has no data.json yet; the server answers {} then.
   load: async (id) => {

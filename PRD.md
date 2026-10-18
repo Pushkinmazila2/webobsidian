@@ -1,7 +1,8 @@
 # PRD — WebObsidian
 
 > Product Requirements Document
-> Phiên bản: 2.7 · Cập nhật: 2026-10-17 · Trạng thái: Draft
+> Phiên bản: 2.8 · Cập nhật: 2026-10-17 · Trạng thái: Draft
+> Changelog 2.8: shim khai báo Obsidian API 1.12.7; front matter giữ ngày dạng chuỗi như Obsidian; `GET /api/files/content` trên thư mục trả 404; plugin TaskNotes được hỗ trợ (view Bases, tạo task, Settings).
 > Changelog 2.7: Bases — sửa ô tại chỗ + bộ lọc UI; hover-link/page preview, HoverPopover; post-processor chạy trong Live Preview; pin/group leaf.
 > Changelog 2.6 (Bases): nhúng `![[x.base]]`/`![[x.base#View]]` và khối ```base trong ghi chú; `MarkdownRenderer.render` chạy processor của plugin.
 > Changelog 2.5 (FR-8 — API plugin): `requestUrl`/`request` đi qua proxy server `POST /api/proxy/request` có chống SSRF (env `WEBOBSIDIAN_PROXY=off` để tắt, `WEBOBSIDIAN_PROXY_ALLOW_PRIVATE=1` cho phép mạng nội bộ); `EditorSuggest` hoạt động; thêm `processFrontMatter`, `Keymap`, `Tasks`, `ConfirmationModal`, `renderMath`, `loadPrism`…

@@ -246,6 +246,9 @@ export function createBasesApi(deps: BasesApiDeps) {
     data!: BasesQueryResult;
     onChange: () => void = () => {};
     view: any = null;
+    /** The parsed base (filters, formulas, views…) — plugins like TaskNotes read `query.views` to find a view's `groupBy`. */
+    get query(): BaseConfig { return this.base; }
+    get viewName(): string { return this.base.views?.[this.viewIndex]?.name ?? ''; }
     constructor(app: any, base: BaseConfig, ctx: BaseContext, thisFile: BaseFile | null, viewIndex: number, onChange: () => void) {
       super(); this.app = app; this.base = base; this.ctx = ctx; this.thisFile = thisFile; this.viewIndex = viewIndex; this.onChange = onChange;
       this.update(base, ctx, thisFile);

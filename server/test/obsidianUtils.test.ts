@@ -89,7 +89,8 @@ test('[obsidian-utils] versions and property ids', () => {
   assert.equal(u.requireApiVersion('1.0.0'), true);
   assert.equal(u.requireApiVersion(u.API_VERSION), true);
   assert.equal(u.requireApiVersion('99.0.0'), false);
-  assert.equal(u.requireApiVersion('1.8.11'), false);
+  assert.equal(u.requireApiVersion('1.12.8'), false);
+  assert.equal(u.requireApiVersion('1.10.1'), true); // TaskNotes gates its Bases views on this
   assert.deepEqual(u.parsePropertyId('note.author'), { type: 'note', name: 'author' });
   assert.deepEqual(u.parsePropertyId('file.name'), { type: 'file', name: 'name' });
   assert.deepEqual(u.parsePropertyId('formula.total'), { type: 'formula', name: 'total' });

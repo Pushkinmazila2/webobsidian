@@ -91,3 +91,11 @@ test('[local] watch reports external add/change/unlink and ignores .obsidian/.tr
     await cleanup();
   }
 });
+
+test('[local] openFile on a folder fails with 404 instead of hanging the stream', async () => {
+  const { vault, storage, cleanup } = await makeLocal();
+  try {
+    await mkdir(path.join(vault, 'Dir/Sub'), { recursive: true });
+    await assert.rejects(() => storage.openFile('Dir/Sub'), (e: any) => e.status === 404);
+  } finally { await cleanup(); }
+});

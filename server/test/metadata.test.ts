@@ -38,3 +38,11 @@ test('[metadata] list items, tasks, parents, sections, blocks', () => {
   assert.ok(m.blocks!.blk);
   assert.equal(computeMetadata('plain').frontmatter, undefined);
 });
+
+test('[metadata] front-matter dates stay plain strings (like Obsidian), not Date/ISO timestamps', () => {
+  const m = computeMetadata('---\ndue: 2026-10-17\nstart: 2026-10-17T09:30:00\nflag: true\nn: 3\n---\nbody') as any;
+  assert.equal(m.frontmatter.due, '2026-10-17');
+  assert.equal(m.frontmatter.start, '2026-10-17T09:30:00');
+  assert.equal(m.frontmatter.flag, true);
+  assert.equal(m.frontmatter.n, 3);
+});

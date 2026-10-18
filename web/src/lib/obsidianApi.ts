@@ -259,11 +259,14 @@ function treeNode(path: string): any | null {
   return found;
 }
 /** `vault.adapter`: path-based file access (no real disk path exists — the vault may live in GitHub). */
+/** Pull the new file tree after a structural change, so `exists`/`getAbstractFileByPath` see it right away (as in Obsidian). */
+const treeChanged = async () => { try { await useStore.getState().loadTree(); } catch { /* offline: the next poll will catch up */ } };
+
 export class DataAdapter {
   getName() { return 'WebObsidian'; }
   async exists(p: string, _sensitive?: boolean) { try { await api.read(p); return true; } catch { return treeNode(p) !== null; } }
   async read(p: string) { return readText(p); }
-  async write(p: string, data: string) { await writeText(p, data); }
+  async write(p: string, data: string) { const isNew = treeNode(p) === null; await writeText(p, data); if (isNew) await treeChanged(); }
   async append(p: string, data: string) { let old = ''; try { old = await readText(p); } catch { /* new file */ } await writeText(p, old + data); }
   async process(p: string, fn: (d: string) => string) { const next = fn(await readText(p)); await writeText(p, next); return next; }
   async readBinary(p: string): Promise<ArrayBuffer> {
@@ -274,14 +277,15 @@ export class DataAdapter {
   async writeBinary(p: string, data: ArrayBuffer) {
     const i = p.lastIndexOf('/');
     await api.upload(new File([data], i < 0 ? p : p.slice(i + 1)), i < 0 ? '' : p.slice(0, i));
+    await treeChanged();
   }
-  async mkdir(p: string) { await api.createFolder(normalizePath(p)); }
-  async remove(p: string) { await api.remove(p); }
-  async rmdir(p: string, _recursive?: boolean) { await api.remove(p); }
-  async trashSystem(p: string) { await api.remove(p); return true; }
-  async trashLocal(p: string) { await api.remove(p); }
-  async rename(from: string, to: string) { await api.rename(from, to); }
-  async copy(from: string, to: string) { await api.copy(from, to); }
+  async mkdir(p: string) { await api.createFolder(normalizePath(p)); await treeChanged(); }
+  async remove(p: string) { await api.remove(p); await treeChanged(); }
+  async rmdir(p: string, _recursive?: boolean) { await api.remove(p); await treeChanged(); }
+  async trashSystem(p: string) { await api.remove(p); await treeChanged(); return true; }
+  async trashLocal(p: string) { await api.remove(p); await treeChanged(); }
+  async rename(from: string, to: string) { await api.rename(from, to); await treeChanged(); }
+  async copy(from: string, to: string) { await api.copy(from, to); await treeChanged(); }
   async list(p: string): Promise<{ files: string[]; folders: string[] }> {
     const n = treeNode(p);
     const kids: any[] = n?.children ?? [];
@@ -296,8 +300,18 @@ export class DataAdapter {
   getBasePath() { return ''; }
 }
 
+/** Obsidian's app-level settings (`app.vault.getConfig(key)`); plugins read a few of these. Values are the Obsidian defaults. */
+const VAULT_CONFIG: Record<string, unknown> = {
+  useMarkdownLinks: false, newLinkFormat: 'shortest', vimMode: false, showLineNumber: false, tabSize: 4, useTab: true, spellcheck: false,
+  readableLineLength: true, defaultViewMode: 'source', livePreview: true, attachmentFolderPath: '/', newFileLocation: 'root', newFileFolderPath: '/',
+  alwaysUpdateLinks: true, promptDelete: true, trashOption: 'system', foldHeading: true, foldIndent: true, strictLineBreaks: false, showFrontmatter: true,
+  autoPairBrackets: true, autoPairMarkdown: true, smartIndentList: true, showUnsupportedFiles: false, propertiesInDocument: 'visible',
+};
+
 export class Vault extends Events {
   adapter: DataAdapter = new DataAdapter();
+  getConfig(key: string): unknown { return VAULT_CONFIG[key]; }
+  setConfig(key: string, value: unknown): void { VAULT_CONFIG[key] = value; }
   getName() { return 'WebObsidian'; }
   getRoot(): TFolder { syncTree(); return folderRegistry.get('')!; }
   async read(file: TFile) { return readText(file.path); }
@@ -305,10 +319,10 @@ export class Vault extends Events {
   async modify(file: TFile, data: string) { await writeText(file.path, data); }
   async process(file: TFile, fn: (data: string) => string) { const next = fn(await readText(file.path)); await writeText(file.path, next); return next; }
   async append(file: TFile, data: string) { await writeText(file.path, (await readText(file.path)) + data); }
-  async create(path: string, data: string) { await writeText(path, data); return new TFile(path); }
-  async createFolder(path: string) { await api.createFolder(path); }
-  async delete(file: TAbstractFile) { await api.remove(file.path); }
-  async trash(file: TAbstractFile) { await api.remove(file.path); }
+  async create(path: string, data: string) { await writeText(path, data); await treeChanged(); return new TFile(path); }
+  async createFolder(path: string) { await api.createFolder(path); await treeChanged(); }
+  async delete(file: TAbstractFile) { await api.remove(file.path); await treeChanged(); }
+  async trash(file: TAbstractFile) { await api.remove(file.path); await treeChanged(); }
   getMarkdownFiles(): TFile[] { return flattenFiles().filter((f) => /\.(md|markdown)$/i.test(f.name)); }
   getFiles(): TFile[] { return flattenFiles(); }
   getAllLoadedFiles(): TAbstractFile[] { syncTree(); return [...folderRegistry.values(), ...flattenFiles()]; }
@@ -1008,6 +1022,8 @@ export class App {
   workspace = sharedWorkspace;
   metadataCache = sharedMetadataCache;
   keymap = new Keymap();
+  /** Internal embed registry: no native embeds are registered, so plugins that probe it fall back to their own UI. */
+  embedRegistry = { embedByExtension: {} as Record<string, unknown>, registerExtension(ext: string, creator: unknown) { this.embedByExtension[ext] = creator; }, registerExtensions(exts: string[], creator: unknown) { exts.forEach((e) => this.registerExtension(e, creator)); }, unregisterExtension(ext: string) { delete this.embedByExtension[ext]; }, unregisterExtensions(exts: string[]) { exts.forEach((e) => delete this.embedByExtension[e]); }, isExtensionRegistered(ext: string) { return ext in this.embedByExtension; } };
   secretStorage = new SecretStorage();
   /** Plugin manager as seen by other plugins (`app.plugins.plugins[id]`, `getPlugin`). */
   plugins = { plugins: {} as Record<string, unknown>, enabledPlugins: new Set<string>(), manifests: {} as Record<string, unknown>, getPlugin(id: string): unknown { return this.plugins[id] ?? null; } };
@@ -1100,8 +1116,8 @@ export class FileManager {
     const next = utils.processFrontMatterText(text, fn);
     if (next !== text) await writeText(file.path, next);
   }
-  async renameFile(file: TAbstractFile, to: string) { await api.rename(file.path, to); }
-  async trashFile(file: TAbstractFile) { await api.remove(file.path); }
+  async renameFile(file: TAbstractFile, to: string) { await api.rename(file.path, to); await treeChanged(); }
+  async trashFile(file: TAbstractFile) { await api.remove(file.path); await treeChanged(); }
   async promptForDeletion(file: TAbstractFile): Promise<boolean> {
     if (!window.confirm(`Delete "${file.name}"?`)) return false;
     await api.remove(file.path); return true;

@@ -8,6 +8,10 @@
  */
 import { createHash } from 'node:crypto';
 import matter from 'gray-matter';
+import yaml from 'js-yaml';
+
+/** Obsidian keeps front-matter dates as plain strings (`2026-10-17`); js-yaml's default schema would turn them into Dates. */
+const PLAIN_DATES = { engines: { yaml: { parse: (s: string) => yaml.load(s, { schema: yaml.CORE_SCHEMA }) as object, stringify: (o: object) => yaml.dump(o, { schema: yaml.CORE_SCHEMA }) } } };
 import { currentVault } from './vaultals.js';
 import { listIndexedMarkdownFiles, readFileText } from './vault.js';
 
@@ -52,7 +56,7 @@ export function computeMetadata(raw: string): CachedMetadata {
     let close = -1;
     for (let i = 1; i < lines.length; i++) if (/^(---|\.\.\.)[ \t]*\r?$/.test(lines[i])) { close = i; break; }
     if (close > 0) {
-      try { out.frontmatter = (matter(text).data ?? {}) as Record<string, unknown>; } catch { out.frontmatter = {}; }
+      try { out.frontmatter = (matter(text, PLAIN_DATES).data ?? {}) as Record<string, unknown>; } catch { out.frontmatter = {}; }
       out.frontmatterPosition = span(0, 0, close, lineEnd(close));
       out.sections = [{ type: 'yaml', position: out.frontmatterPosition }];
       first = close + 1;

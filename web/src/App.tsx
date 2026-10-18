@@ -36,6 +36,12 @@ export default function App() {
   const toast = useStore((s) => s.toast);
   const [checking, setChecking] = useState(true);
   const [theme, setTheme] = useState<'theme-dark' | 'theme-light'>('theme-light');
+  // Modals, notices and popovers that plugins append to <body> sit outside the app wrapper: give <body> the
+  // theme class too so they inherit the same CSS variables (and `app.isDarkMode` is right).
+  useEffect(() => {
+    document.body.classList.remove('theme-dark', 'theme-light');
+    document.body.classList.add(theme);
+  }, [theme]);
 
   useEffect(() => {
     api

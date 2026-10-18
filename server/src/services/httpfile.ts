@@ -33,9 +33,15 @@ export async function sendFileWithRange(
     res.status(206);
     res.setHeader('Content-Range', `bytes ${start}-${end}/${size}`);
     res.setHeader('Content-Length', String(end - start + 1));
-    file.createReadStream({ start, end }).pipe(res);
+    pipeSafely(file.createReadStream({ start, end }), res);
     return;
   }
   res.setHeader('Content-Length', String(size));
-  file.createReadStream().pipe(res);
+  pipeSafely(file.createReadStream(), res);
+}
+
+/** Pipe a file stream to the response; a read error ends the response instead of hanging it (or crashing the process). */
+function pipeSafely(stream: NodeJS.ReadableStream, res: Response) {
+  stream.on('error', () => { if (!res.headersSent) res.status(500).json({ error: 'Read failed' }); else res.destroy(); });
+  stream.pipe(res);
 }
