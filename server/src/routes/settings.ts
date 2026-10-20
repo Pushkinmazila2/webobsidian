@@ -48,6 +48,13 @@ settingsRouter.put(
       if (body.api && typeof body.api.rateLimitPerMin === 'number') {
         d.api.rateLimitPerMin = body.api.rateLimitPerMin;
       }
+      if (body.plugins && body.plugins.catalogRefreshHours !== undefined) {
+        const h = body.plugins.catalogRefreshHours;
+        if (typeof h !== 'number' || !Number.isFinite(h) || h < 0 || h > 24 * 30) {
+          throw Object.assign(new Error('plugins.catalogRefreshHours must be a number from 0 to 720'), { status: 400 });
+        }
+        d.plugins.catalogRefreshHours = h;
+      }
     });
     res.json(redactSettings(updated));
   }),

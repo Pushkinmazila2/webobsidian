@@ -38,6 +38,44 @@ export interface ShareRecord {
   hasPassword?: boolean;
 }
 
+/** How well a community plugin is expected to run in WebObsidian (rated daily by the webobsidian-community-plugins repository). */
+export type Compat = 'full' | 'partial' | 'broken' | 'unknown';
+export interface CatalogItem {
+  id: string;
+  name: string;
+  author: string;
+  description: string;
+  repo: string;
+  version?: string;
+  minAppVersion?: string;
+  desktopOnly?: boolean;
+  downloads?: number;
+  compat: Compat;
+  reasons?: string[];
+  flags?: string[];
+  installed: boolean;
+  enabled: boolean;
+  installedVersion?: string;
+}
+export interface CatalogInfo {
+  available: boolean;
+  generatedAt?: string;
+  apiVersion?: string;
+  totals?: Record<Compat, number>;
+  count?: number;
+  fetchedAt?: string;
+  refreshHours: number;
+  nextCheckAt?: string;
+  refreshing: boolean;
+  error?: string;
+}
+export interface CatalogPage {
+  info: CatalogInfo;
+  total: number;
+  items: CatalogItem[];
+  counts: { compat: Record<Compat, number>; installed: number; notInstalled: number };
+}
+
 export interface SearchHit {
   path: string;
   title: string;
@@ -250,6 +288,13 @@ export const api = {
 
   // plugins
   listPlugins: () => req<{ plugins: any[]; unsaved?: number }>('/api/plugins/'),
+  // community catalogue with compatibility ratings (filtered + paged on the server)
+  pluginCatalog: (q: { q?: string; status?: string; compat?: string; sort?: string; offset?: number; limit?: number }) => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries(q)) if (v !== undefined && v !== '') p.set(k, String(v));
+    return req<CatalogPage>(`/api/plugins/catalog?${p}`);
+  },
+  refreshPluginCatalog: () => req<{ info: CatalogInfo }>('/api/plugins/catalog/refresh', { method: 'POST' }),
   metadata: () => req<{ files: Record<string, { size: number; cache: any }> }>('/api/metadata'),
   pluginData: (id: string) => req<{ data: unknown }>(`/api/plugins/${encodeURIComponent(id)}/data`),
   savePluginData: (id: string, data: unknown) =>

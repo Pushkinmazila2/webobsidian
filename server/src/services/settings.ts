@@ -152,6 +152,9 @@ const SettingsSchema = z.object({
     .object({
       enabled: z.array(z.string()).default([]),
       installed: z.array(z.string()).default([]),
+      // How often the compatibility catalogue (community-plugins.json of the webobsidian-community-plugins repo) is re-downloaded.
+      // 0 = only when the user presses "Check now". The catalogue itself is rebuilt daily, so < 1 day gains little.
+      catalogRefreshHours: z.number().min(0).max(24 * 30).default(24),
     })
     .default({}),
 });

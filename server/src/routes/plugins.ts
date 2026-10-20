@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { asyncHandler } from '../middleware/error.js';
 import { requireAuth } from '../middleware/auth.js';
 import * as plugins from '../services/plugins.js';
+import * as catalog from '../services/plugincatalog.js';
 import { getStorage } from '../services/vault.js';
 
 export const pluginsRouter = Router();
@@ -11,8 +12,41 @@ pluginsRouter.get(
   '/',
   asyncHandler(async (_req, res) => {
     const remote = getStorage().remoteInfo?.();
+    // `compat`: rating from the cached catalogue (no network), undefined for plugins it does not know
+    const installed = await Promise.all(
+      (await plugins.listInstalled()).map(async (p) => ({ ...p, ...(await catalog.compatOf(p.id)) })),
+    );
     // `unsaved`: plugin changes the server is still holding back before committing them (GitHub storage)
-    res.json({ plugins: await plugins.listInstalled(), unsaved: remote?.held ?? 0 });
+    res.json({ plugins: installed, unsaved: remote?.held ?? 0 });
+  }),
+);
+
+// Community catalogue with compatibility ratings: filtered and paged here (the list has thousands of plugins).
+pluginsRouter.get(
+  '/catalog',
+  asyncHandler(async (req, res) => {
+    const s = (k: string) => (typeof req.query[k] === 'string' ? (req.query[k] as string) : undefined);
+    const n = (k: string) => (s(k) !== undefined && Number.isFinite(Number(s(k))) ? Number(s(k)) : undefined);
+    res.json(
+      await catalog.query(
+        { q: s('q'), status: s('status'), compat: s('compat'), sort: s('sort'), offset: n('offset'), limit: n('limit') },
+        await plugins.listInstalled(),
+      ),
+    );
+  }),
+);
+
+// "Check now": download the catalogue regardless of the refresh interval.
+pluginsRouter.post(
+  '/catalog/refresh',
+  asyncHandler(async (_req, res) => {
+    try {
+      await catalog.refresh();
+    } catch (e: any) {
+      res.status(502).json({ error: e.message, info: await catalog.info() });
+      return;
+    }
+    res.json({ info: await catalog.info() });
   }),
 );
 

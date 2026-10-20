@@ -6,6 +6,7 @@ import StorageSettings from './StorageSettings';
 import VaultsSettings from './VaultsSettings';
 import { syncPlugins } from '../lib/plugins';
 import { pluginHost, usePluginHost } from '../lib/pluginHost';
+import PluginBrowser, { CompatBadge } from './PluginBrowser';
 
 type Section = 'vault' | 'storage' | 'vaults' | 'git' | 'api' | 'sharing' | 'plugins' | 'appearance' | 'account' | 'about';
 
@@ -380,6 +381,7 @@ function PluginTab({ tab }: { tab: { containerEl: HTMLElement; display(): void; 
 
 function Plugins() {
   usePluginHost();
+  const [tab, setTab] = useState<'installed' | 'browse'>('installed');
   const [openOptions, setOpenOptions] = useState<string | null>(null);
   const [plugins, setPlugins] = useState<any[]>([]);
   const [unsaved, setUnsaved] = useState(0);
@@ -403,6 +405,12 @@ function Plugins() {
   return (
     <div>
       <h2>Community Plugins</h2>
+      <div className="plugin-tabs" role="tablist">
+        <button role="tab" aria-selected={tab === 'installed'} className={tab === 'installed' ? 'active' : ''} onClick={() => setTab('installed')}>Installed{plugins.length ? ` (${plugins.length})` : ''}</button>
+        <button role="tab" aria-selected={tab === 'browse'} className={tab === 'browse' ? 'active' : ''} onClick={() => setTab('browse')}>Browse</button>
+      </div>
+      {tab === 'browse' && <PluginBrowser onChanged={load} />}
+      {tab === 'installed' && <>
       <Row name="Install from GitHub" desc="owner/repo — pulls manifest.json + main.js from latest release">
         <span style={{ display: 'flex', gap: 8 }}>
           <input className="text-input" placeholder="blacksmithgu/obsidian-dataview" value={repo} onChange={(e) => setRepo(e.target.value)} />
@@ -425,7 +433,7 @@ function Plugins() {
             <div key={p.id}>
               <div className="setting-row">
                 <div className="info">
-                  <div className="name">{p.name} <span style={{ color: 'var(--text-faint)' }}>v{p.version}</span></div>
+                  <div className="name">{p.name} <span style={{ color: 'var(--text-faint)' }}>v{p.version}</span> {p.compat && <CompatBadge compat={p.compat} reasons={p.reasons} flags={p.flags} />}</div>
                   <div className="desc">{p.description}</div>
                   {err && <div className="desc" style={{ color: '#e5534b' }}>Could not start: {err}</div>}
                 </div>
@@ -448,7 +456,9 @@ function Plugins() {
       </div>
       <p style={{ color: 'var(--text-faint)', fontSize: 12, marginTop: 14 }}>
         Note: WebObsidian supports a subset of the Obsidian plugin API. Most metadata/markdown plugins work; plugins relying on Electron/Node internals may not.
+        The compatibility badge comes from the Browse tab’s daily-updated list.
       </p>
+      </>}
     </div>
   );
 }

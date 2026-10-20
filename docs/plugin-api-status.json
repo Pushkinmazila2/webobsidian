@@ -1,15 +1,15 @@
 {
  "apiVersion": "1.14.4",
  "totals": {
-  "ok": 568,
+  "ok": 609,
   "stub": 21,
-  "missing": 113
+  "missing": 72
  },
  "feasibility": {
   "easy": 8,
-  "medium": 28,
+  "medium": 26,
   "hard": 51,
-  "impossible": 47
+  "impossible": 8
  },
  "classes": [
   {
@@ -639,81 +639,81 @@
      "name": "getName",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "mkdir",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "trashSystem",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "trashLocal",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "rmdir",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "read",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "readBinary",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "write",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "writeBinary",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "append",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "appendBinary",
@@ -727,73 +727,73 @@
      "name": "process",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getResourcePath",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "remove",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "rename",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "copy",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "exists",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "stat",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "list",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getFullPath",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -1758,89 +1758,89 @@
      "name": "getName",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getBasePath",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "mkdir",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "trashSystem",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "trashLocal",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "rmdir",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "read",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "readBinary",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "write",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "writeBinary",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "append",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "appendBinary",
@@ -1854,17 +1854,17 @@
      "name": "process",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getResourcePath",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getFilePath",
@@ -1878,57 +1878,57 @@
      "name": "remove",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "rename",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "copy",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "exists",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "stat",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "list",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getFullPath",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "static readLocalFile",
@@ -2035,6 +2035,7 @@
      "kind": "method",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "noop",
      "feasibility": "medium",
      "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
     },
@@ -2067,6 +2068,7 @@
      "kind": "method",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "noop",
      "feasibility": "medium",
      "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
     }
@@ -2576,17 +2578,17 @@
      "name": "static renderMarkdown",
      "kind": "method",
      "deprecated": true,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "static render",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -3199,6 +3201,7 @@
      "kind": "method",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "noop",
      "feasibility": "hard",
      "note": "Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have."
     },
@@ -3421,6 +3424,7 @@
      "kind": "method",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "noop",
      "feasibility": "impossible",
      "note": "obsidian:// URLs are handled by the desktop app, not by a web page."
     },
@@ -3437,6 +3441,7 @@
      "kind": "method",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "noop",
      "feasibility": "easy",
      "note": "Core object; remaining members are small."
     },
@@ -4220,6 +4225,7 @@
      "kind": "method",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "noop",
      "feasibility": "easy",
      "note": "Plain DOM widgets."
     },
@@ -4228,6 +4234,7 @@
      "kind": "method",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "noop",
      "feasibility": "easy",
      "note": "Plain DOM widgets."
     },
@@ -4919,6 +4926,7 @@
      "kind": "property",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "partial",
      "feasibility": "medium",
      "note": "DataAdapter over the files API (read/write/list/exists/mkdir/rename/stat/remove)."
     },
@@ -5225,6 +5233,7 @@
      "kind": "method",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "noop",
      "feasibility": "medium",
      "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
     },
@@ -5241,6 +5250,7 @@
      "kind": "method",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "noop",
      "feasibility": "medium",
      "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
     },
@@ -5355,6 +5365,7 @@
      "kind": "property",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "noop",
      "feasibility": "medium",
      "note": "Not yet analysed."
     },
@@ -5435,6 +5446,7 @@
      "kind": "method",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "partial",
      "feasibility": "hard",
      "note": "Only a facade that opens a file is realistic."
     },
@@ -5491,6 +5503,7 @@
      "kind": "method",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "partial",
      "feasibility": "medium",
      "note": "Not yet analysed."
     },
@@ -5523,6 +5536,7 @@
      "kind": "method",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "partial",
      "feasibility": "medium",
      "note": "Not yet analysed."
     },
@@ -5673,6 +5687,7 @@
      "kind": "method",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "noop",
      "feasibility": "hard",
      "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
     },
@@ -5681,6 +5696,7 @@
      "kind": "method",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "noop",
      "feasibility": "hard",
      "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
     }
@@ -5763,6 +5779,7 @@
      "kind": "method",
      "deprecated": false,
      "status": "stub",
+     "stubKind": "noop",
      "feasibility": "hard",
      "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
     },
@@ -6318,6 +6335,7 @@
    "name": "requestUrl",
    "deprecated": false,
    "status": "stub",
+   "stubKind": "partial",
    "feasibility": "medium",
    "note": "Browsers enforce CORS, so the request has to go through a server proxy (with SSRF limits)."
   },
@@ -6346,6 +6364,7 @@
    "name": "setIcon",
    "deprecated": false,
    "status": "stub",
+   "stubKind": "partial",
    "feasibility": "medium",
    "note": "Works, but we only ship part of the Lucide set; add the rest on demand."
   },
@@ -6432,6 +6451,7 @@
    "name": "moment",
    "deprecated": false,
    "status": "stub",
+   "stubKind": "partial",
    "feasibility": "medium",
    "note": "Bundle the real moment (≈70 KB) instead of the stub."
   },
@@ -6439,6 +6459,7 @@
    "name": "Platform",
    "deprecated": false,
    "status": "stub",
+   "stubKind": "partial",
    "feasibility": "easy",
    "note": "Plain object of booleans (present)."
   }

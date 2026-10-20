@@ -112,3 +112,117 @@ test('[plugins] uninstall: switches the plugin off, deletes its folder (code + d
   assert.equal(await plugins.uninstall('gone'), false); // already gone
   await assert.rejects(() => plugins.uninstall('../x'), (e) => status(e) === 400);
 });
+
+// ---- install from GitHub: Obsidian's own resolution (root manifest version → tagged release), then API, then latest ----
+interface GhWorld {
+  /** root manifest.json of the default branch (null = none) */
+  head?: { id: string; version: string } | null;
+  /** is there a release tagged with head.version */
+  tag?: boolean;
+  /** GitHub API answer for releases/latest */
+  api?: number | 'throw';
+  /** does releases/latest/download/* work */
+  latest?: boolean;
+  hasStyles?: boolean;
+  /** id inside the latest release's manifest (differs from head.id for beta channels) */
+  latestId?: string;
+}
+function fakeGithub(w: GhWorld) {
+  const o = { head: { id: 'gh-plug', version: '2.0.0' }, tag: true, api: 200 as number | 'throw', latest: true, hasStyles: false, latestId: 'gh-plug', ...w };
+  const calls: string[] = [];
+  const real = globalThis.fetch;
+  const manifest = (id: string, version: string) => JSON.stringify({ id, name: id.toUpperCase(), version });
+  const file = (name: string, id: string, version: string) =>
+    name === 'manifest.json' ? manifest(id, version) : name === 'main.js' ? `module.exports = "${id}@${version}";` : '.x{}';
+  const serve = (name: string, id: string, version: string) =>
+    name === 'styles.css' && !o.hasStyles ? new Response('nf', { status: 404 }) : new Response(file(name, id, version), { status: 200 });
+  globalThis.fetch = (async (input: any, init?: any) => {
+    const url = String(input);
+    calls.push(`${init?.method ?? 'GET'} ${url}`);
+    let m: RegExpExecArray | null;
+    if (url.startsWith('https://raw.githubusercontent.com/')) {
+      return o.head ? new Response(manifest(o.head.id, o.head.version), { status: 200 }) : new Response('nf', { status: 404 });
+    }
+    if (url.startsWith('https://api.github.com/')) {
+      if (o.api === 'throw') throw new Error('network down');
+      if (o.api !== 200) return new Response('x', { status: o.api });
+      const assets = ['manifest.json', 'main.js', ...(o.hasStyles ? ['styles.css'] : [])].map((name) => ({ name, browser_download_url: `https://dl.example/${name}` }));
+      return new Response(JSON.stringify({ assets }), { status: 200 });
+    }
+    if ((m = /^https:\/\/dl\.example\/(.+)$/.exec(url))) return serve(m[1], o.latestId, '9.9.9');
+    if ((m = /github\.com\/[^/]+\/[^/]+\/releases\/download\/([^/]+)\/(.+)$/.exec(url))) {
+      return o.tag && o.head && m[1] === o.head.version ? serve(m[2], o.head.id, o.head.version) : new Response('nf', { status: 404 });
+    }
+    if ((m = /releases\/latest\/download\/(.+)$/.exec(url))) return o.latest ? serve(m[1], o.latestId, '9.9.9') : new Response('nf', { status: 404 });
+    throw new Error(`unexpected URL ${url}`);
+  }) as typeof fetch;
+  return { calls, restore: () => { globalThis.fetch = real; } };
+}
+const installWith = async (w: GhWorld) => {
+  const gh = fakeGithub(w);
+  try { return { gh, plugin: await plugins.installFromGithub('o/gh-plug') }; }
+  finally { gh.restore(); }
+};
+const cleanup = async (id: string) => { await plugins.uninstall(id).catch(() => {}); };
+const usedApi = (calls: string[]) => calls.some((c) => c.includes('api.github.com'));
+
+test('[plugins] install: the release tagged with the root manifest version is used — no API call at all', async () => {
+  const { gh, plugin } = await installWith({ hasStyles: true });
+  try {
+    assert.equal(plugin.id, 'gh-plug');
+    assert.equal(plugin.version, '2.0.0');
+    assert.equal(plugin.hasStyles, true);
+    assert.equal(await vault.readFileText('.obsidian/plugins/gh-plug/main.js'), 'module.exports = "gh-plug@2.0.0";');
+    assert.equal(usedApi(gh.calls), false, 'not rate-limited by the API');
+  } finally { await cleanup('gh-plug'); }
+});
+
+test('[plugins] install: a beta "latest release" with another id does not replace the plugin the catalogue lists', async () => {
+  const { gh, plugin } = await installWith({ head: { id: 'calendar', version: '1.5.10' }, latestId: 'calendar-beta' });
+  try {
+    assert.equal(plugin.id, 'calendar', 'installed the stable release, not the beta channel');
+    assert.equal(plugin.version, '1.5.10');
+    assert.equal(usedApi(gh.calls), false);
+  } finally { await cleanup('calendar'); }
+});
+
+test('[plugins] install: no tagged release for the root version (or no root manifest) → the GitHub API\'s latest release', async () => {
+  for (const w of [{ tag: false }, { head: null }]) {
+    const { gh, plugin } = await installWith({ ...w, hasStyles: true });
+    try {
+      assert.equal(plugin.id, 'gh-plug', JSON.stringify(w));
+      assert.ok(gh.calls.some((c) => c.includes('dl.example/main.js')), 'assets listed by the API');
+      assert.equal(plugin.hasStyles, true);
+    } finally { await cleanup('gh-plug'); }
+  }
+});
+
+test('[plugins] install: API rate-limited (403/429), down, or erroring → releases/latest/download', async () => {
+  for (const api of [403, 429, 502, 'throw'] as const) {
+    const { gh, plugin } = await installWith({ head: null, api });
+    try {
+      assert.equal(plugin.id, 'gh-plug', `api=${api}`);
+      assert.equal(plugin.hasStyles, false, 'a 404 on styles.css just means the plugin has none');
+      assert.ok(gh.calls.some((c) => c === 'HEAD https://github.com/o/gh-plug/releases/latest/download/main.js'));
+      assert.equal(await vault.readFileText('.obsidian/plugins/gh-plug/main.js'), 'module.exports = "gh-plug@9.9.9";');
+    } finally { await cleanup('gh-plug'); }
+  }
+  const { plugin } = await installWith({ head: null, api: 403, hasStyles: true });
+  try { assert.equal(plugin.hasStyles, true, 'styles.css fetched through the fallback too'); } finally { await cleanup('gh-plug'); }
+});
+
+test('[plugins] install: no release is a clear error, with or without the API; nothing is left half-installed', async () => {
+  const fail = async (w: GhWorld, re: RegExp) => {
+    const gh = fakeGithub(w);
+    try { await assert.rejects(plugins.installFromGithub('o/gh-plug'), re); } finally { gh.restore(); }
+  };
+  await fail({ head: null, api: 404 }, /no release/);
+  await fail({ head: null, api: 403, latest: false }, /403.*no downloadable release/);
+  await fail({ tag: false, api: 404 }, /no release/);
+  assert.equal((await plugins.listInstalled()).some((p) => p.id === 'gh-plug'), false);
+});
+
+test('[plugins] install: repo must look like owner/name', async () => {
+  await assert.rejects(plugins.installFromGithub('../../etc'), (e: unknown) => status(e) === 400);
+  await assert.rejects(plugins.installFromGithub('just-a-name'), (e: unknown) => status(e) === 400);
+});

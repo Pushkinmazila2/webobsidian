@@ -12,12 +12,12 @@ Feasibility of what is not ✅: **easy** (hours) · **medium** (a feature) · **
 
 | | count | share |
 |---|---:|---:|
-| ✅ implemented | 568 | 80.9% |
+| ✅ implemented | 609 | 86.8% |
 | 🟡 stub / partial | 21 | 3.0% |
-| ❌ missing | 113 | 16.1% |
+| ❌ missing | 72 | 10.3% |
 | **runtime API items** (class members, functions, constants, missing classes) | **702** | |
 
-Not yet working (🟡 + ❌), by feasibility: **easy 8** · **medium 28** · **hard 51** · **impossible 47**.
+Not yet working (🟡 + ❌), by feasibility: **easy 8** · **medium 26** · **hard 51** · **impossible 8**.
 112 interfaces, 30 type aliases and 1 enum(s) are type-only (no runtime behaviour) and are not counted.
 
 What typical plugins need first (a plugin is usable once these exist): commands ✅, settings tab ✅, `loadData/saveData` ✅, ribbon ✅, status bar ✅, modals ✅, notices ✅, editor commands ✅ —
@@ -43,7 +43,7 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 
 - **FileView**: `setState`, `canAcceptExtension` — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
 - **MarkdownPreviewRenderer** (class) — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
-- **MarkdownRenderer**: `app`, `hoverPopover`, `file`, `renderMarkdown`, `render` — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
+- **MarkdownRenderer**: `app`, `hoverPopover`, `file` — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **MarkdownView**: `hoverPopover`, `clear`, `setViewData`, `showSearch` — Needs reading/live-preview modes and the leaf facade behind it.
 - **RenderContext** (class) — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **Vault**: `adapter` — DataAdapter over the files API (read/write/list/exists/mkdir/rename/stat/remove).
@@ -112,7 +112,8 @@ One line per class: ✅ implemented members, 🟡 stubs, ❌ missing. Deprecated
 ### ❌ CapacitorAdapter
 Class not provided. Feasibility: **impossible** — Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path.
 
-- ❌ `getName` `mkdir` `trashSystem` `trashLocal` `rmdir` `read` `readBinary` `write` `writeBinary` `append` `appendBinary` `process` `getResourcePath` `remove` `rename` `copy` `exists` `stat` `list` `getFullPath`
+- ✅ `getName` `mkdir` `trashSystem` `trashLocal` `rmdir` `read` `readBinary` `write` `writeBinary` `append` `process` `getResourcePath` `remove` `rename` `copy` `exists` `stat` `list` `getFullPath`
+- ❌ `appendBinary`
 
 ### ✅ ColorComponent <small>extends ValueComponent</small>
 - ✅ `setDisabled` `getValue` `getValueRgb` `getValueHsl` `setValue` `setValueRgb` `setValueHsl` `onChange`
@@ -158,7 +159,8 @@ Class not provided. Feasibility: **impossible** — Node/Electron filesystem or 
 ### ❌ FileSystemAdapter
 Class not provided. Feasibility: **impossible** — Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path.
 
-- ❌ `getName` `getBasePath` `mkdir` `trashSystem` `trashLocal` `rmdir` `read` `readBinary` `write` `writeBinary` `append` `appendBinary` `process` `getResourcePath` `getFilePath` `remove` `rename` `copy` `exists` `stat` `list` `getFullPath` `static·readLocalFile` `static·mkdir`
+- ✅ `getName` `getBasePath` `mkdir` `trashSystem` `trashLocal` `rmdir` `read` `readBinary` `write` `writeBinary` `append` `process` `getResourcePath` `remove` `rename` `copy` `exists` `stat` `list` `getFullPath`
+- ❌ `appendBinary` `getFilePath` `static·readLocalFile` `static·mkdir`
 
 ### ✅ FileValue <small>extends NotNullValue</small>
 - ✅ `toString` `isTruthy`
@@ -210,7 +212,8 @@ Class not provided. Feasibility: **hard** — Internal editor/preview view objec
 - ✅ `containerEl`
 
 ### 🟡 MarkdownRenderer <small>extends MarkdownRenderChild</small>
-- ❌ `app` `hoverPopover` `file` `static·renderMarkdown`*(dep.)* `static·render`
+- ✅ `static·renderMarkdown`*(dep.)* `static·render`
+- ❌ `app` `hoverPopover` `file`
 
 ### 🟡 MarkdownView <small>extends TextFileView</small>
 - ✅ `editor` `previewMode` `currentMode` `getViewType` `getMode` `getViewData`

@@ -169,14 +169,8 @@ export async function savePluginData(id: string, data: unknown): Promise<void> {
  */
 export async function installFromGithub(repo: string): Promise<InstalledPlugin> {
   const clean = repo.replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').trim();
-  const relApi = `https://api.github.com/repos/${clean}/releases/latest`;
-  const res = await fetch(relApi, { headers: { 'User-Agent': 'WebObsidian' } });
-  if (!res.ok) throw new Error(`GitHub release lookup failed: ${res.status}`);
-  const release = (await res.json()) as { assets: { name: string; browser_download_url: string }[] };
-  const assets = Object.fromEntries(release.assets.map((a) => [a.name, a.browser_download_url]));
-  if (!assets['manifest.json'] || !assets['main.js']) {
-    throw new Error('Release missing manifest.json or main.js');
-  }
+  if (!/^[\w.-]+\/[\w.-]+$/.test(clean)) throw Object.assign(new Error('repo must be owner/name'), { status: 400 });
+  const assets = await releaseAssets(clean);
 
   const manifest = JSON.parse(await fetchText(assets['manifest.json'])) as PluginManifest;
   // id comes from a REMOTE manifest — validate before it becomes a path segment
@@ -187,7 +181,9 @@ export async function installFromGithub(repo: string): Promise<InstalledPlugin> 
   await vault.writeFileText(`${target}/manifest.json`, JSON.stringify(manifest, null, 2));
   await vault.writeFileText(`${target}/main.js`, await fetchText(assets['main.js']));
   if (assets['styles.css']) {
-    await vault.writeFileText(`${target}/styles.css`, await fetchText(assets['styles.css']));
+    // from the download-URL fallback we cannot tell whether a release has styles.css: a 404 just means "none"
+    const css = await fetchText(assets['styles.css'], true);
+    if (css !== null) await vault.writeFileText(`${target}/styles.css`, css);
   }
   await updateSettings((d) => {
     if (!d.plugins.installed.includes(id)) d.plugins.installed.push(id);
@@ -198,8 +194,61 @@ export async function installFromGithub(repo: string): Promise<InstalledPlugin> 
   return found;
 }
 
-async function fetchText(url: string): Promise<string> {
+/**
+ * Where the files to install are, resolved the way Obsidian itself does it, so that what is installed is what the
+ * compatibility scanner rated:
+ *  1. manifest.json at the root of the default branch names the version; the release tagged exactly that version holds
+ *     the files (`releases/download/<version>/…`). No API, no rate limit. This matters: a repository's *latest* release
+ *     can be a different plugin id (a beta channel) from the one listed in the community catalogue.
+ *  2. Otherwise the GitHub API's latest release (unauthenticated that is only 60 requests an hour per IP, and some
+ *     networks block it outright), and when the API is unavailable the `releases/latest/download/<file>` URLs.
+ * A 404 from the API means the repository has no release, which is a real answer.
+ */
+async function releaseAssets(repo: string): Promise<Record<string, string>> {
+  const tagged = await taggedAssets(repo);
+  if (tagged) return tagged;
+  let apiError = '';
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, { headers: { 'User-Agent': 'WebObsidian' } });
+    if (res.ok) {
+      const release = (await res.json()) as { assets: { name: string; browser_download_url: string }[] };
+      const assets = Object.fromEntries(release.assets.map((a) => [a.name, a.browser_download_url]));
+      if (!assets['manifest.json'] || !assets['main.js']) throw new Error('Release missing manifest.json or main.js');
+      return assets;
+    }
+    if (res.status === 404) throw new Error('GitHub release lookup failed: 404 (the repository has no release)');
+    apiError = String(res.status);
+  } catch (e: any) {
+    if (/^(Release missing|GitHub release lookup failed: 404)/.test(String(e?.message))) throw e;
+    apiError = String(e?.message ?? e);
+  }
+  const base = `https://github.com/${repo}/releases/latest/download`;
+  const probe = await fetch(`${base}/main.js`, { method: 'HEAD', headers: { 'User-Agent': 'WebObsidian' } }).catch(() => null);
+  if (!probe?.ok) throw new Error(`GitHub release lookup failed: ${apiError}${probe ? ` (and no downloadable release: ${probe.status})` : ''}`);
+  return { 'manifest.json': `${base}/manifest.json`, 'main.js': `${base}/main.js`, 'styles.css': `${base}/styles.css` };
+}
+
+/** Assets of the release tagged with the version in the repository's root manifest.json (Obsidian's own method), or null. */
+async function taggedAssets(repo: string): Promise<Record<string, string> | null> {
+  try {
+    const head = await fetch(`https://raw.githubusercontent.com/${repo}/HEAD/manifest.json`, { headers: { 'User-Agent': 'WebObsidian' } });
+    if (!head.ok) return null;
+    const version = ((await head.json()) as { version?: unknown }).version;
+    if (typeof version !== 'string' || !/^[\w.+-]{1,64}$/.test(version)) return null;
+    const base = `https://github.com/${repo}/releases/download/${version}`;
+    const probe = await fetch(`${base}/main.js`, { method: 'HEAD', headers: { 'User-Agent': 'WebObsidian' } });
+    if (!probe.ok) return null;
+    return { 'manifest.json': `${base}/manifest.json`, 'main.js': `${base}/main.js`, 'styles.css': `${base}/styles.css` };
+  } catch {
+    return null; // any trouble: let the API / latest-release path try
+  }
+}
+
+async function fetchText(url: string, optional?: false): Promise<string>;
+async function fetchText(url: string, optional: true): Promise<string | null>;
+async function fetchText(url: string, optional = false): Promise<string | null> {
   const r = await fetch(url, { headers: { 'User-Agent': 'WebObsidian' } });
+  if (optional && r.status === 404) return null;
   if (!r.ok) throw new Error(`Download failed: ${url} (${r.status})`);
   return r.text();
 }

@@ -1,7 +1,8 @@
 # PRD — WebObsidian
 
 > Product Requirements Document
-> Phiên bản: 2.8 · Cập nhật: 2026-10-17 · Trạng thái: Draft
+> Phiên bản: 2.9 · Cập nhật: 2026-10-20 · Trạng thái: Draft
+> Changelog 2.9 (FR-8 — trình quản lý plugin + tương thích): repo riêng `webobsidian-community-plugins` (không nằm trong repo này) chạy GitHub Actions hằng ngày: đọc `community-plugins.json` của Obsidian (~9 100 plugin), tải release của từng plugin (đúng bản Obsidian cài: tag = version trong `manifest.json` ở gốc repo), phân tích `main.js` bằng regex trên code đã che chuỗi/comment và so với `capabilities.json` (sinh từ `obsidian.d.ts` + loader) → `community-plugins.json` (WebObsidian) với `compat: full|partial|broken` (+ `unknown` = chưa quét). Server tải đúng 1 file đó (ETag, cache RAM + `data/plugin-catalog.json`, tần suất `plugins.catalogRefreshHours`, mặc định 24 giờ, 0 = chỉ khi bấm "Check now"); Settings → Community Plugins có tab **Browse** (tìm kiếm, lọc đã cài/chưa cài, lọc tương thích đầy đủ/hạn chế/không tương thích, sắp xếp, phân trang) và huy hiệu tương thích cả ở tab Installed. Cài plugin đi theo cách của Obsidian (release theo tag của manifest gốc), dự phòng API `releases/latest` rồi `releases/latest/download` (không bị giới hạn 60 req/giờ). Báo cáo API: `FileSystemAdapter`/`CapacitorAdapter` được đánh giá theo `DataAdapter` của shim, `MarkdownRenderer` (object tĩnh) được nhận diện, thêm `stubKind` (partial/noop).
 > Changelog 2.8: shim khai báo Obsidian API 1.12.7; front matter giữ ngày dạng chuỗi như Obsidian; `GET /api/files/content` trên thư mục trả 404; plugin TaskNotes được hỗ trợ (view Bases, tạo task, Settings).
 > Changelog 2.7: Bases — sửa ô tại chỗ + bộ lọc UI; hover-link/page preview, HoverPopover; post-processor chạy trong Live Preview; pin/group leaf.
 > Changelog 2.6 (Bases): nhúng `![[x.base]]`/`![[x.base#View]]` và khối ```base trong ghi chú; `MarkdownRenderer.render` chạy processor của plugin.
@@ -281,6 +282,13 @@ webobsidian/
 - Plugin loader nạp `main.js` trong sandbox với **Obsidian API shim** (App, Vault, Workspace, Plugin, Notice, Setting…).
 - Browse & cài plugin từ community list (qua GitHub releases) — tải về thư mục plugins.
 - Bật/tắt plugin; lưu trạng thái trong settings.
+- **Trình quản lý + tương thích** (2.9): tab *Browse* liệt kê toàn bộ community plugin kèm mức tương thích với WebObsidian
+  (`full` = mọi API plugin dùng đều có; `partial` = chạy được nhưng một số tính năng dùng thứ chưa có; `broken` = dự kiến
+  không chạy — cần Node/Electron ở plugin desktop-only, module không có khi nạp, hoặc không có release để cài; `unknown` =
+  chưa quét). Danh sách do repo `webobsidian-community-plugins` tạo mỗi ngày (capabilities.json đọc từ repo này: `docs/plugin-api-status.json`, `web/src/lib/plugins.ts`, `obsidianUtils.ts`); server chỉ tải 1 file
+  `community-plugins.json` của repo đó (URL qua env `WEBOBSIDIAN_PLUGIN_CATALOG_URL`, không đặt từ UI vì làm server tự gọi URL).
+  Tần suất kiểm tra là cài đặt `plugins.catalogRefreshHours` (6/12/24/72/168 giờ hoặc 0 = thủ công); lỗi mạng giữ bản cũ và
+  không thử lại trong 10 phút. Giới hạn: đánh giá là heuristic tĩnh trên `main.js` (không chạy plugin) nên chỉ là chỉ dẫn.
 
 ### FR-9 · Docker
 - `Dockerfile` multi-stage (build web + server → image gọn).
@@ -571,6 +579,8 @@ GET    /api/git/status | POST /api/git/{pull,commit,push,sync}
 GET/PUT /api/settings
 GET/POST/DELETE /api/keys     # quản lý API key
 GET    /api/plugins | POST /api/plugins/install | PATCH enable
+GET    /api/plugins/catalog?q&status&compat&sort&offset&limit   # community list + tương thích (lọc/phân trang phía server)
+POST   /api/plugins/catalog/refresh                               # "Check now": tải lại ngay, bỏ qua tần suất
 GET    /api/shares            # list share (quản lý)
 POST   /api/shares            # tạo share cho 1 note {path} → {id,...}
 PATCH  /api/shares/{id}       # enable/disable {enabled}
@@ -626,7 +636,7 @@ GET    /api/v1/tags
                           "createdAt": "...", "lastUsed": "..." } ],
               "rateLimitPerMin": 120 },
   "ui":     { "theme": "obsidian-dark", "defaultView": "live" },
-  "plugins":{ "enabled": ["dataview"], "installed": [] }
+  "plugins":{ "enabled": ["dataview"], "installed": [], "catalogRefreshHours": 24 }
 }
 ```
 

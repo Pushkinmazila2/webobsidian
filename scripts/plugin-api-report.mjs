@@ -93,6 +93,19 @@ for (const n of shim.statements) {
     if (ts.isVariableStatement(n)) for (const d of n.declarationList.declarations) {
       const init = d.initializer;
       if (init && ts.isArrowFunction(init) && ts.isBlock(init.body) && trivial(init.body)) ours.stubs.add(d.name.getText());
+      // An API class that the shim implements as a plain object holding its static methods
+      // (MarkdownRenderer): its methods count as that class's static members.
+      if (init && ts.isObjectLiteralExpression(init) && api.classes.has(d.name.getText())) {
+        const members = new Map();
+        for (const p of init.properties) {
+          const name = p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) ? p.name.text : null;
+          if (!name) continue;
+          const body = ts.isMethodDeclaration(p) ? p.body
+            : ts.isPropertyAssignment(p) && (ts.isArrowFunction(p.initializer) || ts.isFunctionExpression(p.initializer)) ? p.initializer.body : null;
+          members.set(`static ${name}`, body && ts.isBlock(body) && trivial(body) ? 'stub' : 'ok');
+        }
+        ours.classes.set(d.name.getText(), { extends: undefined, members });
+      }
     }
   }
 }
@@ -135,10 +148,15 @@ const provided = {
   // classes plugins receive as app.metadataCache / app.fileManager (we expose a reduced object)
 };
 
+// Plugins reach the vault's disk adapter through `app.vault.adapter`, which in WebObsidian is the shim's `DataAdapter`.
+// The real FileSystemAdapter / CapacitorAdapter classes do not exist here (so `instanceof FileSystemAdapter` has no
+// right-hand side), but their *methods* are what plugins call on `vault.adapter`, so those are judged against DataAdapter.
+const ADAPTER_ALIAS = { FileSystemAdapter: 'DataAdapter', CapacitorAdapter: 'DataAdapter' };
+
 function ourMember(cls, member) {
   const key = `${cls}.${member}`;
   if (provided[cls]) return provided[cls].ok.includes(member) ? 'ok' : provided[cls].stub.includes(member) ? 'stub' : 'missing';
-  for (let c = ours.classes.get(cls), guard = 0; c && guard < 10; c = ours.classes.get(c.extends), guard++) {
+  for (let c = ours.classes.get(ADAPTER_ALIAS[cls] ?? cls), guard = 0; c && guard < 10; c = ours.classes.get(c.extends), guard++) {
     if (c.members.has(member)) return PARTIAL.has(key) ? 'stub' : c.members.get(member);
   }
   return 'missing';
@@ -237,10 +255,11 @@ for (const c of api.classes.values()) {
   const exported = moduleKeys.has(c.name);
   const members = [...c.members.values()].map((m) => {
     const bare = m.name.replace(/^static /, '');
-    const st = exported || provided[c.name] ? ourMember(c.name, m.name) : 'missing';
+    const st = exported || provided[c.name] || ADAPTER_ALIAS[c.name] ? ourMember(c.name, m.name) : 'missing';
     const [level, why] = st === 'ok' ? [null, ''] : classFeas(c.name, bare);
     bump(st, level);
-    return { ...m, status: st, feasibility: level, note: why };
+    // stubKind: "partial" = works with known limits (curated PARTIAL list), "noop" = present but does nothing.
+    return { ...m, status: st, ...(st === 'stub' ? { stubKind: PARTIAL.has(`${c.name}.${bare}`) ? 'partial' : 'noop' } : {}), feasibility: level, note: why };
   });
   const classStatus = !exported && !provided[c.name] ? 'missing' : 'ok';
   const [classLevel, classWhy] = classFeas(c.name, '');
@@ -252,14 +271,14 @@ for (const f of api.functions.values()) {
   const st = !impl ? 'missing' : PARTIAL.has(f.name) || ours.stubs.has(f.name) ? 'stub' : 'ok';
   const [level, why] = st === 'ok' ? [null, ''] : FUNC_RULES[f.name] ?? [E, 'Pure helper.'];
   bump(st, level);
-  rows.functions.push({ ...f, status: st, feasibility: level, note: why });
+  rows.functions.push({ ...f, status: st, ...(st === 'stub' ? { stubKind: PARTIAL.has(f.name) ? 'partial' : 'noop' } : {}), feasibility: level, note: why });
 }
 for (const f of api.consts.values()) {
   const impl = moduleKeys.has(f.name);
   const st = !impl ? 'missing' : PARTIAL.has(f.name) ? 'stub' : 'ok';
   const [level, why] = st === 'ok' ? [null, ''] : CONST_RULES[f.name] ?? [E, 'Constant.'];
   bump(st, level);
-  rows.consts.push({ ...f, status: st, feasibility: level, note: why });
+  rows.consts.push({ ...f, status: st, ...(st === 'stub' ? { stubKind: 'partial' } : {}), feasibility: level, note: why });
 }
 
 // ---- 6. write ----------------------------------------------------------------------------------------------

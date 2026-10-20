@@ -7,6 +7,17 @@ changes. The format is loosely based on [Keep a Changelog](https://keepachangelo
 ## [Unreleased]
 
 ### Added
+- **Plugin manager with compatibility ratings.** Settings → Community Plugins → *Browse* lists all community
+  plugins with a Compatible / Limited / Incompatible badge (and the reasons), filters for installed / not installed and
+  for each rating, search, sorting and paging. The ratings come from a daily GitHub Action in the separate `webobsidian-community-plugins` repository that scans
+  every plugin's release against what WebObsidian implements. How often the list is re-downloaded is a setting
+  (6 h … 1 week, or only on *Check now*). *(PRD 2.9)*
+
+### Fixed
+- Installing a community plugin now follows Obsidian's own rule (the release tagged with the version in the repository's
+  `manifest.json`), so a beta "latest release" can no longer install a different plugin (Calendar → `calendar-beta`),
+  and it no longer depends on the rate-limited GitHub API. *(PRD 2.9)*
+
 - Open-source repository scaffolding: `README.md` (with logo), `LICENSE` (MIT),
   `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, GitHub issue/PR templates and a
   CI workflow (typecheck, build, Docker image).
