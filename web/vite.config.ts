@@ -18,6 +18,12 @@ export default defineConfig({
       { find: /^process\/?$/, replacement: 'process/browser.js' },
     ],
   },
+  define: {
+    'global': 'globalThis',
+    'process.env': {},
+    // Внедряем глобальный класс Buffer для старых библиотек
+    'Buffer': ['buffer', 'Buffer'], 
+  },
   build: {
     outDir: '../server/public',
     emptyOutDir: true,
