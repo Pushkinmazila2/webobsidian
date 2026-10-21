@@ -297,6 +297,8 @@ export class DataAdapter {
   }
   getResourcePath(p: string) { return api.rawUrl(p); }
   getFullPath(p: string) { return p; }
+  /** Obsidian returns a `file://` URL; in the browser the closest thing is the file's raw URL on this server. */
+  getFilePath(p: string) { return new URL(api.rawUrl(normalizePath(p)), location.href).toString(); }
   getBasePath() { return ''; }
 }
 
@@ -716,6 +718,7 @@ export class WorkspaceItem extends Events {
   getContainer(): WorkspaceItem { return this; }
 }
 export class WorkspaceParent extends WorkspaceItem { children: WorkspaceItem[] = []; }
+export class WorkspaceTabs extends WorkspaceParent { currentTab = 0; }
 export class WorkspaceSplit extends WorkspaceParent { direction: 'vertical' | 'horizontal' = 'vertical'; }
 /** A collapsible side dock (`workspace.leftSplit` / `rightSplit`) backed by the sidebar open state. */
 export class WorkspaceSidedock extends WorkspaceSplit {
@@ -969,6 +972,9 @@ export class Workspace extends Events {
   rootSplit = new WorkspaceSplit();
   updateOptions() { pluginHost.refreshEditorExtensions(); }
   requestSaveLayout() {}
+  /** Undocumented in the typings, but Tag Wrangler & co. call it on the workspace (the Plugin method is the public one). */
+  registerHoverLinkSource(id: string, info: { display: string; defaultMod: boolean }) { pluginHost.addHoverLinkSource('', id, info); }
+  unregisterHoverLinkSource(id: string) { pluginHost.removeHoverLinkSource(id); }
   getLayout(): Record<string, unknown> { return { main: { type: 'split', children: [] }, left: { type: 'split', children: [] }, right: { type: 'split', children: [] }, active: this.getActiveFile()?.path ?? null }; }
   changeLayout(_layout: unknown): Promise<void> { return Promise.resolve(); }
   iterateRootLeaves(cb: (l: WorkspaceLeaf) => void) { for (const e of pluginHost.leaves()) if (e.location === 'main') cb(e.leaf); }
@@ -1017,11 +1023,14 @@ useStore.subscribe((s, prev) => {
   }
 });
 
+export class RenderContext { hoverPopover: HoverPopover | null = null; }
+
 export class App {
   vault = getVault();
   workspace = sharedWorkspace;
   metadataCache = sharedMetadataCache;
   keymap = new Keymap();
+  renderContext = new RenderContext();
   /** Internal embed registry: no native embeds are registered, so plugins that probe it fall back to their own UI. */
   embedRegistry = { embedByExtension: {} as Record<string, unknown>, registerExtension(ext: string, creator: unknown) { this.embedByExtension[ext] = creator; }, registerExtensions(exts: string[], creator: unknown) { exts.forEach((e) => this.registerExtension(e, creator)); }, unregisterExtension(ext: string) { delete this.embedByExtension[ext]; }, unregisterExtensions(exts: string[]) { exts.forEach((e) => delete this.embedByExtension[e]); }, isExtensionRegistered(ext: string) { return ext in this.embedByExtension; } };
   secretStorage = new SecretStorage();
@@ -1990,7 +1999,7 @@ const rawModule = {
   MarkdownRenderChild, MarkdownRenderer, EditorSuggest, SettingGroup, SecretStorage, SecretComponent,
   SettingPage, SettingTab,
   ...basesApi,
-  Keymap, Tasks, HoverPopover, PopoverState, ConfirmationModal, ConfirmationButton, renderMath, finishRenderMath, loadMathJax, loadPrism,
+  Keymap, Tasks, HoverPopover, PopoverState, WorkspaceTabs, RenderContext, ConfirmationModal, ConfirmationButton, renderMath, finishRenderMath, loadMathJax, loadPrism,
   getLanguage, loadMermaid, setTooltip, displayTooltip, FileManager, Scope, MenuItem, MenuSeparator,
   SuggestModal, FuzzySuggestModal, PopoverSuggest, AbstractInputSuggest,
   BaseComponent, ValueComponent, DisplayValueComponent, AbstractTextComponent, SearchComponent, ColorComponent, ProgressBarComponent, MomentFormatComponent,

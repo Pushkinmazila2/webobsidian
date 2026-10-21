@@ -4,6 +4,18 @@ import react from '@vitejs/plugin-react';
 // Web build outputs to ../server/public so the server can serve the SPA.
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    // Node built-ins that bundled CommonJS libraries (cipher-base, readable-stream, create-hash…) require.
+    // Without these Vite swaps them for an empty stub, which breaks e.g. `class X extends require('stream').Transform`.
+    alias: [
+      { find: /^stream$/, replacement: 'stream-browserify' },
+      { find: /^buffer$/, replacement: 'buffer/' },
+      { find: /^events$/, replacement: 'events/' },
+      { find: /^util$/, replacement: 'util/' },
+      { find: /^string_decoder$/, replacement: 'string_decoder/' },
+      { find: /^process$/, replacement: 'process/browser.js' },
+    ],
+  },
   build: {
     outDir: '../server/public',
     emptyOutDir: true,

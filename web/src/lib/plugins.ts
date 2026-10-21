@@ -11,6 +11,7 @@ import { vaultHeaders, withVault } from './vault';
 import { api } from './api';
 import { pluginHost } from './pluginHost';
 import { loadLucide } from '../components/Icon';
+import { Buffer, installNodeGlobals, nodeBuiltin, pluginProcess } from './nodeShims';
 import { App, Notice, Plugin, moment, obsidianModule, setPluginDataBackend, startMetadataCache } from './obsidianApi';
 import * as cmState from '@codemirror/state';
 import * as cmView from '@codemirror/view';
@@ -26,6 +27,7 @@ import * as lezerLr from '@lezer/lr';
 const sharedApp = new App();
 // Obsidian exposes the app as a global too (`window.app` / bare `app`); many plugins read it that way.
 (window as any).app = sharedApp;
+installNodeGlobals();
 // Obsidian also exposes moment.js globally (`window.moment`).
 (window as any).moment = moment;
 setPluginDataBackend({
@@ -72,26 +74,6 @@ const EXTERNALS: Record<string, unknown> = {
   '@codemirror/autocomplete': cmAutocomplete, '@codemirror/language': cmLanguage, '@codemirror/search': cmSearch,
   '@codemirror/lint': cmLint, '@lezer/common': lezerCommon, '@lezer/highlight': lezerHighlight, '@lezer/lr': lezerLr,
 };
-const NODE_BUILTINS = new Set(['fs', 'fs/promises', 'os', 'crypto', 'util', 'zlib', 'url', 'child_process', 'stream', 'events', 'buffer', 'http', 'https', 'net', 'tls', 'electron', 'original-fs', 'process', 'assert', 'readline', 'worker_threads', 'module', 'vm']);
-const unavailable = (mod: string, plugin: string) =>
-  new Proxy({}, {
-    get: (_t, key) => {
-      if (key === '__esModule' || key === 'then' || typeof key === 'symbol') return undefined;
-      return () => { throw new Error(`"${mod}" is not available in WebObsidian (plugin "${plugin}" called ${String(key)}())`); };
-    },
-  });
-const pathShim = {
-  sep: '/', delimiter: ':',
-  join: (...p: string[]) => p.join('/').replace(/\/+/g, '/'),
-  resolve: (...p: string[]) => p.join('/').replace(/\/+/g, '/'),
-  basename: (p: string, ext?: string) => { const b = p.split('/').pop() ?? ''; return ext && b.endsWith(ext) ? b.slice(0, -ext.length) : b; },
-  dirname: (p: string) => { const i = p.lastIndexOf('/'); return i < 0 ? '.' : i === 0 ? '/' : p.slice(0, i); },
-  extname: (p: string) => { const b = p.split('/').pop() ?? ''; const i = b.lastIndexOf('.'); return i <= 0 ? '' : b.slice(i); },
-  normalize: (p: string) => p.replace(/\/+/g, '/'),
-  isAbsolute: (p: string) => p.startsWith('/'),
-  relative: (_a: string, b: string) => b,
-};
-
 /** Evaluate one plugin's main.js against the shim. */
 async function loadPlugin(id: string, manifest: any) {
   if (loaded.has(id)) return;
@@ -102,14 +84,13 @@ async function loadPlugin(id: string, manifest: any) {
     if (name in EXTERNALS) return EXTERNALS[name];
     // Node/Electron built-ins do not exist in a browser. Many plugins only touch them on desktop-only
     // code paths, so hand back a stub that fails when *used* instead of refusing to start.
-    const bare = name.replace(/^node:/, '');
-    if (bare === 'path') return pathShim;
-    if (NODE_BUILTINS.has(bare)) return unavailable(bare, id);
+    const builtin = nodeBuiltin(name, id);
+    if (builtin !== undefined) return builtin;
     throw new Error(`Plugin "${id}" required unsupported module: ${name}`);
   };
   // The page's CSP forbids evaluating code from strings, so the plugin is loaded as a
   // same-origin <script> (the server wraps its CommonJS code, see wrapPluginCode()).
-  const registry = ((window as any).__woPlugins ??= {}) as Record<string, (m: any, e: any, r: any) => void>;
+  const registry = ((window as any).__woPlugins ??= {}) as Record<string, (m: any, e: any, r: any, p: any, b: any) => void>;
   delete registry[id];
   await new Promise<void>((ok, fail) => {
     const el = document.createElement('script');
@@ -121,7 +102,7 @@ async function loadPlugin(id: string, manifest: any) {
   const run = registry[id];
   if (!run) throw new Error(`Plugin "${id}" did not register`);
   delete registry[id];
-  run(module, module.exports, require);
+  run(module, module.exports, require, pluginProcess(), Buffer);
   const PluginClass = module.exports.default ?? module.exports;
   const instance: Plugin = new PluginClass(sharedApp, manifest);
   sharedApp.plugins.plugins[id] = instance; sharedApp.plugins.manifests[id] = manifest; sharedApp.plugins.enabledPlugins.add(id);

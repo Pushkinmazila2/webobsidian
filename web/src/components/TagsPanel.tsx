@@ -11,16 +11,17 @@ export default function TagsPanel() {
   }, []);
 
   return (
-    <div style={{ padding: 8 }}>
+    <div className="tag-container" style={{ padding: 8 }}>
       {tags.length === 0 && <div style={{ color: 'var(--text-faint)', padding: 8 }}>No tags found</div>}
       {tags.map((t) => (
         <span
           key={t.tag}
-          className="tag-pill"
+          className="tag-pill tag-pane-tag tree-item-self"
           title={`Search #${t.tag}`}
           onClick={() => searchFor(`tag:${t.tag}`)}
         >
-          #{t.tag} <span className="count">{t.count}</span>
+          <span className="tag-pane-tag-text tree-item-inner-text">#{t.tag}</span>{' '}
+          <span className="count tag-pane-tag-count">{t.count}</span>
         </span>
       ))}
     </div>

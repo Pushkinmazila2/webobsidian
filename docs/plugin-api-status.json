@@ -1,15 +1,15 @@
 {
  "apiVersion": "1.14.4",
  "totals": {
-  "ok": 609,
+  "ok": 613,
   "stub": 21,
-  "missing": 72
+  "missing": 66
  },
  "feasibility": {
-  "easy": 8,
-  "medium": 26,
-  "hard": 51,
-  "impossible": 8
+  "easy": 7,
+  "medium": 24,
+  "hard": 49,
+  "impossible": 7
  },
  "classes": [
   {
@@ -195,9 +195,9 @@
      "name": "renderContext",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Core object; remaining members are small."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "secretStorage",
@@ -1870,9 +1870,9 @@
      "name": "getFilePath",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "remove",
@@ -3677,7 +3677,7 @@
   {
    "name": "RenderContext",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "medium",
    "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.",
    "members": [
@@ -3685,9 +3685,9 @@
      "name": "hoverPopover",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -6030,7 +6030,7 @@
    "name": "WorkspaceTabs",
    "extends": "WorkspaceParent",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
    "members": [
@@ -6038,9 +6038,9 @@
      "name": "parent",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },

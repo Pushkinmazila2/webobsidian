@@ -260,5 +260,5 @@ async function fetchText(url: string, optional = false): Promise<string | null> 
  */
 export function wrapPluginCode(id: string, code: string): string {
   assertSafeId(id);
-  return `(window.__woPlugins = window.__woPlugins || {})[${JSON.stringify(id)}] = function (module, exports, require) {${code}\n};\n`;
+  return `(window.__woPlugins = window.__woPlugins || {})[${JSON.stringify(id)}] = function (module, exports, require, process, Buffer) {${code}\n};\n`;
 }

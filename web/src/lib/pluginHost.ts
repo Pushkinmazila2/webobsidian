@@ -90,6 +90,7 @@ export const pluginHost = {
   setBaseEmbedRenderer(fn: BaseEmbedRenderer | null) { baseEmbedRenderer = fn; },
   baseEmbedRenderer: (): BaseEmbedRenderer | null => baseEmbedRenderer,
   addHoverLinkSource(pluginId: string, id: string, info: { display: string; defaultMod: boolean }) { hoverLinkSources.set(id, { pluginId, ...info }); },
+  removeHoverLinkSource(id: string) { hoverLinkSources.delete(id); },
   hoverLinkSources: () => [...hoverLinkSources].map(([id, v]) => ({ id, ...v })),
   addEditorSuggest(pluginId: string, suggest: any, env: EditorSuggestReg['env']) { editorSuggests.set(`es${++procSeq}`, { pluginId, suggest, env }); },
   editorSuggests: (): EditorSuggestReg[] => [...editorSuggests.values()],

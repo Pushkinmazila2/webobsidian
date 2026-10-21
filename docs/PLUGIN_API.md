@@ -12,12 +12,12 @@ Feasibility of what is not ✅: **easy** (hours) · **medium** (a feature) · **
 
 | | count | share |
 |---|---:|---:|
-| ✅ implemented | 609 | 86.8% |
+| ✅ implemented | 613 | 87.6% |
 | 🟡 stub / partial | 21 | 3.0% |
-| ❌ missing | 72 | 10.3% |
-| **runtime API items** (class members, functions, constants, missing classes) | **702** | |
+| ❌ missing | 66 | 9.4% |
+| **runtime API items** (class members, functions, constants, missing classes) | **700** | |
 
-Not yet working (🟡 + ❌), by feasibility: **easy 8** · **medium 26** · **hard 51** · **impossible 8**.
+Not yet working (🟡 + ❌), by feasibility: **easy 7** · **medium 24** · **hard 49** · **impossible 7**.
 112 interfaces, 30 type aliases and 1 enum(s) are type-only (no runtime behaviour) and are not counted.
 
 What typical plugins need first (a plugin is usable once these exist): commands ✅, settings tab ✅, `loadData/saveData` ✅, ribbon ✅, status bar ✅, modals ✅, notices ✅, editor commands ✅ —
@@ -31,21 +31,19 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **Node/Electron modules** (`require("fs")`, `"path"`, `"electron"`, `child_process`, …) — not part of obsidian.d.ts, but many desktop-only plugins call them. A page cannot run them; such plugins show "unsupported module" and stay off. Plugins with `isDesktopOnly: true` are the likely casualties.
 - **Other plugins' internals** (`app.plugins.plugins[...]`, `app.internalPlugins`) — undocumented; reachable only if we imitate them.
 
-## Easy — not done yet (5 entries)
+## Easy — not done yet (4 entries)
 
-- **App**: `renderContext` — Core object; remaining members are small.
 - **Plugin**: `settings`, `registerCliHandler` — Core object; remaining members are small.
 - **SettingTab**: `setControlValue`, `refreshDomState` — Plain DOM widgets.
 - **TExternalFile** (class) — Backed by the files API; events come from the WebSocket change feed.
 - **Platform** — Plain object of booleans (present).
 
-## Medium — not done yet (12 entries)
+## Medium — not done yet (11 entries)
 
 - **FileView**: `setState`, `canAcceptExtension` — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
 - **MarkdownPreviewRenderer** (class) — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **MarkdownRenderer**: `app`, `hoverPopover`, `file` — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **MarkdownView**: `hoverPopover`, `clear`, `setViewData`, `showSearch` — Needs reading/live-preview modes and the leaf facade behind it.
-- **RenderContext** (class) — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **Vault**: `adapter` — DataAdapter over the files API (read/write/list/exists/mkdir/rename/stat/remove).
 - **View**: `setState`, `setEphemeralState` — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
 - **Workspace**: `requestSaveLayout`, `getMostRecentLeaf`, `getActiveViewOfType`, `handleLinkContextMenu` — Not yet analysed.
@@ -54,7 +52,7 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **livePreviewState** — Same.
 - **moment** — Bundle the real moment (≈70 KB) instead of the stub.
 
-## Hard — not done yet (14 entries)
+## Hard — not done yet (13 entries)
 
 - **MarkdownEditView** (class) — Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer.
 - **MarkdownPreviewView** (class) — Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer.
@@ -68,7 +66,6 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **WorkspaceRibbon** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceRoot** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceSidedock** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-- **WorkspaceTabs** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceWindow** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 
 ## Per-symbol detail
@@ -81,9 +78,8 @@ One line per class: ✅ implemented members, 🟡 stubs, ❌ missing. Deprecated
 ### ✅ AbstractTextComponent <small>extends ValueComponent</small>
 - ✅ `inputEl` `setDisabled` `getValue` `setValue` `setPlaceholder` `onChanged` `onChange`
 
-### 🟡 App
-- ✅ `keymap` `scope` `workspace` `vault` `metadataCache` `fileManager` `lastEvent` `secretStorage` `isDarkMode` `loadLocalStorage` `saveLocalStorage`
-- ❌ `renderContext`
+### ✅ App
+- ✅ `keymap` `scope` `workspace` `vault` `metadataCache` `fileManager` `lastEvent` `renderContext` `secretStorage` `isDarkMode` `loadLocalStorage` `saveLocalStorage`
 
 ### ✅ BaseComponent
 - ✅ `disabled` `then` `setDisabled`
@@ -159,8 +155,8 @@ Class not provided. Feasibility: **impossible** — Node/Electron filesystem or 
 ### ❌ FileSystemAdapter
 Class not provided. Feasibility: **impossible** — Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path.
 
-- ✅ `getName` `getBasePath` `mkdir` `trashSystem` `trashLocal` `rmdir` `read` `readBinary` `write` `writeBinary` `append` `process` `getResourcePath` `remove` `rename` `copy` `exists` `stat` `list` `getFullPath`
-- ❌ `appendBinary` `getFilePath` `static·readLocalFile` `static·mkdir`
+- ✅ `getName` `getBasePath` `mkdir` `trashSystem` `trashLocal` `rmdir` `read` `readBinary` `write` `writeBinary` `append` `process` `getResourcePath` `getFilePath` `remove` `rename` `copy` `exists` `stat` `list` `getFullPath`
+- ❌ `appendBinary` `static·readLocalFile` `static·mkdir`
 
 ### ✅ FileValue <small>extends NotNullValue</small>
 - ✅ `toString` `isTruthy`
@@ -275,10 +271,8 @@ Class not provided. Feasibility: **hard** — Internal editor/preview view objec
 
 ### ✅ RelativeDateValue <small>extends DateValue</small>
 
-### ❌ RenderContext
-Class not provided. Feasibility: **medium** — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
-
-- ❌ `hoverPopover`
+### ✅ RenderContext
+- ✅ `hoverPopover`
 
 ### ✅ Scope
 - ✅ `register` `unregister`
@@ -407,10 +401,8 @@ Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, t
 ### ✅ WorkspaceSplit <small>extends WorkspaceParent</small>
 - ✅ `parent`
 
-### ❌ WorkspaceTabs <small>extends WorkspaceParent</small>
-Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-
-- ❌ `parent`
+### ✅ WorkspaceTabs <small>extends WorkspaceParent</small>
+- ✅ `parent`
 
 ### ❌ WorkspaceWindow <small>extends WorkspaceContainer</small>
 Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
