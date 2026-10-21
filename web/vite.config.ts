@@ -22,7 +22,7 @@ export default defineConfig({
     'global': 'globalThis',
     'process.env': {},
     // Внедряем глобальный класс Buffer для старых библиотек
-    'Buffer': ['buffer', 'Buffer'], 
+    'window.Buffer': 'Buffer', 
   },
   build: {
     outDir: '../server/public',
