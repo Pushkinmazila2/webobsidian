@@ -1,15 +1,15 @@
 {
  "apiVersion": "1.14.4",
  "totals": {
-  "ok": 613,
-  "stub": 21,
-  "missing": 66
+  "ok": 630,
+  "stub": 12,
+  "missing": 58
  },
  "feasibility": {
-  "easy": 7,
-  "medium": 24,
-  "hard": 49,
-  "impossible": 7
+  "easy": 4,
+  "medium": 14,
+  "hard": 46,
+  "impossible": 6
  },
  "classes": [
   {
@@ -2034,10 +2034,9 @@
      "name": "setState",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "stubKind": "noop",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "onLoadFile",
@@ -2067,10 +2066,9 @@
      "name": "canAcceptExtension",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "stubKind": "noop",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -2628,9 +2626,9 @@
      "name": "hoverPopover",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Needs reading/live-preview modes and the leaf facade behind it."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getViewType",
@@ -2660,25 +2658,25 @@
      "name": "clear",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Needs reading/live-preview modes and the leaf facade behind it."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "setViewData",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Needs reading/live-preview modes and the leaf facade behind it."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "showSearch",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Needs reading/live-preview modes and the leaf facade behind it."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -3311,9 +3309,9 @@
      "name": "settings",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Core object; remaining members are small."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "onload",
@@ -3423,10 +3421,9 @@
      "name": "registerObsidianProtocolHandler",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "stubKind": "noop",
-     "feasibility": "impossible",
-     "note": "obsidian:// URLs are handled by the desktop app, not by a web page."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "registerEditorSuggest",
@@ -3440,10 +3437,9 @@
      "name": "registerCliHandler",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "stubKind": "noop",
-     "feasibility": "easy",
-     "note": "Core object; remaining members are small."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "loadData",
@@ -4233,10 +4229,9 @@
      "name": "refreshDomState",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "stubKind": "noop",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "display",
@@ -5232,10 +5227,9 @@
      "name": "setState",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "stubKind": "noop",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getEphemeralState",
@@ -5249,10 +5243,9 @@
      "name": "setEphemeralState",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "stubKind": "noop",
-     "feasibility": "medium",
-     "note": "Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getIcon",
@@ -5364,10 +5357,9 @@
      "name": "requestSaveLayout",
      "kind": "property",
      "deprecated": false,
-     "status": "stub",
-     "stubKind": "noop",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "activeEditor",
@@ -5608,9 +5600,9 @@
      "name": "handleLinkContextMenu",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "on",
@@ -5730,9 +5722,9 @@
      "name": "hoverPopover",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "openFile",
@@ -5778,10 +5770,9 @@
      "name": "loadIfDeferred",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "stubKind": "noop",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getEphemeralState",
@@ -5859,9 +5850,9 @@
      "name": "onResize",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "on",

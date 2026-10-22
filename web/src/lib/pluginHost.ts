@@ -78,6 +78,7 @@ export const pluginHost = {
   addStatus(id: string, pluginId: string, el: HTMLElement) { status.set(id, { pluginId, el }); bump(); },
   removeStatus(id: string) { if (status.delete(id)) bump(); },
   addTab(pluginId: string, name: string, tab: PluginSettingTabLike) { tabs.set(`${pluginId}:${tabs.size}:${Math.random()}`, { pluginId, name, tab }); bump(); },
+  removePostProcessor(fn: PostProcessorFn) { for (const [k, v] of postProcessors) if (v.fn === fn) postProcessors.delete(k); procVersion++; procListeners.forEach((l) => l()); },
   addPostProcessor(pluginId: string, fn: PostProcessorFn, sortOrder = 0) { postProcessors.set(`pp${++procSeq}`, { pluginId, fn, sortOrder }); procVersion++; procListeners.forEach((l) => l()); },
   addCodeBlockProcessor(pluginId: string, lang: string, fn: CodeBlockFn, sortOrder = 0) { codeBlockProcessors.set(`cb${++procSeq}`, { pluginId, lang, fn, sortOrder }); procVersion++; procListeners.forEach((l) => l()); },
   postProcessors: () => [...postProcessors.values()].sort((a, b) => a.sortOrder - b.sortOrder),
@@ -103,6 +104,7 @@ export const pluginHost = {
   addBasesView(pluginId: string, reg: BasesViewReg) { basesViews.set(reg.id, { ...reg, pluginId }); bumpLeaves(); },
   basesView: (id: string) => basesViews.get(id),
   basesViews: () => [...basesViews.values()],
+  viewTypeForExtension(ext: string): string | undefined { return extensionViews.get(ext)?.viewType; },
   addExtensions(pluginId: string, exts: string[], viewType: string) { for (const e of exts) extensionViews.set(e.toLowerCase().replace(/^\./, ''), { pluginId, viewType }); bumpLeaves(); },
   /** View type registered for a file name's extension (`.excalidraw`, `.base`, …), if any. */
   viewTypeForFile(path: string): string | undefined {

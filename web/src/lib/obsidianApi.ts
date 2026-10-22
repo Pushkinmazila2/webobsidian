@@ -185,6 +185,10 @@ export class TFile extends TAbstractFile {
   get basename() { return this.name.replace(/\.[^.]+$/, ''); }
   get extension() { return this.name.includes('.') ? this.name.split('.').pop()! : ''; }
 }
+/** A file outside the vault (Obsidian's "external" attachments); here it is addressed through the files API. */
+export class TExternalFile extends TAbstractFile {
+  getRealPath(): string { return new URL(api.rawUrl(this.path), location.href).toString(); }
+}
 export class TFolder extends TAbstractFile {
   children: TAbstractFile[] = [];
   isRoot() { return this.path === '' || this.path === '/'; }
@@ -645,6 +649,10 @@ export class MarkdownView {
   getMode() { return useStore.getState().viewMode === 'reading' ? 'preview' : 'source'; }
   getViewData() { return useStore.getState().content; }
   getDisplayText() { return this.file?.basename ?? ''; }
+  hoverPopover: HoverPopover | null = null;
+  clear() { this.editor.setValue(''); }
+  setViewData(data: string, _clear?: boolean) { this.editor.setValue(data); }
+  showSearch(_replace = false) { useStore.setState({ searchOpen: true } as any); }
 }
 export class View extends Component {
   app: App = new App();
@@ -658,9 +666,12 @@ export class View extends Component {
   getDisplayText(): string { return ''; }
   getIcon(): string { return this.icon; }
   getState(): Record<string, unknown> { return {}; }
-  async setState(_state: unknown, _result?: unknown): Promise<void> {}
-  getEphemeralState(): Record<string, unknown> { return {}; }
-  setEphemeralState(_state: unknown): void {}
+  /** Plugin views persist whatever they return from getState(); restoring is the subclass's job, the base keeps it. */
+  protected stateBag: Record<string, unknown> = {};
+  async setState(state: unknown, _result?: unknown): Promise<void> { this.stateBag = { ...((state as Record<string, unknown>) ?? {}) }; }
+  protected ephemeral: Record<string, unknown> = {};
+  getEphemeralState(): Record<string, unknown> { return { ...this.ephemeral }; }
+  setEphemeralState(state: unknown): void { this.ephemeral = { ...((state as Record<string, unknown>) ?? {}) }; }
   onOpen(): void | Promise<void> {}
   onClose(): void | Promise<void> {}
   onResize(): void {}
@@ -686,7 +697,23 @@ export class FileView extends ItemView {
   file: TFile | null = null;
   navigation = true;
   getDisplayText(): string { return this.file?.basename ?? ''; }
-  canAcceptExtension(_extension: string): boolean { return false; }
+  /** Extensions registered for this view type through `registerExtensions` are accepted. */
+  canAcceptExtension(extension: string): boolean {
+    const type = this.getViewType();
+    return !!type && pluginHost.viewTypeForExtension?.(extension.replace(/^\./, '').toLowerCase()) === type;
+  }
+  async setState(state: unknown, result?: unknown): Promise<void> {
+    await super.setState(state, result);
+    const path = (state as { file?: string } | null)?.file;
+    if (!path) return;
+    const f = getVault().getAbstractFileByPath(path);
+    if (f instanceof TFile && f !== this.file) {
+      if (this.file) await this.onUnloadFile(this.file);
+      this.file = f;
+      await this.onLoadFile(f);
+    }
+  }
+  getState(): Record<string, unknown> { return { ...super.getState(), file: this.file?.path }; }
   async onLoadFile(_file: TFile): Promise<void> {}
   async onUnloadFile(_file: TFile): Promise<void> {}
   async onRename(_file: TFile): Promise<void> {}
@@ -731,6 +758,22 @@ export class WorkspaceSidedock extends WorkspaceSplit {
   expand() { useStore.setState({ [this.key]: true } as any); }
   collapse() { useStore.setState({ [this.key]: false } as any); }
   toggle() { if (this.collapsed) this.expand(); else this.collapse(); }
+}
+/** Top-level containers: all of them live in the one browser window. */
+export class WorkspaceContainer extends WorkspaceSplit {
+  get win(): Window { return window; }
+  get doc(): Document { return document; }
+}
+export class WorkspaceRoot extends WorkspaceContainer {}
+export class WorkspaceWindow extends WorkspaceContainer {}
+export class WorkspaceFloating extends WorkspaceParent {}
+export class WorkspaceRibbon extends WorkspaceItem {}
+/** The mobile drawer has no counterpart in the web UI; it keeps a collapsed flag so plugins can drive it. */
+export class WorkspaceMobileDrawer extends WorkspaceParent {
+  collapsed = true;
+  expand() { this.collapsed = false; }
+  collapse() { this.collapsed = true; }
+  toggle() { this.collapsed = !this.collapsed; }
 }
 let leafSeq = 0;
 const VIEW_PATH = 'plugin-view://';
@@ -819,7 +862,10 @@ export class WorkspaceLeaf extends WorkspaceItem {
   group: string | null = null;
   setPinned(pinned: boolean) { this.pinned = pinned; if (this.tabPath) useStore.setState((st) => ({ tabs: st.tabs.map((t) => (t.path === this.tabPath ? { ...t, pinned } : t)) as any })); pluginHost.refreshLeaves(); }
   setPinnedFlag(p: boolean) { this.setPinned(p); }
-  async loadIfDeferred() {}
+  hoverPopover: HoverPopover | null = null;
+  deferred = false;
+  async loadIfDeferred() { this.deferred = false; }
+  onResize() { this.view?.onResize?.(); }
   setGroup(group: string) { this.group = group; }
   setGroupMember(other: WorkspaceLeaf) { this.group = other.group ?? (other.group = `group-${other.id}`); }
   setEphemeralState(s: unknown) { this.view.setEphemeralState(s); }
@@ -887,6 +933,26 @@ export class HoverPopover extends Component {
 export class MarkdownRenderChild extends Component {
   constructor(public containerEl: HTMLElement) { super(); }
 }
+/** Static registry of Reading-view post processors (the pre-1.0 API many plugins still call). */
+export class MarkdownPreviewRenderer {
+  private static owned = new Map<Function, string>();
+  static registerPostProcessor(processor: (el: HTMLElement, ctx: any) => any, sortOrder?: number) {
+    (processor as any).sortOrder = sortOrder;
+    pluginHost.addPostProcessor('', processor as any, sortOrder ?? 0);
+  }
+  static unregisterPostProcessor(processor: Function) { pluginHost.removePostProcessor?.(processor as any); }
+  /** Wrap a code-block handler as a post processor: finds `pre > code.language-<lang>` blocks and replaces them. */
+  static createCodeBlockPostProcessor(language: string, handler: (source: string, el: HTMLElement, ctx: any) => any) {
+    return (el: HTMLElement, ctx: any) => {
+      el.querySelectorAll<HTMLElement>(`pre > code.language-${language}`).forEach((code) => {
+        const pre = code.parentElement as HTMLElement;
+        const host = document.createElement('div');
+        pre.replaceWith(host);
+        void handler(code.textContent ?? '', host, ctx);
+      });
+    };
+  }
+}
 export const MarkdownRenderer = {
   /** Render Markdown into `el`, then run plugin code-block / post-processors over it (as Reading view does). */
   async render(_app: App, markdown: string, el: HTMLElement, sourcePath: string, component: Component) {
@@ -938,7 +1004,7 @@ export class Workspace extends Events {
   }
   get activeLeaf(): WorkspaceLeaf | null { return this.activePluginLeaf() ?? this.getLeaf(); }
   getActiveViewOfType<T>(type: new (...a: any[]) => T): T | null {
-    // the markdown editor is a MarkdownView, so it also answers for its ancestors (ItemView, FileView, TextFileView, …)
+    // the markdown editor is a MarkdownView, so it also answers for its ancestors (ItemView, FileView, TextFileView, TExternalFile, MarkdownPreviewRenderer, WorkspaceContainer, WorkspaceRoot, WorkspaceWindow, WorkspaceFloating, WorkspaceRibbon, WorkspaceMobileDrawer, WorkspaceSidedock, …)
     if (isType(type, MarkdownView) || [View, ItemView, FileView, TextFileView, EditableFileView].some((c) => isType(type, c))) {
       return getActiveEditor() && useStore.getState().viewMode !== 'reading' ? (new MarkdownView() as unknown as T) : null;
     }
@@ -962,7 +1028,7 @@ export class Workspace extends Events {
   }
   revealLeaf(leaf: WorkspaceLeaf) { leaf.reveal(); return Promise.resolve(); }
   setActiveLeaf(leaf: WorkspaceLeaf, _o?: unknown) { leaf.reveal(); }
-  getMostRecentLeaf() { return this.activeLeaf; }
+  getMostRecentLeaf(_root?: WorkspaceItem) { return this.activeLeaf; }
   async openLinkText(link: string, _src?: string) { await useStore.getState().openFile(/\.[a-z0-9]+$/i.test(link) ? link : `${link}.md`); }
   onLayoutReady(cb: () => void) { cb(); }
   layoutReady = true;
@@ -971,7 +1037,11 @@ export class Workspace extends Events {
   rightSplit = new WorkspaceSidedock('right');
   rootSplit = new WorkspaceSplit();
   updateOptions() { pluginHost.refreshEditorExtensions(); }
-  requestSaveLayout() {}
+  requestSaveLayout = debounce(() => { /* the layout lives in the store and is persisted by it */ }, 2000);
+  handleLinkContextMenu(menu: Menu, linktext: string, sourcePath: string) {
+    menu.addItem((i: MenuItem) => i.setTitle('Open link').setIcon('lucide-file').onClick(() => { void this.openLinkText(linktext, sourcePath); }));
+    this.trigger('hover-link-menu', menu, linktext, sourcePath);
+  }
   /** Undocumented in the typings, but Tag Wrangler & co. call it on the workspace (the Plugin method is the public one). */
   registerHoverLinkSource(id: string, info: { display: string; defaultMod: boolean }) { pluginHost.addHoverLinkSource('', id, info); }
   unregisterHoverLinkSource(id: string) { pluginHost.removeHoverLinkSource(id); }
@@ -1465,8 +1535,8 @@ export abstract class SettingTab {
   update(): void { this.settingItems = this.getSettingDefinitions(); }
   getControlValue(_key: string): unknown { return undefined; }
   setControlValue(_key: string, _value: unknown): void | Promise<void> {}
-  /** Re-render after a value changed from outside (declarative settings); the base tab just redraws. */
-  refreshDomState(): void { /* imperative tabs re-render via display() */ }
+  /** Re-render after a value changed from outside (declarative settings): redraw the tab if it is on screen. */
+  refreshDomState(): void { if (this.containerEl.isConnected) { try { this.containerEl.empty?.(); this.display(); } catch (e) { console.error(e); } } }
   abstract display(): void;
   hide(): void {}
 }
@@ -1499,6 +1569,8 @@ let dataBackend: DataBackend | null = null;
 export const setPluginDataBackend = (b: DataBackend) => { dataBackend = b; };
 
 export class Plugin extends Component {
+  /** Conventional settings holder (see PluginSettingTab.getControlValue). */
+  settings: any = undefined;
   constructor(public app: App, public manifest: { id: string; name: string; [k: string]: unknown }) { super(); }
   private pid() { return this.manifest.id; }
   addCommand(cmd: Command): Command {
@@ -1570,10 +1642,19 @@ export class Plugin extends Component {
     return true;
   }
   /** Obsidian's CLI does not exist in the browser: accepted and ignored. */
-  registerCliHandler(_command: string, _description: string, _flags: unknown, _handler: unknown) {}
+  readonly cliHandlers = new Map<string, { description: string; flags: unknown; handler: unknown }>();
+  registerCliHandler(command: string, description: string, flags: unknown, handler: unknown) { this.cliHandlers.set(command, { description, flags, handler }); }
   registerView(type: string, creator: (leaf: WorkspaceLeaf) => View) { pluginHost.addView(this.pid(), type, creator); }
   registerExtensions(exts: string[], viewType: string) { pluginHost.addExtensions(this.pid(), exts, viewType); }
-  registerObsidianProtocolHandler(_action: string, _handler: unknown) {}
+  /** `obsidian://<action>?…` — also reachable here as `?obsidian=<action>&…` on the app URL (checked once at load). */
+  registerObsidianProtocolHandler(action: string, handler: (params: Record<string, string>) => any) {
+    if (typeof handler !== 'function') return;
+    const q = new URLSearchParams(location.search);
+    if (q.get('obsidian') !== action) return;
+    const params: Record<string, string> = { action };
+    q.forEach((v, k) => { if (k !== 'obsidian') params[k] = v; });
+    setTimeout(() => { try { void handler(params); } catch (e) { console.error(e); } }, 0);
+  }
   registerHoverLinkSource(id: string, info: { display: string; defaultMod: boolean }) { pluginHost.addHoverLinkSource(this.pid(), id, info); }
   /** Remove everything this plugin attached (commands, ribbon, status bar, settings tab, listeners, timers). */
   teardown() { this.unload(); pluginHost.removePlugin(this.pid()); }

@@ -12,12 +12,12 @@ Feasibility of what is not ✅: **easy** (hours) · **medium** (a feature) · **
 
 | | count | share |
 |---|---:|---:|
-| ✅ implemented | 613 | 87.6% |
-| 🟡 stub / partial | 21 | 3.0% |
-| ❌ missing | 66 | 9.4% |
+| ✅ implemented | 630 | 90.0% |
+| 🟡 stub / partial | 12 | 1.7% |
+| ❌ missing | 58 | 8.3% |
 | **runtime API items** (class members, functions, constants, missing classes) | **700** | |
 
-Not yet working (🟡 + ❌), by feasibility: **easy 7** · **medium 24** · **hard 49** · **impossible 7**.
+Not yet working (🟡 + ❌), by feasibility: **easy 4** · **medium 14** · **hard 46** · **impossible 6**.
 112 interfaces, 30 type aliases and 1 enum(s) are type-only (no runtime behaviour) and are not counted.
 
 What typical plugins need first (a plugin is usable once these exist): commands ✅, settings tab ✅, `loadData/saveData` ✅, ribbon ✅, status bar ✅, modals ✅, notices ✅, editor commands ✅ —
@@ -27,32 +27,27 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 
 - **CapacitorAdapter** — Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path.
 - **FileSystemAdapter** — Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path.
-- **Plugin.registerObsidianProtocolHandler** — obsidian:// URLs are handled by the desktop app, not by a web page.
 - **Node/Electron modules** (`require("fs")`, `"path"`, `"electron"`, `child_process`, …) — not part of obsidian.d.ts, but many desktop-only plugins call them. A page cannot run them; such plugins show "unsupported module" and stay off. Plugins with `isDesktopOnly: true` are the likely casualties.
 - **Other plugins' internals** (`app.plugins.plugins[...]`, `app.internalPlugins`) — undocumented; reachable only if we imitate them.
 
-## Easy — not done yet (4 entries)
+## Easy — not done yet (3 entries)
 
-- **Plugin**: `settings`, `registerCliHandler` — Core object; remaining members are small.
-- **SettingTab**: `setControlValue`, `refreshDomState` — Plain DOM widgets.
+- **SettingTab**: `setControlValue` — Plain DOM widgets.
 - **TExternalFile** (class) — Backed by the files API; events come from the WebSocket change feed.
 - **Platform** — Plain object of booleans (present).
 
-## Medium — not done yet (11 entries)
+## Medium — not done yet (8 entries)
 
-- **FileView**: `setState`, `canAcceptExtension` — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
 - **MarkdownPreviewRenderer** (class) — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **MarkdownRenderer**: `app`, `hoverPopover`, `file` — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
-- **MarkdownView**: `hoverPopover`, `clear`, `setViewData`, `showSearch` — Needs reading/live-preview modes and the leaf facade behind it.
 - **Vault**: `adapter` — DataAdapter over the files API (read/write/list/exists/mkdir/rename/stat/remove).
-- **View**: `setState`, `setEphemeralState` — Custom views: doable by giving each plugin view a React host container and a tab; needs registerView + leaf facade.
-- **Workspace**: `requestSaveLayout`, `getMostRecentLeaf`, `getActiveViewOfType`, `handleLinkContextMenu` — Not yet analysed.
+- **Workspace**: `getMostRecentLeaf`, `getActiveViewOfType` — Not yet analysed.
 - **requestUrl** — Browsers enforce CORS, so the request has to go through a server proxy (with SSRF limits).
 - **setIcon** — Works, but we only ship part of the Lucide set; add the rest on demand.
 - **livePreviewState** — Same.
 - **moment** — Bundle the real moment (≈70 KB) instead of the stub.
 
-## Hard — not done yet (13 entries)
+## Hard — not done yet (12 entries)
 
 - **MarkdownEditView** (class) — Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer.
 - **MarkdownPreviewView** (class) — Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer.
@@ -61,7 +56,6 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **WorkspaceContainer** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceFloating** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceItem**: `getRoot`, `getContainer` — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-- **WorkspaceLeaf**: `hoverPopover`, `loadIfDeferred`, `onResize` — Leaves host arbitrary views; WebObsidian tabs do not expose a view container to plugins.
 - **WorkspaceMobileDrawer** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceRibbon** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceRoot** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
@@ -161,9 +155,8 @@ Class not provided. Feasibility: **impossible** — Node/Electron filesystem or 
 ### ✅ FileValue <small>extends NotNullValue</small>
 - ✅ `toString` `isTruthy`
 
-### 🟡 FileView <small>extends ItemView</small>
-- ✅ `allowNoFile` `file` `navigation` `getDisplayText` `onload` `getState` `onLoadFile` `onUnloadFile` `onRename`
-- 🟡 `setState` `canAcceptExtension`
+### ✅ FileView <small>extends ItemView</small>
+- ✅ `allowNoFile` `file` `navigation` `getDisplayText` `onload` `getState` `setState` `onLoadFile` `onUnloadFile` `onRename` `canAcceptExtension`
 
 ### ✅ FuzzySuggestModal <small>extends SuggestModal</small>
 - ✅ `getSuggestions` `renderSuggestion` `onChooseSuggestion` `getItems` `getItemText` `onChooseItem`
@@ -211,9 +204,8 @@ Class not provided. Feasibility: **hard** — Internal editor/preview view objec
 - ✅ `static·renderMarkdown`*(dep.)* `static·render`
 - ❌ `app` `hoverPopover` `file`
 
-### 🟡 MarkdownView <small>extends TextFileView</small>
-- ✅ `editor` `previewMode` `currentMode` `getViewType` `getMode` `getViewData`
-- ❌ `hoverPopover` `clear` `setViewData` `showSearch`
+### ✅ MarkdownView <small>extends TextFileView</small>
+- ✅ `editor` `previewMode` `currentMode` `hoverPopover` `getViewType` `getMode` `getViewData` `clear` `setViewData` `showSearch`
 
 ### ✅ Menu <small>extends Component</small>
 - ✅ `setNoIcon` `setUseNativeMenu` `addItem` `addSeparator` `setParentElement` `showAtMouseEvent` `showAtPosition` `onHistoryBack` `hide` `close`*(dep.)* `onHide` `static·forEvent`
@@ -247,10 +239,8 @@ Class not provided. Feasibility: **hard** — Internal editor/preview view objec
 ### ✅ ObjectValue <small>extends NotNullValue</small>
 - ✅ `static·type` `toString` `isTruthy` `isEmpty` `get`
 
-### 🟡 Plugin <small>extends Component</small>
-- ✅ `app` `manifest` `onload` `addRibbonIcon` `addStatusBarItem` `addCommand` `removeCommand` `addSettingTab` `registerView` `registerHoverLinkSource` `registerExtensions` `registerMarkdownPostProcessor` `registerMarkdownCodeBlockProcessor` `registerBasesView` `registerEditorExtension` `registerEditorSuggest` `loadData` `saveData` `onUserEnable` `onExternalSettingsChange`
-- 🟡 `registerObsidianProtocolHandler` `registerCliHandler`
-- ❌ `settings`
+### ✅ Plugin <small>extends Component</small>
+- ✅ `app` `manifest` `settings` `onload` `addRibbonIcon` `addStatusBarItem` `addCommand` `removeCommand` `addSettingTab` `registerView` `registerHoverLinkSource` `registerExtensions` `registerMarkdownPostProcessor` `registerMarkdownCodeBlockProcessor` `registerBasesView` `registerEditorExtension` `registerObsidianProtocolHandler` `registerEditorSuggest` `registerCliHandler` `loadData` `saveData` `onUserEnable` `onExternalSettingsChange`
 
 ### ✅ PluginSettingTab <small>extends SettingTab</small>
 - ✅ `getSettingDefinitions` `getControlValue` `setControlValue`
@@ -296,8 +286,8 @@ Class not provided. Feasibility: **hard** — Internal editor/preview view objec
 - ✅ `rootEl` `titlebarEl` `containerEl` `title` `display` `hide`
 
 ### 🟡 SettingTab
-- ✅ `icon` `app` `containerEl` `settingItems` `getSettingDefinitions` `update` `getControlValue` `display`*(dep.)* `hide`
-- 🟡 `setControlValue` `refreshDomState`
+- ✅ `icon` `app` `containerEl` `settingItems` `getSettingDefinitions` `update` `getControlValue` `refreshDomState` `display`*(dep.)* `hide`
+- 🟡 `setControlValue`
 
 ### ✅ SliderComponent <small>extends ValueComponent</small>
 - ✅ `sliderEl` `setDisabled` `setInstant` `setLimits` `getValue` `setValue` `getValuePretty` `setDisplayFormat` `setDynamicTooltip`*(dep.)* `onChange`
@@ -349,14 +339,12 @@ Class not provided. Feasibility: **easy** — Backed by the files API; events co
 - ✅ `configDir` `getName` `getFileByPath` `getFolderByPath` `getAbstractFileByPath` `getRoot` `create` `createBinary` `createFolder` `read` `cachedRead` `readBinary` `getResourcePath` `delete` `trash` `rename` `modify` `modifyBinary` `append` `appendBinary` `process` `copy` `getAllLoadedFiles` `getAllFolders` `static·recurseChildren` `getMarkdownFiles` `getFiles` `on`
 - 🟡 `adapter`
 
-### 🟡 View <small>extends Component</small>
-- ✅ `app` `icon` `navigation` `leaf` `containerEl` `scope` `getViewType` `getState` `getEphemeralState` `getIcon` `onResize` `getDisplayText` `onPaneMenu`
-- 🟡 `setState` `setEphemeralState`
+### ✅ View <small>extends Component</small>
+- ✅ `app` `icon` `navigation` `leaf` `containerEl` `scope` `getViewType` `getState` `setState` `getEphemeralState` `setEphemeralState` `getIcon` `onResize` `getDisplayText` `onPaneMenu`
 
 ### 🟡 Workspace <small>extends Events</small>
-- ✅ `leftSplit` `rightSplit` `leftRibbon` `rightRibbon`*(dep.)* `rootSplit` `activeLeaf`*(dep.)* `containerEl` `layoutReady` `activeEditor` `onLayoutReady` `changeLayout` `getLayout` `createLeafInParent` `createLeafBySplit` `splitActiveLeaf`*(dep.)* `duplicateLeaf`*(dep.)* `getUnpinnedLeaf`*(dep.)* `moveLeafToPopout` `openPopoutLeaf` `openLinkText` `setActiveLeaf` `getLeafById` `getGroupLeaves` `getLeftLeaf` `getRightLeaf` `ensureSideLeaf` `getActiveFile` `iterateRootLeaves` `iterateAllLeaves` `getLeavesOfType` `detachLeavesOfType` `revealLeaf` `getLastOpenFiles` `updateOptions` `on`
-- 🟡 `requestSaveLayout` `getLeaf` `getMostRecentLeaf` `getActiveViewOfType`
-- ❌ `handleLinkContextMenu`
+- ✅ `leftSplit` `rightSplit` `leftRibbon` `rightRibbon`*(dep.)* `rootSplit` `activeLeaf`*(dep.)* `containerEl` `layoutReady` `requestSaveLayout` `activeEditor` `onLayoutReady` `changeLayout` `getLayout` `createLeafInParent` `createLeafBySplit` `splitActiveLeaf`*(dep.)* `duplicateLeaf`*(dep.)* `getUnpinnedLeaf`*(dep.)* `moveLeafToPopout` `openPopoutLeaf` `openLinkText` `setActiveLeaf` `getLeafById` `getGroupLeaves` `getLeftLeaf` `getRightLeaf` `ensureSideLeaf` `getActiveFile` `iterateRootLeaves` `iterateAllLeaves` `getLeavesOfType` `detachLeavesOfType` `revealLeaf` `getLastOpenFiles` `updateOptions` `handleLinkContextMenu` `on`
+- 🟡 `getLeaf` `getMostRecentLeaf` `getActiveViewOfType`
 
 ### ❌ WorkspaceContainer <small>extends WorkspaceSplit</small>
 Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
@@ -372,10 +360,8 @@ Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, t
 - ✅ `parent`
 - 🟡 `getRoot` `getContainer`
 
-### 🟡 WorkspaceLeaf <small>extends WorkspaceItem</small>
-- ✅ `parent` `view` `openFile` `open` `getViewState` `setViewState` `isDeferred` `getEphemeralState` `setEphemeralState` `togglePinned` `setPinned` `setGroupMember` `setGroup` `detach` `getIcon` `getDisplayText` `on`
-- 🟡 `loadIfDeferred`
-- ❌ `hoverPopover` `onResize`
+### ✅ WorkspaceLeaf <small>extends WorkspaceItem</small>
+- ✅ `parent` `view` `hoverPopover` `openFile` `open` `getViewState` `setViewState` `isDeferred` `loadIfDeferred` `getEphemeralState` `setEphemeralState` `togglePinned` `setPinned` `setGroupMember` `setGroup` `detach` `getIcon` `getDisplayText` `onResize` `on`
 
 ### ❌ WorkspaceMobileDrawer <small>extends WorkspaceParent</small>
 Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
