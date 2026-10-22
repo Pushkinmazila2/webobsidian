@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import path from 'node:path';
+import fsp from 'node:fs/promises';
 import { asyncHandler } from '../middleware/error.js';
 import { requireAuth } from '../middleware/auth.js';
 import * as vault from '../services/vault.js';
@@ -33,6 +34,52 @@ filesRouter.get(
   '/',
   asyncHandler(async (_req, res) => {
     res.json(await vault.listTree());
+  }),
+);
+
+// Raw directory access for plugins (`app.vault.adapter.list/stat/exists`): unlike the tree, hidden entries
+// such as `.obsidian/plugins/x` are visible here. `.git` is never exposed.
+const adapterPath = (raw: unknown): string => {
+  const rel = String(raw ?? '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+  if (rel.split('/').some((seg) => seg === '..' || seg === '.git')) throw Object.assign(new Error('forbidden path'), { status: 400 });
+  return rel;
+};
+
+filesRouter.get(
+  '/list',
+  asyncHandler(async (req, res) => {
+    const rel = adapterPath(req.query.path);
+    let entries;
+    try { entries = await vault.listDir(rel); } catch { res.status(404).json({ error: 'not a folder' }); return; }
+    const join = (n: string) => (rel ? `${rel}/${n}` : n);
+    res.json({
+      files: entries.filter((e) => !e.isDir && e.name !== '.git').map((e) => join(e.name)),
+      folders: entries.filter((e) => e.isDir && e.name !== '.git').map((e) => join(e.name)),
+    });
+  }),
+);
+
+filesRouter.get(
+  '/stat',
+  asyncHandler(async (req, res) => {
+    const rel = adapterPath(req.query.path);
+    if (rel === '') { res.json({ type: 'folder', size: 0, ctime: 0, mtime: 0 }); return; }
+    const i = rel.lastIndexOf('/');
+    const parent = i < 0 ? '' : rel.slice(0, i);
+    const name = rel.slice(i + 1);
+    let entry;
+    try { entry = (await vault.listDir(parent)).find((e) => e.name === name); } catch { /* parent missing */ }
+    if (!entry) { res.status(404).json({ error: 'not found' }); return; }
+    if (entry.isDir) { res.json({ type: 'folder', size: 0, ctime: 0, mtime: 0 }); return; }
+    let size = 0, mtime = 0, ctime = 0;
+    try {
+      const root = await vault.getVaultRoot();
+      const st = await fsp.stat(path.resolve(root, rel));
+      size = st.size; mtime = st.mtimeMs; ctime = st.birthtimeMs || st.mtimeMs;
+    } catch {
+      try { size = (await vault.readFileBuffer(rel)).length; } catch { /* leave zeros */ }
+    }
+    res.json({ type: 'file', size, ctime, mtime });
   }),
 );
 

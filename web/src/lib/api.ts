@@ -159,6 +159,10 @@ export const api = {
     req<{ path: string; content: string }>(`/api/files/content?path=${encodeURIComponent(path)}`),
   write: (path: string, content: string) =>
     req<{ ok: true }>('/api/files/content', { method: 'PUT', body: JSON.stringify({ path, content }) }),
+  /** Directory/stat access that also sees hidden entries (`.obsidian/…`) — backs `app.vault.adapter`. */
+  adapterList: (path: string) => req<{ files: string[]; folders: string[] }>(`/api/files/list?path=${encodeURIComponent(path)}`),
+  adapterStat: (path: string) =>
+    req<{ type: 'file' | 'folder'; size: number; ctime: number; mtime: number }>(`/api/files/stat?path=${encodeURIComponent(path)}`),
   createFolder: (path: string) =>
     req<{ ok: true }>('/api/files/folder', { method: 'POST', body: JSON.stringify({ path }) }),
   rename: (from: string, to: string) =>

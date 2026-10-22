@@ -141,8 +141,7 @@ for (const p of mod.declarationList.declarations[0].initializer.properties) {
 // ---- 3. things that are partial rather than complete, or reached through instances ----------
 // (not detectable from the code shape)
 const PARTIAL = new Set([
-  'moment', 'Workspace.getLeaf', 'Workspace.getMostRecentLeaf', 'Workspace.getActiveViewOfType',
-  'Vault.adapter', 'Platform', 'setIcon', 'requestUrl',
+  'moment', 'Workspace.getLeaf', 'Workspace.getActiveViewOfType', 'Platform',
 ]);
 const provided = {
   // classes plugins receive as app.metadataCache / app.fileManager (we expose a reduced object)

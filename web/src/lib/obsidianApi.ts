@@ -15,7 +15,7 @@ import { useStore, type ContextMenuItem } from './store';
 import { getActiveEditor } from './activeEditor';
 import { FORMAT_MARKS, toggleInline, toggleLinePrefix } from './editorCommands';
 import { pluginHost } from './pluginHost';
-import { iconSvg, registerCustomIcon, unregisterCustomIcon, listIconNames } from '../components/Icon';
+import { iconSvg, hasIcon, loadLucide, registerCustomIcon, unregisterCustomIcon, listIconNames } from '../components/Icon';
 import { renderMarkdown as renderMarkdownHtml } from './markdown';
 import { runPluginProcessors } from './markdownProcessing';
 import * as utils from './obsidianUtils';
@@ -268,7 +268,17 @@ const treeChanged = async () => { try { await useStore.getState().loadTree(); } 
 
 export class DataAdapter {
   getName() { return 'WebObsidian'; }
-  async exists(p: string, _sensitive?: boolean) { try { await api.read(p); return true; } catch { return treeNode(p) !== null; } }
+  /** Existence, case-sensitive unless `sensitive === false` is *not* asked for (Obsidian: `true` = exact case). */
+  async exists(p: string, sensitive?: boolean) {
+    const st = await this.stat(p);
+    if (st) return true;
+    if (sensitive) return false;
+    const n = normalizePath(p), i = n.lastIndexOf('/');
+    try {
+      const { files, folders } = await this.list(i < 0 ? '' : n.slice(0, i));
+      return [...files, ...folders].some((x) => x.toLowerCase() === n.toLowerCase());
+    } catch { return false; }
+  }
   async read(p: string) { return readText(p); }
   async write(p: string, data: string) { const isNew = treeNode(p) === null; await writeText(p, data); if (isNew) await treeChanged(); }
   async append(p: string, data: string) { let old = ''; try { old = await readText(p); } catch { /* new file */ } await writeText(p, old + data); }
@@ -290,14 +300,27 @@ export class DataAdapter {
   async trashLocal(p: string) { await api.remove(p); await treeChanged(); }
   async rename(from: string, to: string) { await api.rename(from, to); await treeChanged(); }
   async copy(from: string, to: string) { await api.copy(from, to); await treeChanged(); }
+  /** Immediate children, hidden entries (`.obsidian`) included — asked of the server, the tree hides them. */
   async list(p: string): Promise<{ files: string[]; folders: string[] }> {
-    const n = treeNode(p);
-    const kids: any[] = n?.children ?? [];
-    return { files: kids.filter((k) => k.type === 'file').map((k) => k.path), folders: kids.filter((k) => k.type !== 'file').map((k) => k.path) };
+    const n = normalizePath(p);
+    try { return await api.adapterList(n === '/' ? '' : n); } catch {
+      const kids: any[] = treeNode(n)?.children ?? [];
+      return { files: kids.filter((k) => k.type === 'file').map((k) => k.path), folders: kids.filter((k) => k.type !== 'file').map((k) => k.path) };
+    }
   }
   async stat(p: string): Promise<{ type: 'file' | 'folder'; ctime: number; mtime: number; size: number } | null> {
-    const n = treeNode(p);
-    return n ? { type: n.type === 'file' ? 'file' : 'folder', ctime: n.ctime ?? 0, mtime: n.mtime ?? 0, size: n.size ?? 0 } : null;
+    const n = normalizePath(p);
+    try { return await api.adapterStat(n === '/' ? '' : n); } catch {
+      const t = treeNode(n);
+      return t ? { type: t.type === 'file' ? 'file' : 'folder', ctime: t.ctime ?? 0, mtime: t.mtime ?? 0, size: t.size ?? 0 } : null;
+    }
+  }
+  async appendBinary(p: string, data: ArrayBuffer) {
+    let old = new ArrayBuffer(0);
+    try { old = await this.readBinary(p); } catch { /* new file */ }
+    const out = new Uint8Array(old.byteLength + data.byteLength);
+    out.set(new Uint8Array(old), 0); out.set(new Uint8Array(data), old.byteLength);
+    await this.writeBinary(p, out.buffer);
   }
   getResourcePath(p: string) { return api.rawUrl(p); }
   getFullPath(p: string) { return p; }
@@ -749,7 +772,7 @@ export class WorkspaceTabs extends WorkspaceParent { currentTab = 0; }
 export class WorkspaceSplit extends WorkspaceParent { direction: 'vertical' | 'horizontal' = 'vertical'; }
 /** A collapsible side dock (`workspace.leftSplit` / `rightSplit`) backed by the sidebar open state. */
 export class WorkspaceSidedock extends WorkspaceSplit {
-  constructor(private side: 'left' | 'right') {
+  constructor(readonly side: 'left' | 'right') {
     super();
     Object.defineProperty(this, 'children', { get: () => pluginHost.leaves().filter((e) => e.location === side).map((e) => e.leaf as WorkspaceItem), set: () => {}, configurable: true });
   }
@@ -776,6 +799,7 @@ export class WorkspaceMobileDrawer extends WorkspaceParent {
   toggle() { this.collapsed = !this.collapsed; }
 }
 let leafSeq = 0;
+let activationClock = 0;
 const VIEW_PATH = 'plugin-view://';
 /** Put a (virtual) tab for a plugin view into the tab bar and make it the active one. */
 function openViewTab(path: string, title: string) {
@@ -836,7 +860,10 @@ export class WorkspaceLeaf extends WorkspaceItem {
     }
     await useStore.getState().openFile(f.path);
   }
+  /** Last time this leaf was revealed/activated (drives `getMostRecentLeaf`). */
+  lastActive = 0;
   reveal() {
+    this.lastActive = ++activationClock;
     if (this.location === 'right') useStore.getState().setRightPanel(`plugin:${this.id}`);
     else if (this.location === 'left') useStore.getState().setLeftPanel(`plugin:${this.id}`);
     else if (this.tabPath) openViewTab(this.tabPath, this.view.getDisplayText() || 'View');
@@ -953,18 +980,24 @@ export class MarkdownPreviewRenderer {
     };
   }
 }
-export const MarkdownRenderer = {
+/** Renders Markdown (static `render`) and, as an instance, is the render child Obsidian attaches to a rendered block. */
+export class MarkdownRenderer extends MarkdownRenderChild implements HoverParent {
+  app: App;
+  hoverPopover: HoverPopover | null = null;
+  file: TFile | null = null;
+  constructor(app: App, containerEl: HTMLElement, _queue?: unknown) { super(containerEl); this.app = app; }
   /** Render Markdown into `el`, then run plugin code-block / post-processors over it (as Reading view does). */
-  async render(_app: App, markdown: string, el: HTMLElement, sourcePath: string, component: Component) {
+  static async render(_app: App, markdown: string, el: HTMLElement, sourcePath: string, component: Component) {
     el.innerHTML = await renderMarkdownHtml(markdown, { rawUrl: (p: string) => api.rawUrl(p) });
     const children: { unload(): void }[] = [];
     runPluginProcessors(el, sourcePath, markdown, children);
     component?.register?.(() => { for (const c of children.splice(0)) { try { c.unload(); } catch { /* ignore */ } } });
-  },
-  async renderMarkdown(markdown: string, el: HTMLElement, sourcePath: string, component: Component) {
+  }
+  static async renderMarkdown(markdown: string, el: HTMLElement, sourcePath: string, component: Component) {
     return MarkdownRenderer.render(new App(), markdown, el, sourcePath, component);
-  },
-};
+  }
+}
+
 
 // ---- Settings groups & secrets --------------------------------------------------------------
 export class SettingGroup {
@@ -1028,7 +1061,17 @@ export class Workspace extends Events {
   }
   revealLeaf(leaf: WorkspaceLeaf) { leaf.reveal(); return Promise.resolve(); }
   setActiveLeaf(leaf: WorkspaceLeaf, _o?: unknown) { leaf.reveal(); }
-  getMostRecentLeaf(_root?: WorkspaceItem) { return this.activeLeaf; }
+  /** The leaf used last: the editor when a note is open in it, otherwise the plugin view revealed most recently (within `root` if given). */
+  getMostRecentLeaf(root?: WorkspaceItem): WorkspaceLeaf | null {
+    const side = root instanceof WorkspaceSidedock ? (root as any).side as 'left' | 'right' : null;
+    const pool = pluginHost.leaves().filter((e) => (side ? e.location === side : e.location === 'main')).map((e) => e.leaf as WorkspaceLeaf);
+    const recent = pool.sort((a, b) => b.lastActive - a.lastActive)[0] ?? null;
+    if (side) return recent;
+    const active = this.activePluginLeaf();
+    if (active) return active;
+    if (getActiveEditor() && useStore.getState().viewMode !== 'reading') return this.getLeaf();
+    return recent ?? (useStore.getState().activePath ? this.getLeaf() : null);
+  }
   async openLinkText(link: string, _src?: string) { await useStore.getState().openFile(/\.[a-z0-9]+$/i.test(link) ? link : `${link}.md`); }
   onLayoutReady(cb: () => void) { cb(); }
   layoutReady = true;
@@ -1533,8 +1576,10 @@ export abstract class SettingTab {
   settingItems: unknown[] = [];
   getSettingDefinitions(): unknown[] { return []; }
   update(): void { this.settingItems = this.getSettingDefinitions(); }
-  getControlValue(_key: string): unknown { return undefined; }
-  setControlValue(_key: string, _value: unknown): void | Promise<void> {}
+  /** Values of declarative controls, keyed by their setting key; subclasses may override both accessors to persist elsewhere. */
+  protected controlValues = new Map<string, unknown>();
+  getControlValue(key: string): unknown { return this.controlValues.get(key); }
+  setControlValue(key: string, value: unknown): void | Promise<void> { this.controlValues.set(key, value); }
   /** Re-render after a value changed from outside (declarative settings): redraw the tab if it is on screen. */
   refreshDomState(): void { if (this.containerEl.isConnected) { try { this.containerEl.empty?.(); this.display(); } catch (e) { console.error(e); } } }
   abstract display(): void;
@@ -1682,9 +1727,41 @@ const b64decode = (b64: string): ArrayBuffer => { const s = atob(b64); const u =
  * Obsidian's `requestUrl`: the request is made by the server (browsers would block it with CORS), within
  * its SSRF limits. Like Obsidian, a status >= 400 throws unless `throw: false`.
  */
+function isLocalTarget(url: string): boolean {
+  let h: string;
+  try { h = new URL(url, location.href).hostname.replace(/^\[|\]$/g, '').toLowerCase(); } catch { return false; }
+  if (h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local') || h === '::1') return true;
+  const m = /^(\d+)\.(\d+)\.\d+\.\d+$/.exec(h);
+  if (!m) return false;
+  const a = +m[1], b = +m[2];
+  return a === 127 || a === 10 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31) || (a === 169 && b === 254);
+}
+async function directRequest(r: RequestUrlParam) {
+  const headers: Record<string, string> = { ...(r.headers ?? {}) };
+  if (r.contentType) headers['Content-Type'] = r.contentType;
+  const body = typeof r.body === 'string' || !r.body ? (r.body as string | undefined) : (r.body as ArrayBuffer);
+  const res = await fetch(r.url, { method: r.method ?? 'GET', headers, body: /^(GET|HEAD)$/i.test(r.method ?? 'GET') ? undefined : body, credentials: 'omit' });
+  const buf = await res.arrayBuffer();
+  const outHeaders: Record<string, string> = {};
+  res.headers.forEach((v, k) => { outHeaders[k.toLowerCase()] = v; });
+  const out = {
+    status: res.status, headers: outHeaders, arrayBuffer: buf,
+    get text() { return new TextDecoder().decode(buf); },
+    get json() { return JSON.parse(new TextDecoder().decode(buf)); },
+  };
+  if (res.status >= 400 && r.throw !== false) throw Object.assign(new Error(`Request failed, status ${res.status}`), { status: res.status, headers: outHeaders, response: out });
+  return out;
+}
 export function requestUrl(req: string | RequestUrlParam): Promise<{ status: number; headers: Record<string, string>; arrayBuffer: ArrayBuffer; text: string; json: any }> & { then: Promise<any>['then'] } {
   const r: RequestUrlParam = typeof req === 'string' ? { url: req } : req;
   const run = async () => {
+    // Loopback/LAN targets (Ollama, local APIs…) are only reachable from the browser's own machine and the server proxy refuses
+    // them (SSRF guard), so ask directly; if the browser blocks it (CORS) and the call is safe to repeat, fall back to the proxy.
+    if (isLocalTarget(r.url)) {
+      try { return await directRequest(r); } catch (e) {
+        if ((e as { status?: number }).status || !/^(GET|HEAD)$/i.test(r.method ?? 'GET')) throw e;
+      }
+    }
     const payload: Parameters<typeof api.proxyRequest>[0] = { url: r.url, method: r.method, headers: r.headers, contentType: r.contentType };
     if (typeof r.body === 'string') payload.body = r.body; else if (r.body) payload.bodyBase64 = b64encode(r.body);
     const res = await api.proxyRequest(payload);
@@ -1702,8 +1779,20 @@ export function requestUrl(req: string | RequestUrlParam): Promise<{ status: num
   return run() as any;
 }
 
-export function setIcon(el: HTMLElement, name: string) { el.innerHTML = iconSvg(name, 16); }
-export const getIcon = (name: string): SVGSVGElement | null => { const t = document.createElement('div'); t.innerHTML = iconSvg(name, 16); return t.firstElementChild as SVGSVGElement | null; };
+/** Obsidian-style icon markup: `<svg class="svg-icon lucide-NAME">` (themes and plugins size it through CSS). */
+const iconMarkup = (name: string) => iconSvg(name, 16).replace('<svg ', `<svg class="svg-icon ${/^lucide-/.test(name) ? name : `lucide-${name}`}" `);
+/** Sets the icon at once; if the Lucide set (a lazy chunk) has not been loaded yet, fills in the real glyph as soon as it is. */
+export function setIcon(el: HTMLElement, name: string) {
+  el.innerHTML = iconMarkup(name);
+  if (!hasIcon(name)) void loadLucide().then(() => { if (hasIcon(name) && el.isConnected !== false) el.innerHTML = iconMarkup(name); });
+}
+export const getIcon = (name: string): SVGSVGElement | null => {
+  const t = document.createElement('div');
+  t.innerHTML = iconMarkup(name);
+  const svg = t.firstElementChild as SVGSVGElement | null;
+  if (svg && !hasIcon(name)) void loadLucide().then(() => { if (hasIcon(name)) svg.innerHTML = (new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${iconMarkup(name)}</svg>`, 'image/svg+xml').querySelector('svg svg')?.innerHTML ?? svg.innerHTML); });
+  return svg;
+};
 export const addIcon = (name: string, svg: string) => { registerCustomIcon(name, svg); };
 export const removeIcon = (name: string) => { unregisterCustomIcon(name); };
 export async function request(req: string | RequestUrlParam): Promise<string> { return (await requestUrl(req)).text; }

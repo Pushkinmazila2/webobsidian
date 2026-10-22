@@ -12,12 +12,12 @@ Feasibility of what is not ✅: **easy** (hours) · **medium** (a feature) · **
 
 | | count | share |
 |---|---:|---:|
-| ✅ implemented | 650 | 94.1% |
-| 🟡 stub / partial | 12 | 1.7% |
-| ❌ missing | 29 | 4.2% |
+| ✅ implemented | 660 | 95.5% |
+| 🟡 stub / partial | 7 | 1.0% |
+| ❌ missing | 24 | 3.5% |
 | **runtime API items** (class members, functions, constants, missing classes) | **691** | |
 
-Not yet working (🟡 + ❌), by feasibility: **easy 2** · **medium 10** · **hard 23** · **impossible 6**.
+Not yet working (🟡 + ❌), by feasibility: **easy 1** · **medium 3** · **hard 23** · **impossible 4**.
 112 interfaces, 30 type aliases and 1 enum(s) are type-only (no runtime behaviour) and are not counted.
 
 What typical plugins need first (a plugin is usable once these exist): commands ✅, settings tab ✅, `loadData/saveData` ✅, ribbon ✅, status bar ✅, modals ✅, notices ✅, editor commands ✅ —
@@ -30,18 +30,13 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **Node/Electron modules** (`require("fs")`, `"path"`, `"electron"`, `child_process`, …) — not part of obsidian.d.ts, but many desktop-only plugins call them. A page cannot run them; such plugins show "unsupported module" and stay off. Plugins with `isDesktopOnly: true` are the likely casualties.
 - **Other plugins' internals** (`app.plugins.plugins[...]`, `app.internalPlugins`) — undocumented; reachable only if we imitate them.
 
-## Easy — not done yet (2 entries)
+## Easy — not done yet (1 entries)
 
-- **SettingTab**: `setControlValue` — Plain DOM widgets.
 - **Platform** — Plain object of booleans (present).
 
-## Medium — not done yet (7 entries)
+## Medium — not done yet (3 entries)
 
-- **MarkdownRenderer**: `app`, `hoverPopover`, `file` — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
-- **Vault**: `adapter` — DataAdapter over the files API (read/write/list/exists/mkdir/rename/stat/remove).
-- **Workspace**: `getMostRecentLeaf`, `getActiveViewOfType` — Not yet analysed.
-- **requestUrl** — Browsers enforce CORS, so the request has to go through a server proxy (with SSRF limits).
-- **setIcon** — Works, but we only ship part of the Lucide set; add the rest on demand.
+- **Workspace**: `getActiveViewOfType` — Not yet analysed.
 - **livePreviewState** — Same.
 - **moment** — Bundle the real moment (≈70 KB) instead of the stub.
 
@@ -93,8 +88,7 @@ One line per class: ✅ implemented members, 🟡 stubs, ❌ missing. Deprecated
 ### ❌ CapacitorAdapter
 Class not provided. Feasibility: **impossible** — Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path.
 
-- ✅ `getName` `mkdir` `trashSystem` `trashLocal` `rmdir` `read` `readBinary` `write` `writeBinary` `append` `process` `getResourcePath` `remove` `rename` `copy` `exists` `stat` `list` `getFullPath`
-- ❌ `appendBinary`
+- ✅ `getName` `mkdir` `trashSystem` `trashLocal` `rmdir` `read` `readBinary` `write` `writeBinary` `append` `appendBinary` `process` `getResourcePath` `remove` `rename` `copy` `exists` `stat` `list` `getFullPath`
 
 ### ✅ ColorComponent <small>extends ValueComponent</small>
 - ✅ `setDisabled` `getValue` `getValueRgb` `getValueHsl` `setValue` `setValueRgb` `setValueHsl` `onChange`
@@ -140,8 +134,8 @@ Class not provided. Feasibility: **impossible** — Node/Electron filesystem or 
 ### ❌ FileSystemAdapter
 Class not provided. Feasibility: **impossible** — Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path.
 
-- ✅ `getName` `getBasePath` `mkdir` `trashSystem` `trashLocal` `rmdir` `read` `readBinary` `write` `writeBinary` `append` `process` `getResourcePath` `getFilePath` `remove` `rename` `copy` `exists` `stat` `list` `getFullPath`
-- ❌ `appendBinary` `static·readLocalFile` `static·mkdir`
+- ✅ `getName` `getBasePath` `mkdir` `trashSystem` `trashLocal` `rmdir` `read` `readBinary` `write` `writeBinary` `append` `appendBinary` `process` `getResourcePath` `getFilePath` `remove` `rename` `copy` `exists` `stat` `list` `getFullPath`
+- ❌ `static·readLocalFile` `static·mkdir`
 
 ### ✅ FileValue <small>extends NotNullValue</small>
 - ✅ `toString` `isTruthy`
@@ -189,9 +183,8 @@ Class not provided. Feasibility: **hard** — Internal editor/preview view objec
 ### ✅ MarkdownRenderChild <small>extends Component</small>
 - ✅ `containerEl`
 
-### 🟡 MarkdownRenderer <small>extends MarkdownRenderChild</small>
-- ✅ `static·renderMarkdown`*(dep.)* `static·render`
-- ❌ `app` `hoverPopover` `file`
+### ✅ MarkdownRenderer <small>extends MarkdownRenderChild</small>
+- ✅ `app` `hoverPopover` `file` `static·renderMarkdown`*(dep.)* `static·render`
 
 ### ✅ MarkdownView <small>extends TextFileView</small>
 - ✅ `editor` `previewMode` `currentMode` `hoverPopover` `getViewType` `getMode` `getViewData` `clear` `setViewData` `showSearch`
@@ -274,9 +267,8 @@ Class not provided. Feasibility: **hard** — Internal editor/preview view objec
 ### ✅ SettingPage
 - ✅ `rootEl` `titlebarEl` `containerEl` `title` `display` `hide`
 
-### 🟡 SettingTab
-- ✅ `icon` `app` `containerEl` `settingItems` `getSettingDefinitions` `update` `getControlValue` `refreshDomState` `display`*(dep.)* `hide`
-- 🟡 `setControlValue`
+### ✅ SettingTab
+- ✅ `icon` `app` `containerEl` `settingItems` `getSettingDefinitions` `update` `getControlValue` `setControlValue` `refreshDomState` `display`*(dep.)* `hide`
 
 ### ✅ SliderComponent <small>extends ValueComponent</small>
 - ✅ `sliderEl` `setDisabled` `setInstant` `setLimits` `getValue` `setValue` `getValuePretty` `setDisplayFormat` `setDynamicTooltip`*(dep.)* `onChange`
@@ -322,16 +314,15 @@ Class not provided. Feasibility: **hard** — Internal editor/preview view objec
 ### ✅ ValueComponent <small>extends BaseComponent</small>
 - ✅ `registerOptionListener` `getValue` `setValue`
 
-### 🟡 Vault <small>extends Events</small>
-- ✅ `configDir` `getName` `getFileByPath` `getFolderByPath` `getAbstractFileByPath` `getRoot` `create` `createBinary` `createFolder` `read` `cachedRead` `readBinary` `getResourcePath` `delete` `trash` `rename` `modify` `modifyBinary` `append` `appendBinary` `process` `copy` `getAllLoadedFiles` `getAllFolders` `static·recurseChildren` `getMarkdownFiles` `getFiles` `on`
-- 🟡 `adapter`
+### ✅ Vault <small>extends Events</small>
+- ✅ `adapter` `configDir` `getName` `getFileByPath` `getFolderByPath` `getAbstractFileByPath` `getRoot` `create` `createBinary` `createFolder` `read` `cachedRead` `readBinary` `getResourcePath` `delete` `trash` `rename` `modify` `modifyBinary` `append` `appendBinary` `process` `copy` `getAllLoadedFiles` `getAllFolders` `static·recurseChildren` `getMarkdownFiles` `getFiles` `on`
 
 ### ✅ View <small>extends Component</small>
 - ✅ `app` `icon` `navigation` `leaf` `containerEl` `scope` `getViewType` `getState` `setState` `getEphemeralState` `setEphemeralState` `getIcon` `onResize` `getDisplayText` `onPaneMenu`
 
 ### 🟡 Workspace <small>extends Events</small>
-- ✅ `leftSplit` `rightSplit` `leftRibbon` `rightRibbon`*(dep.)* `rootSplit` `activeLeaf`*(dep.)* `containerEl` `layoutReady` `requestSaveLayout` `activeEditor` `onLayoutReady` `changeLayout` `getLayout` `createLeafInParent` `createLeafBySplit` `splitActiveLeaf`*(dep.)* `duplicateLeaf`*(dep.)* `getUnpinnedLeaf`*(dep.)* `moveLeafToPopout` `openPopoutLeaf` `openLinkText` `setActiveLeaf` `getLeafById` `getGroupLeaves` `getLeftLeaf` `getRightLeaf` `ensureSideLeaf` `getActiveFile` `iterateRootLeaves` `iterateAllLeaves` `getLeavesOfType` `detachLeavesOfType` `revealLeaf` `getLastOpenFiles` `updateOptions` `handleLinkContextMenu` `on`
-- 🟡 `getLeaf` `getMostRecentLeaf` `getActiveViewOfType`
+- ✅ `leftSplit` `rightSplit` `leftRibbon` `rightRibbon`*(dep.)* `rootSplit` `activeLeaf`*(dep.)* `containerEl` `layoutReady` `requestSaveLayout` `activeEditor` `onLayoutReady` `changeLayout` `getLayout` `createLeafInParent` `createLeafBySplit` `splitActiveLeaf`*(dep.)* `duplicateLeaf`*(dep.)* `getUnpinnedLeaf`*(dep.)* `moveLeafToPopout` `openPopoutLeaf` `openLinkText` `setActiveLeaf` `getLeafById` `getGroupLeaves` `getMostRecentLeaf` `getLeftLeaf` `getRightLeaf` `ensureSideLeaf` `getActiveFile` `iterateRootLeaves` `iterateAllLeaves` `getLeavesOfType` `detachLeavesOfType` `revealLeaf` `getLastOpenFiles` `updateOptions` `handleLinkContextMenu` `on`
+- 🟡 `getLeaf` `getActiveViewOfType`
 
 ### ✅ WorkspaceContainer <small>extends WorkspaceSplit</small>
 - ✅ `win` `doc`
@@ -409,11 +400,11 @@ Class not provided. Feasibility: **hard** — Internal editor/preview view objec
 | `renderMath` | ✅ |  |  |
 | `renderResults` | ✅ |  |  |
 | `request` | ✅ |  |  |
-| `requestUrl` | 🟡 | medium | Browsers enforce CORS, so the request has to go through a server proxy (with SSRF limits). |
+| `requestUrl` | ✅ |  |  |
 | `requireApiVersion` | ✅ |  |  |
 | `resolveSubpath` | ✅ |  |  |
 | `sanitizeHTMLToDom` | ✅ |  |  |
-| `setIcon` | 🟡 | medium | Works, but we only ship part of the Lucide set; add the rest on demand. |
+| `setIcon` | ✅ |  |  |
 | `setTooltip` | ✅ |  |  |
 | `sortSearchResults` | ✅ |  |  |
 | `stringifyYaml` | ✅ |  |  |

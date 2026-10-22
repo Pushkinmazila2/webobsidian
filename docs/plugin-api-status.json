@@ -1,15 +1,15 @@
 {
  "apiVersion": "1.14.4",
  "totals": {
-  "ok": 650,
-  "stub": 12,
-  "missing": 29
+  "ok": 660,
+  "stub": 7,
+  "missing": 24
  },
  "feasibility": {
-  "easy": 2,
-  "medium": 10,
+  "easy": 1,
+  "medium": 3,
   "hard": 23,
-  "impossible": 6
+  "impossible": 4
  },
  "classes": [
   {
@@ -719,9 +719,9 @@
      "name": "appendBinary",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "process",
@@ -1846,9 +1846,9 @@
      "name": "appendBinary",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "impossible",
-     "note": "Node/Electron filesystem or device adapter. The vault may live in GitHub, and a browser has no disk path."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "process",
@@ -2552,25 +2552,25 @@
      "name": "app",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "hoverPopover",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "file",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "static renderMarkdown",
@@ -4220,10 +4220,9 @@
      "name": "setControlValue",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "stubKind": "noop",
-     "feasibility": "easy",
-     "note": "Plain DOM widgets."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "refreshDomState",
@@ -4920,10 +4919,9 @@
      "name": "adapter",
      "kind": "property",
      "deprecated": false,
-     "status": "stub",
-     "stubKind": "partial",
-     "feasibility": "medium",
-     "note": "DataAdapter over the files API (read/write/list/exists/mkdir/rename/stat/remove)."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "configDir",
@@ -5494,10 +5492,9 @@
      "name": "getMostRecentLeaf",
      "kind": "method",
      "deprecated": false,
-     "status": "stub",
-     "stubKind": "partial",
-     "feasibility": "medium",
-     "note": "Not yet analysed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "getLeftLeaf",
@@ -6325,10 +6322,9 @@
   {
    "name": "requestUrl",
    "deprecated": false,
-   "status": "stub",
-   "stubKind": "partial",
-   "feasibility": "medium",
-   "note": "Browsers enforce CORS, so the request has to go through a server proxy (with SSRF limits)."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "requireApiVersion",
@@ -6354,10 +6350,9 @@
   {
    "name": "setIcon",
    "deprecated": false,
-   "status": "stub",
-   "stubKind": "partial",
-   "feasibility": "medium",
-   "note": "Works, but we only ship part of the Lucide set; add the rest on demand."
+   "status": "ok",
+   "feasibility": null,
+   "note": ""
   },
   {
    "name": "setTooltip",
