@@ -12,12 +12,12 @@ Feasibility of what is not ✅: **easy** (hours) · **medium** (a feature) · **
 
 | | count | share |
 |---|---:|---:|
-| ✅ implemented | 630 | 90.0% |
+| ✅ implemented | 650 | 94.1% |
 | 🟡 stub / partial | 12 | 1.7% |
-| ❌ missing | 58 | 8.3% |
-| **runtime API items** (class members, functions, constants, missing classes) | **700** | |
+| ❌ missing | 29 | 4.2% |
+| **runtime API items** (class members, functions, constants, missing classes) | **691** | |
 
-Not yet working (🟡 + ❌), by feasibility: **easy 4** · **medium 14** · **hard 46** · **impossible 6**.
+Not yet working (🟡 + ❌), by feasibility: **easy 2** · **medium 10** · **hard 23** · **impossible 6**.
 112 interfaces, 30 type aliases and 1 enum(s) are type-only (no runtime behaviour) and are not counted.
 
 What typical plugins need first (a plugin is usable once these exist): commands ✅, settings tab ✅, `loadData/saveData` ✅, ribbon ✅, status bar ✅, modals ✅, notices ✅, editor commands ✅ —
@@ -30,15 +30,13 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **Node/Electron modules** (`require("fs")`, `"path"`, `"electron"`, `child_process`, …) — not part of obsidian.d.ts, but many desktop-only plugins call them. A page cannot run them; such plugins show "unsupported module" and stay off. Plugins with `isDesktopOnly: true` are the likely casualties.
 - **Other plugins' internals** (`app.plugins.plugins[...]`, `app.internalPlugins`) — undocumented; reachable only if we imitate them.
 
-## Easy — not done yet (3 entries)
+## Easy — not done yet (2 entries)
 
 - **SettingTab**: `setControlValue` — Plain DOM widgets.
-- **TExternalFile** (class) — Backed by the files API; events come from the WebSocket change feed.
 - **Platform** — Plain object of booleans (present).
 
-## Medium — not done yet (8 entries)
+## Medium — not done yet (7 entries)
 
-- **MarkdownPreviewRenderer** (class) — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **MarkdownRenderer**: `app`, `hoverPopover`, `file` — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
 - **Vault**: `adapter` — DataAdapter over the files API (read/write/list/exists/mkdir/rename/stat/remove).
 - **Workspace**: `getMostRecentLeaf`, `getActiveViewOfType` — Not yet analysed.
@@ -47,20 +45,13 @@ then **MetadataCache**, **markdown post-processors**, **custom views**, **editor
 - **livePreviewState** — Same.
 - **moment** — Bundle the real moment (≈70 KB) instead of the stub.
 
-## Hard — not done yet (12 entries)
+## Hard — not done yet (5 entries)
 
 - **MarkdownEditView** (class) — Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer.
 - **MarkdownPreviewView** (class) — Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer.
 - **NullValue**: `isTruthy` — Bases (database views over notes). Needs a query engine, a properties index and a table/board UI that WebObsidian does not have.
 - **Workspace**: `getLeaf` — Only a facade that opens a file is realistic.
-- **WorkspaceContainer** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-- **WorkspaceFloating** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 - **WorkspaceItem**: `getRoot`, `getContainer` — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-- **WorkspaceMobileDrawer** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-- **WorkspaceRibbon** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-- **WorkspaceRoot** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-- **WorkspaceSidedock** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-- **WorkspaceWindow** (class) — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
 
 ## Per-symbol detail
 
@@ -187,10 +178,8 @@ Class not provided. Feasibility: **hard** — Internal editor/preview view objec
 
 - ❌ `app` `hoverPopover` `clear` `get` `set` `file` `getSelection` `getScroll` `applyScroll`
 
-### ❌ MarkdownPreviewRenderer
-Class not provided. Feasibility: **medium** — We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.
-
-- ❌ `static·registerPostProcessor` `static·unregisterPostProcessor` `static·createCodeBlockPostProcessor`
+### ✅ MarkdownPreviewRenderer
+- ✅ `static·registerPostProcessor` `static·unregisterPostProcessor` `static·createCodeBlockPostProcessor`
 
 ### ❌ MarkdownPreviewView <small>extends MarkdownRenderer</small>
 Class not provided. Feasibility: **hard** — Internal editor/preview view objects; our editor is a single CodeMirror view and a separate renderer.
@@ -310,10 +299,8 @@ Class not provided. Feasibility: **hard** — Internal editor/preview view objec
 
 ### ✅ TextComponent <small>extends AbstractTextComponent</small>
 
-### ❌ TExternalFile <small>extends TFile</small>
-Class not provided. Feasibility: **easy** — Backed by the files API; events come from the WebSocket change feed.
-
-- ❌ `getRealPath`
+### ✅ TExternalFile <small>extends TFile</small>
+- ✅ `getRealPath`
 
 ### ✅ TextFileView <small>extends EditableFileView</small>
 - ✅ `data` `requestSave` `onUnloadFile` `onLoadFile` `save` `getViewData` `setViewData` `clear`
@@ -346,15 +333,11 @@ Class not provided. Feasibility: **easy** — Backed by the files API; events co
 - ✅ `leftSplit` `rightSplit` `leftRibbon` `rightRibbon`*(dep.)* `rootSplit` `activeLeaf`*(dep.)* `containerEl` `layoutReady` `requestSaveLayout` `activeEditor` `onLayoutReady` `changeLayout` `getLayout` `createLeafInParent` `createLeafBySplit` `splitActiveLeaf`*(dep.)* `duplicateLeaf`*(dep.)* `getUnpinnedLeaf`*(dep.)* `moveLeafToPopout` `openPopoutLeaf` `openLinkText` `setActiveLeaf` `getLeafById` `getGroupLeaves` `getLeftLeaf` `getRightLeaf` `ensureSideLeaf` `getActiveFile` `iterateRootLeaves` `iterateAllLeaves` `getLeavesOfType` `detachLeavesOfType` `revealLeaf` `getLastOpenFiles` `updateOptions` `handleLinkContextMenu` `on`
 - 🟡 `getLeaf` `getMostRecentLeaf` `getActiveViewOfType`
 
-### ❌ WorkspaceContainer <small>extends WorkspaceSplit</small>
-Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
+### ✅ WorkspaceContainer <small>extends WorkspaceSplit</small>
+- ✅ `win` `doc`
 
-- ❌ `win` `doc`
-
-### ❌ WorkspaceFloating <small>extends WorkspaceParent</small>
-Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-
-- ❌ `parent`
+### ✅ WorkspaceFloating <small>extends WorkspaceParent</small>
+- ✅ `parent`
 
 ### 🟡 WorkspaceItem <small>extends Events</small>
 - ✅ `parent`
@@ -363,26 +346,18 @@ Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, t
 ### ✅ WorkspaceLeaf <small>extends WorkspaceItem</small>
 - ✅ `parent` `view` `hoverPopover` `openFile` `open` `getViewState` `setViewState` `isDeferred` `loadIfDeferred` `getEphemeralState` `setEphemeralState` `togglePinned` `setPinned` `setGroupMember` `setGroup` `detach` `getIcon` `getDisplayText` `onResize` `on`
 
-### ❌ WorkspaceMobileDrawer <small>extends WorkspaceParent</small>
-Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-
-- ❌ `parent` `collapsed` `expand` `collapse` `toggle`
+### ✅ WorkspaceMobileDrawer <small>extends WorkspaceParent</small>
+- ✅ `parent` `collapsed` `expand` `collapse` `toggle`
 
 ### ✅ WorkspaceParent <small>extends WorkspaceItem</small>
 
-### ❌ WorkspaceRibbon
-Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
+### ✅ WorkspaceRibbon
 
+### ✅ WorkspaceRoot <small>extends WorkspaceContainer</small>
+- ✅ `win` `doc`
 
-### ❌ WorkspaceRoot <small>extends WorkspaceContainer</small>
-Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-
-- ❌ `win` `doc`
-
-### ❌ WorkspaceSidedock <small>extends WorkspaceSplit</small>
-Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-
-- ❌ `collapsed` `toggle` `collapse` `expand`
+### ✅ WorkspaceSidedock <small>extends WorkspaceSplit</small>
+- ✅ `collapsed` `toggle` `collapse` `expand`
 
 ### ✅ WorkspaceSplit <small>extends WorkspaceParent</small>
 - ✅ `parent`
@@ -390,10 +365,8 @@ Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, t
 ### ✅ WorkspaceTabs <small>extends WorkspaceParent</small>
 - ✅ `parent`
 
-### ❌ WorkspaceWindow <small>extends WorkspaceContainer</small>
-Class not provided. Feasibility: **hard** — Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.
-
-- ❌ `win` `doc`
+### ✅ WorkspaceWindow <small>extends WorkspaceContainer</small>
+- ✅ `win` `doc`
 
 ### Functions and constants
 

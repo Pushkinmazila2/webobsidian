@@ -1,14 +1,14 @@
 {
  "apiVersion": "1.14.4",
  "totals": {
-  "ok": 630,
+  "ok": 650,
   "stub": 12,
-  "missing": 58
+  "missing": 29
  },
  "feasibility": {
-  "easy": 4,
-  "medium": 14,
-  "hard": 46,
+  "easy": 2,
+  "medium": 10,
+  "hard": 23,
   "impossible": 6
  },
  "classes": [
@@ -2418,7 +2418,7 @@
   {
    "name": "MarkdownPreviewRenderer",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "medium",
    "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output.",
    "members": [
@@ -2426,25 +2426,25 @@
      "name": "static registerPostProcessor",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "static unregisterPostProcessor",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "static createCodeBlockPostProcessor",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "medium",
-     "note": "We have a Markdown pipeline (renderMarkdown); expose it and run plugin post-processors on its output."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -4578,7 +4578,7 @@
    "name": "TExternalFile",
    "extends": "TFile",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "easy",
    "note": "Backed by the files API; events come from the WebSocket change feed.",
    "members": [
@@ -4586,9 +4586,9 @@
      "name": "getRealPath",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "easy",
-     "note": "Backed by the files API; events come from the WebSocket change feed."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -5618,7 +5618,7 @@
    "name": "WorkspaceContainer",
    "extends": "WorkspaceSplit",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
    "members": [
@@ -5626,17 +5626,17 @@
      "name": "win",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "doc",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -5644,7 +5644,7 @@
    "name": "WorkspaceFloating",
    "extends": "WorkspaceParent",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
    "members": [
@@ -5652,9 +5652,9 @@
      "name": "parent",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -5868,7 +5868,7 @@
    "name": "WorkspaceMobileDrawer",
    "extends": "WorkspaceParent",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
    "members": [
@@ -5876,41 +5876,41 @@
      "name": "parent",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "collapsed",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "expand",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "collapse",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "toggle",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -5926,7 +5926,7 @@
   {
    "name": "WorkspaceRibbon",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
    "members": []
@@ -5935,7 +5935,7 @@
    "name": "WorkspaceRoot",
    "extends": "WorkspaceContainer",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
    "members": [
@@ -5943,17 +5943,17 @@
      "name": "win",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "doc",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -5961,7 +5961,7 @@
    "name": "WorkspaceSidedock",
    "extends": "WorkspaceSplit",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
    "members": [
@@ -5969,33 +5969,33 @@
      "name": "collapsed",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "toggle",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "collapse",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "expand",
      "kind": "method",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   },
@@ -6039,7 +6039,7 @@
    "name": "WorkspaceWindow",
    "extends": "WorkspaceContainer",
    "deprecated": false,
-   "classStatus": "missing",
+   "classStatus": "ok",
    "feasibility": "hard",
    "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls.",
    "members": [
@@ -6047,17 +6047,17 @@
      "name": "win",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     },
     {
      "name": "doc",
      "kind": "property",
      "deprecated": false,
-     "status": "missing",
-     "feasibility": "hard",
-     "note": "Obsidian pane/leaf tree (splits, tabs, side docks, pop-out windows). WebObsidian has its own simpler layout; a facade over it is possible only for the common calls."
+     "status": "ok",
+     "feasibility": null,
+     "note": ""
     }
    ]
   }

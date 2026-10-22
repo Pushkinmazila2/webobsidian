@@ -1004,7 +1004,7 @@ export class Workspace extends Events {
   }
   get activeLeaf(): WorkspaceLeaf | null { return this.activePluginLeaf() ?? this.getLeaf(); }
   getActiveViewOfType<T>(type: new (...a: any[]) => T): T | null {
-    // the markdown editor is a MarkdownView, so it also answers for its ancestors (ItemView, FileView, TextFileView, TExternalFile, MarkdownPreviewRenderer, WorkspaceContainer, WorkspaceRoot, WorkspaceWindow, WorkspaceFloating, WorkspaceRibbon, WorkspaceMobileDrawer, WorkspaceSidedock, …)
+    // the markdown editor is a MarkdownView, so it also answers for its ancestors (ItemView, FileView, TextFileView, …)
     if (isType(type, MarkdownView) || [View, ItemView, FileView, TextFileView, EditableFileView].some((c) => isType(type, c))) {
       return getActiveEditor() && useStore.getState().viewMode !== 'reading' ? (new MarkdownView() as unknown as T) : null;
     }
@@ -2076,7 +2076,7 @@ const rawModule = {
   TextComponent, TextAreaComponent, ToggleComponent, DropdownComponent, SliderComponent, ButtonComponent, ExtraButtonComponent,
   Platform, debounce, requestUrl, MetadataCache, editorLivePreviewField, editorInfoField, editorEditorField, editorViewField, setIcon, getIcon, addIcon, removeIcon, normalizePath, moment, sanitizeHTMLToDom,
   request, htmlToMarkdown, getAllTags, getIconIds, resolveSubpath, loadPdfJs,
-  View, FileView, TextFileView, EditableFileView, WorkspaceItem, WorkspaceParent, WorkspaceSplit, WorkspaceLeaf,
+  View, FileView, TextFileView, EditableFileView, WorkspaceItem, WorkspaceParent, WorkspaceSplit, WorkspaceLeaf, TExternalFile, MarkdownPreviewRenderer, WorkspaceContainer, WorkspaceRoot, WorkspaceWindow, WorkspaceFloating, WorkspaceRibbon, WorkspaceMobileDrawer, WorkspaceSidedock,
   MarkdownRenderChild, MarkdownRenderer, EditorSuggest, SettingGroup, SecretStorage, SecretComponent,
   SettingPage, SettingTab,
   ...basesApi,
