@@ -394,6 +394,12 @@ function Plugins() {
     try { await api.installPlugin(repo); setMsg('Installed ✓'); setRepo(''); await load(); await syncPlugins(); }
     catch (e: any) { setMsg(`Error: ${e.message}`); }
   };
+  const [allowEval, setAllowEval] = useState(false);
+  useEffect(() => { api.getSettings().then((s) => setAllowEval(!!s.plugins?.allowUnsafeEval)).catch(() => {}); }, []);
+  const toggleEval = async (on: boolean) => {
+    try { await api.putSettings({ plugins: { allowUnsafeEval: on } }); setAllowEval(on); setMsg(on ? 'Saved. Reload the page to let plugins evaluate code.' : 'Saved. Reload the page to apply.'); }
+    catch (e: any) { setMsg(`Error: ${e.message}`); }
+  };
   const remove = async (p: any) => {
     if (!window.confirm(`Delete plugin "${p.name}"? Its files and saved settings are removed from the vault.`)) return;
     try {
@@ -417,6 +423,9 @@ function Plugins() {
           <button className="btn" onClick={install}>Install</button>
         </span>
       </Row>
+      <Row name="Allow plugins to evaluate code (unsafe-eval)" desc="Needed by plugins like Excalidraw (“Evaluating a string as JavaScript violates the Content Security Policy”). Weakens XSS protection — enable only for a vault you trust. Applies after reloading the page.">
+        <input type="checkbox" checked={allowEval} onChange={(e) => void toggleEval(e.target.checked)} />
+      </Row>
       {msg && <div style={{ color: 'var(--text-muted)', margin: '6px 0' }}>{msg}</div>}
       {unsaved > 0 && (
         <div style={{ border: '1px solid var(--bg-modifier-border)', borderRadius: 6, padding: '8px 10px', margin: '8px 0', fontSize: 12.5 }}>
@@ -435,7 +444,7 @@ function Plugins() {
                 <div className="info">
                   <div className="name">{p.name} <span style={{ color: 'var(--text-faint)' }}>v{p.version}</span> {p.compat && <CompatBadge compat={p.compat} reasons={p.reasons} flags={p.flags} />}</div>
                   <div className="desc">{p.description}</div>
-                  {err && <div className="desc" style={{ color: '#e5534b' }}>Could not start: {err}</div>}
+                  {err && <div className="desc" style={{ color: '#e5534b' }}>Could not start: {err}{/unsafe-eval/.test(err) ? ' — turn on “Allow plugins to evaluate code” above and reload the page.' : ''}</div>}
                 </div>
                 <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                   {tabs.length > 0 && (

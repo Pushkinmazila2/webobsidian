@@ -13,6 +13,7 @@ import { WebSocketServer } from 'ws';
 
 import { config } from './config.js';
 import { loadSettings, getSettings, setPasswordIfInitial } from './bootstrap.js';
+import { peekSettings } from './services/settings.js';
 import { errorHandler } from './middleware/error.js';
 import { COOKIE_NAME } from './middleware/auth.js';
 import { verifyToken } from './services/auth.js';
@@ -81,12 +82,15 @@ async function main() {
             "'self'",
             (_req, res) => `'nonce-${(res as Response).locals.cspNonce}'`,
             // Opt-in: some plugins (Excalidraw, …) evaluate strings. Off by default — it weakens XSS protection.
-            ...(process.env.WEBOBSIDIAN_ALLOW_UNSAFE_EVAL === '1' ? ["'unsafe-eval'"] : []),
+            // Enabled by WEBOBSIDIAN_ALLOW_UNSAFE_EVAL=1 or the "Allow unsafe-eval" switch in Settings → Community plugins.
+            () => (process.env.WEBOBSIDIAN_ALLOW_UNSAFE_EVAL === '1' || peekSettings()?.plugins.allowUnsafeEval ? "'unsafe-eval'" : ''),
           ],
           styleSrc: ["'self'", "'unsafe-inline'"],
           imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
-          fontSrc: ["'self'", 'data:'],
-          connectSrc: ["'self'", 'ws:', 'wss:'],
+          // https: — plugins load web fonts from CDNs (Excalidraw's handwriting fonts); fonts cannot run code.
+          fontSrc: ["'self'", 'data:', 'https:'],
+          // Loopback targets of requestUrl (Ollama & co. on the user's own machine); other hosts go through the server proxy.
+          connectSrc: ["'self'", 'ws:', 'wss:', 'http://localhost:*', 'http://127.0.0.1:*', 'https://localhost:*', 'https://127.0.0.1:*'],
           objectSrc: ["'none'"],
           frameSrc: ["'self'", 'blob:'],
           // Plugins (and the PDF/graph libs) spin up Web Workers from blob: URLs.

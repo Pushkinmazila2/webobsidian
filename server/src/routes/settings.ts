@@ -55,6 +55,10 @@ settingsRouter.put(
         }
         d.plugins.catalogRefreshHours = h;
       }
+      if (body.plugins && body.plugins.allowUnsafeEval !== undefined) {
+        if (typeof body.plugins.allowUnsafeEval !== 'boolean') throw Object.assign(new Error('plugins.allowUnsafeEval must be a boolean'), { status: 400 });
+        d.plugins.allowUnsafeEval = body.plugins.allowUnsafeEval;
+      }
     });
     res.json(redactSettings(updated));
   }),

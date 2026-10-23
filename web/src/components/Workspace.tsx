@@ -30,6 +30,7 @@ function PluginMainView({ path }: { path: string }) {
 function EditorPane() {
   const activePath = useStore((s) => s.activePath);
   const viewMode = useStore((s) => s.viewMode);
+  useLeaves(); // a plugin may take over a note (Excalidraw drawings) after it was opened
   const isMd = activePath ? /\.(md|markdown)$/i.test(activePath) : false;
   const isImage = activePath ? /\.(png|jpe?g|gif|svg|webp)$/i.test(activePath) : false;
   const isCanvas = activePath ? /\.canvas$/i.test(activePath) : false;
@@ -37,7 +38,7 @@ function EditorPane() {
   const isVideo = activePath ? VIDEO_EXT_RE.test(activePath) : false;
   const isAudio = activePath ? AUDIO_EXT_RE.test(activePath) : false;
 
-  if (activePath && (activePath.startsWith('plugin-view://') || pluginHost.viewTypeForFile(activePath))) {
+  if (activePath && (activePath.startsWith('plugin-view://') || pluginHost.viewTypeForFile(activePath) || pluginHost.leafByPath(activePath))) {
     return <PluginMainView path={activePath} />;
   }
   if (activePath && isBase) {
@@ -113,7 +114,9 @@ export default function Workspace() {
   const canGoBack = histIndex > 0;
   const canGoForward = histIndex < historyLen - 1;
 
-  const isMd = activePath ? /\.(md|markdown)$/i.test(activePath) : false;
+  useLeaves();
+  // a note shown by a plugin's own view (Excalidraw drawing…) has no markdown chrome (mode switch, formatting toolbar)
+  const isMd = activePath ? /\.(md|markdown)$/i.test(activePath) && !pluginHost.leafByPath(activePath) : false;
   const isShareable = activePath ? /\.(md|markdown|canvas)$/i.test(activePath) : false;
   const canSplit = activePath ? /\.(md|markdown|txt|json|csv|canvas|css|js|ya?ml)$/i.test(activePath) : false;
 

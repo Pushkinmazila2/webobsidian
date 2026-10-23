@@ -28,6 +28,8 @@ const sharedApp = new App();
 // Obsidian exposes the app as a global too (`window.app` / bare `app`); many plugins read it that way.
 (window as any).app = sharedApp;
 installNodeGlobals();
+// Obsidian exposes the CodeMirror 5 vim adapter globally; plugins register extra `commands` (e.g. `save`) on it.
+(window as any).CodeMirrorAdapter ??= { commands: {} as Record<string, unknown> };
 // Obsidian also exposes moment.js globally (`window.moment`).
 (window as any).moment = moment;
 setPluginDataBackend({
@@ -106,7 +108,7 @@ async function loadPlugin(id: string, manifest: any) {
   const PluginClass = module.exports.default ?? module.exports;
   const instance: Plugin = new PluginClass(sharedApp, manifest);
   sharedApp.plugins.plugins[id] = instance; sharedApp.plugins.manifests[id] = manifest; sharedApp.plugins.enabledPlugins.add(id);
-  await instance.onload?.();
+  await instance.load(); // sets `_loaded` like Obsidian's plugin manager, then runs onload
   let style: HTMLLinkElement | undefined;
   // inject plugin styles if any
   if (manifest.hasStyles) {

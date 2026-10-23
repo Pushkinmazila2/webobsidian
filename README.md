@@ -211,7 +211,7 @@ written to `settings.json`. A malformed value stops the server at startup and na
 | `WEBOBSIDIAN_GITHUB_FLUSH_SEC` | `15` | Seconds without edits before they are saved in one commit |
 | `WEBOBSIDIAN_GITHUB_HOLD_SEC` / `_HOLD_MATCH` | `300` / `.obsidian/**` | Plugins and app settings are saved only after this many quiet seconds (so a busy plugin can't flood commits); notes are never held. `HOLD_MATCH=none` disables |
 | `WEBOBSIDIAN_VAULTS` | – | JSON array of extra vaults (local `path` or GitHub `repo`, optional `tokenEnv`, `preset`/`rules`, …) — see *Multiple vaults* below |
-| `WEBOBSIDIAN_ALLOW_UNSAFE_EVAL` | off | `1` adds `'unsafe-eval'` to the CSP so plugins that use `eval`/`new Function` (e.g. Excalidraw) can run. Weakens XSS protection — enable only for trusted vaults |
+| `WEBOBSIDIAN_ALLOW_UNSAFE_EVAL` | off | `1` adds `'unsafe-eval'` to the CSP so plugins that use `eval`/`new Function` (e.g. Excalidraw) can run (same as the *Allow plugins to evaluate code* switch in Settings → Community plugins). Weakens XSS protection — enable only for trusted vaults |
 | `WEBOBSIDIAN_PROXY` | on | `off` disables the outbound request proxy used by plugins' `requestUrl` |
 | `WEBOBSIDIAN_PROXY_ALLOW_PRIVATE` | off | `1` lets the proxy reach private/loopback addresses (self-hosted services). Off by default to prevent SSRF |
 | `WEBOBSIDIAN_GITHUB_POLL_SEC` | `30` | How often to look for commits made elsewhere (min 5) |

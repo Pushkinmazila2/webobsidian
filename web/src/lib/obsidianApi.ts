@@ -147,15 +147,16 @@ export class Component {
   private _cleanups: (() => void)[] = [];
   private _children: Component[] = [];
   private _loaded = false;
-  load() { if (this._loaded) return; this._loaded = true; this.onload?.(); }
-  onload?(): void | Promise<void>;
+  /** Marks the component loaded (plugins read `_loaded`) and runs `onload`; the promise lets the plugin loader await async setup. */
+  load(): void | Promise<void> { if (this._loaded) return; this._loaded = true; return this.onload?.(); }
+  onload(): void | Promise<void> {}
   unload() {
     this._loaded = false;
     for (const c of this._children.splice(0)) c.unload();
     for (const f of this._cleanups.splice(0).reverse()) { try { f(); } catch (e) { console.warn('[plugin] cleanup failed:', e); } }
     this.onunload?.();
   }
-  onunload?(): void;
+  onunload(): void {}
   addChild<T extends Component>(c: T): T { this._children.push(c); c.load(); return c; }
   removeChild<T extends Component>(c: T): T { this._children = this._children.filter((x) => x !== c); c.unload(); return c; }
   register(cb: () => void) { this._cleanups.push(cb); }
@@ -345,10 +346,16 @@ export class Vault extends Events {
   getRoot(): TFolder { syncTree(); return folderRegistry.get('')!; }
   async read(file: TFile) { return readText(file.path); }
   async cachedRead(file: TFile) { return readText(file.path); }
-  async modify(file: TFile, data: string) { await writeText(file.path, data); }
-  async process(file: TFile, fn: (data: string) => string) { const next = fn(await readText(file.path)); await writeText(file.path, next); return next; }
-  async append(file: TFile, data: string) { await writeText(file.path, (await readText(file.path)) + data); }
-  async create(path: string, data: string) { await writeText(path, data); await treeChanged(); return new TFile(path); }
+  async modify(file: TFile, data: string) { await writeText(file.path, data); sharedMetadataCache.scheduleSoon(); }
+  async process(file: TFile, fn: (data: string) => string) { const next = fn(await readText(file.path)); await writeText(file.path, next); sharedMetadataCache.scheduleSoon(); return next; }
+  async append(file: TFile, data: string) { await writeText(file.path, (await readText(file.path)) + data); sharedMetadataCache.scheduleSoon(); }
+  /** Creates the file and (as Obsidian does) has it indexed before returning, so plugins can read its front matter at once. */
+  async create(path: string, data: string) {
+    await writeText(path, data);
+    await treeChanged();
+    try { await sharedMetadataCache.refresh(); } catch { /* the idle refresh will catch up */ }
+    return this.getFileByPath(path) ?? new TFile(path);
+  }
   async createFolder(path: string) { await api.createFolder(path); await treeChanged(); }
   async delete(file: TAbstractFile) { await api.remove(file.path); await treeChanged(); }
   async trash(file: TAbstractFile) { await api.remove(file.path); await treeChanged(); }
@@ -359,6 +366,13 @@ export class Vault extends Events {
     syncTree();
     const p = normalizePath(path);
     return fileRegistry.get(p) ?? folderRegistry.get(p) ?? null;
+  }
+  /** Case-insensitive lookup (undocumented in the typings; Excalidraw & co. use it). Exact match wins. */
+  getAbstractFileByPathInsensitive(path: string): TAbstractFile | null {
+    const exact = this.getAbstractFileByPath(path);
+    if (exact) return exact;
+    const want = normalizePath(path).toLowerCase();
+    return this.getAllLoadedFiles().find((f) => f.path.toLowerCase() === want) ?? null;
   }
   getFileByPath(path: string) { const f = this.getAbstractFileByPath(path); return f instanceof TFile ? f : null; }
   configDir = '.obsidian';
@@ -478,6 +492,8 @@ export class MetadataCache extends Events {
     }
     await this.refresh();
   }
+  /** Re-read soon (after a plugin changed a file) instead of waiting for the slow idle refresh. */
+  scheduleSoon(ms = 250) { this.schedule(ms); }
   private schedule(ms = 1500) { if (this.timer) clearTimeout(this.timer); this.timer = setTimeout(() => { void this.refresh(); }, ms); }
 
   refresh(): Promise<void> {
@@ -767,9 +783,17 @@ export class WorkspaceItem extends Events {
   getRoot(): WorkspaceItem { return this; }
   getContainer(): WorkspaceItem { return this; }
 }
-export class WorkspaceParent extends WorkspaceItem { children: WorkspaceItem[] = []; }
+export class WorkspaceParent extends WorkspaceItem {
+  children: WorkspaceItem[] = [];
+  insertChild(index: number, child: WorkspaceItem, _resize?: boolean) { child.parent = this; this.children.splice(Math.max(0, Math.min(index, this.children.length)), 0, child); }
+  removeChild(child: WorkspaceItem, _resize?: boolean) { this.children = this.children.filter((c) => c !== child); if (child.parent === this) child.parent = null; }
+  replaceChild(index: number, child: WorkspaceItem, _resize?: boolean) { const old = this.children[index]; if (old) old.parent = null; child.parent = this; this.children[index] = child; }
+}
 export class WorkspaceTabs extends WorkspaceParent { currentTab = 0; }
-export class WorkspaceSplit extends WorkspaceParent { direction: 'vertical' | 'horizontal' = 'vertical'; }
+export class WorkspaceSplit extends WorkspaceParent {
+  direction: 'vertical' | 'horizontal' = 'vertical';
+  constructor(_workspace?: unknown, direction?: 'vertical' | 'horizontal') { super(); if (direction) this.direction = direction; }
+}
 /** A collapsible side dock (`workspace.leftSplit` / `rightSplit`) backed by the sidebar open state. */
 export class WorkspaceSidedock extends WorkspaceSplit {
   constructor(readonly side: 'left' | 'right') {
@@ -825,6 +849,14 @@ export class WorkspaceLeaf extends WorkspaceItem {
     if (this.location === 'main' && this.tabPath) openViewTab(this.tabPath, this.view.getDisplayText() || 'View');
   }
   async setViewState(state: { type: string; state?: any; active?: boolean }, eState?: unknown) {
+    // The built-in editor: `markdown` shows a note in it, `empty` clears the leaf. Plugins patch this method to redirect files
+    // (Excalidraw turns a drawing note into its own view), which is why opening a file always goes through here.
+    if (state.type === 'markdown' || state.type === 'empty') {
+      if (this._view) { await this.closeView(); pluginHost.removeLeaf(this.id); }
+      const f = state.state?.file;
+      if (state.type === 'markdown' && typeof f === 'string' && !this.probe) await useStore.getState().openFile(f);
+      return;
+    }
     const reg = pluginHost.view(state.type);
     if (!reg) { new Notice(`View "${state.type}" is not available (its plugin is not running).`); return; }
     await this.closeView();
@@ -835,6 +867,7 @@ export class WorkspaceLeaf extends WorkspaceItem {
     if (this.location === 'main' && !this.tabPath) this.tabPath = typeof file === 'string' && !/^plugin-view:/.test(file) ? file : `${VIEW_PATH}${this.id}`;
     this.attach();
     try {
+      await view.load(); // views are components: Obsidian runs their onload (Excalidraw acquires its React packages there)
       await view.onOpen();
       if (state.state !== undefined) await view.setState(state.state, eState ?? {});
       if (typeof file === 'string' && view instanceof FileView) {
@@ -852,14 +885,12 @@ export class WorkspaceLeaf extends WorkspaceItem {
   getViewState(): { type: string; state?: unknown; active?: boolean } { return { type: this.view.getViewType(), state: this.view.getState() }; }
   async open(view: View) { this._view = view; this.attach(); await view.onOpen(); this.reveal(); return view; }
   async openFile(f: TFile, state?: { active?: boolean; state?: unknown; eState?: unknown }) {
-    const type = pluginHost.viewTypeForFile(f.path);
-    if (type) {
-      this.tabPath = f.path;
-      await this.setViewState({ type, state: { file: f.path, ...(typeof state?.state === 'object' ? (state.state as object) : {}) }, active: state?.active }, state?.eState);
-      return;
-    }
-    await useStore.getState().openFile(f.path);
+    const type = pluginHost.viewTypeForFile(f.path) ?? 'markdown';
+    if (type !== 'markdown') this.tabPath = f.path;
+    await this.setViewState({ type, state: { file: f.path, ...(typeof state?.state === 'object' ? (state.state as object) : {}) }, active: state?.active }, state?.eState);
   }
+  /** A throw-away leaf used to ask plugins (which patch setViewState) whether they want to take over a file. */
+  probe = false;
   /** Last time this leaf was revealed/activated (drives `getMostRecentLeaf`). */
   lastActive = 0;
   reveal() {
@@ -1131,10 +1162,61 @@ export function ensureFileLeaf(path: string): WorkspaceLeaf | null {
 useStore.subscribe((s, prev) => {
   if (s.activePath !== prev.activePath) {
     const f = sharedWorkspace.getActiveFile();
+    // Opening a note from the file tree goes straight to the editor; give plugins that redirect notes to their own view
+    // (Excalidraw drawings, Kanban boards…) the same chance they get in Obsidian, where every open passes through setViewState.
+    const path = s.activePath;
+    if (path && /\.(md|markdown)$/i.test(path) && !pluginHost.leafByPath(path) && getSharedApp().plugins.enabledPlugins.size > 0) {
+      const probe = new WorkspaceLeaf();
+      probe.probe = true;
+      void probe.setViewState({ type: 'markdown', state: { file: path }, active: false });
+    }
     sharedWorkspace.trigger('file-open', f);
-    sharedWorkspace.trigger('active-leaf-change', null);
+    sharedWorkspace.trigger('active-leaf-change', sharedWorkspace.getMostRecentLeaf() ?? sharedWorkspace.getLeaf());
   }
 });
+
+
+/** Obsidian's own commands that plugins look up by id (Linter wraps `editor:save-file`, …). `checkCallback` is replaceable, like in Obsidian. */
+const CORE_COMMANDS: Record<string, { id: string; name: string; checkCallback: (checking: boolean) => boolean | void }> = {
+  'editor:save-file': {
+    id: 'editor:save-file', name: 'Save current file',
+    checkCallback(checking: boolean) { if (!useStore.getState().activePath) return false; if (!checking) void useStore.getState().save(); return true; },
+  },
+};
+const coreCommands = () => CORE_COMMANDS;
+
+const CORE_PLUGIN_IDS: [string, string, boolean][] = [
+  ['file-explorer', 'Files', true], ['global-search', 'Search', true], ['switcher', 'Quick switcher', true], ['graph', 'Graph view', true],
+  ['backlink', 'Backlinks', true], ['canvas', 'Canvas', true], ['outgoing-link', 'Outgoing links', true], ['tag-pane', 'Tags view', true],
+  ['properties', 'Properties view', true], ['page-preview', 'Page preview', true], ['command-palette', 'Command palette', true], ['bases', 'Bases', true],
+  ['bookmarks', 'Bookmarks', true], ['outline', 'Outline', true], ['word-count', 'Word count', true], ['file-recovery', 'File recovery', false],
+  ['daily-notes', 'Daily notes', false], ['templates', 'Templates', false], ['note-composer', 'Note composer', false], ['slash-command', 'Slash commands', false],
+  ['random-note', 'Random note', false], ['open-with-default-app', 'Open with default app', false], ['editor-status', 'Editor status', false],
+  ['workspaces', 'Workspaces', false], ['audio-recorder', 'Audio recorder', false], ['zk-prefixer', 'Unique note creator', false], ['sync', 'Sync', false],
+  ['publish', 'Publish', false], ['footnotes', 'Footnotes view', false], ['markdown-importer', 'Format converter', false], ['slides', 'Slides', false],
+];
+function createInternalPlugins() {
+  const instances: Record<string, Record<string, unknown>> = {
+    'global-search': { openGlobalSearch: (q: string) => useStore.getState().searchFor(q), getGlobalSearchQuery: () => '' },
+    'file-explorer': { revealInFolder: (f: { path: string }) => useStore.getState().revealInTree(f.path) },
+    'tag-pane': { requestUpdateTags: () => {} },
+  };
+  const plugins: Record<string, { id: string; enabled: boolean; instance: Record<string, unknown>; enable(): void; disable(): void; [k: string]: unknown }> = {};
+  for (const [id, name, enabled] of CORE_PLUGIN_IDS) {
+    const pl = {
+      id, enabled, instance: { id, name, ...(instances[id] ?? {}) } as Record<string, unknown>,
+      enable() { pl.enabled = true; }, disable() { pl.enabled = false; },
+      async load() { pl._loaded = true; },
+      _loaded: enabled,
+    };
+    plugins[id] = pl;
+  }
+  return {
+    plugins,
+    getPluginById(id: string): unknown { return plugins[id] ?? null; },
+    getEnabledPluginById(id: string): unknown { const pl = plugins[id]; return pl?.enabled ? pl.instance : null; },
+  };
+}
 
 export class RenderContext { hoverPopover: HoverPopover | null = null; }
 
@@ -1149,20 +1231,37 @@ export class App {
   secretStorage = new SecretStorage();
   /** Plugin manager as seen by other plugins (`app.plugins.plugins[id]`, `getPlugin`). */
   plugins = { plugins: {} as Record<string, unknown>, enabledPlugins: new Set<string>(), manifests: {} as Record<string, unknown>, getPlugin(id: string): unknown { return this.plugins[id] ?? null; } };
-  internalPlugins = { plugins: {} as Record<string, unknown>, getPluginById(_id: string): unknown { return null; }, getEnabledPluginById(_id: string): unknown { return null; } };
+  /** Core plugins as plugins see them (`app.internalPlugins.plugins[id].enabled`, `.instance`). Enabled = the feature exists in WebObsidian. */
+  internalPlugins = createInternalPlugins();
   commands = {
     /** id → command, always current (Obsidian keeps a plain registry object; plugins index into it). */
-    get commands(): Record<string, unknown> { return Object.fromEntries(pluginHost.commands().map((c) => [c.id, c])); },
+    get commands(): Record<string, unknown> { return { ...coreCommands(), ...Object.fromEntries(pluginHost.commands().map((c) => [c.id, c])) }; },
     editorCommands: {} as Record<string, unknown>,
     listCommands: () => pluginHost.commands().map((c) => ({ id: c.id, name: c.name })),
-    findCommand: (id: string) => pluginHost.commands().find((c) => c.id === id) ?? null,
-    executeCommandById: (id: string) => { const c = pluginHost.commands().find((x) => x.id === id); if (c && c.available()) { c.run(); return true; } return false; },
+    findCommand: (id: string) => pluginHost.commands().find((c) => c.id === id) ?? (coreCommands()[id] as any) ?? null,
+    executeCommandById: (id: string) => {
+      const c = pluginHost.commands().find((x) => x.id === id);
+      if (c) { if (c.available()) { c.run(); return true; } return false; }
+      const core = coreCommands()[id] as { checkCallback?: (checking: boolean) => boolean | void } | undefined;
+      if (!core?.checkCallback) return false;
+      if (core.checkCallback(true) === false) return false;
+      core.checkCallback(false); return true;
+    },
   };
   hotkeyManager = { customKeys: {} as Record<string, unknown[]>, defaultKeys: {} as Record<string, unknown[]>, bakedIds: [] as string[], bakedHotkeys: [] as unknown[], getHotkeys: (_id: string): unknown[] => [], getDefaultHotkeys: (_id: string): unknown[] => [], addDefaultHotkeys: (_id: string, _keys: unknown[]) => {}, removeDefaultHotkeys: (_id: string) => {}, setHotkeys: (_id: string, _keys: unknown[]) => {}, printHotkeyForCommand: (_id: string) => '' };
   scope = new Scope();
   lastEvent: UIEvent | null = null;
   setting = { open() {}, close() {}, openTabById(_id: string) {} };
   fileManager = new FileManager();
+  /** The theme's accent colour as `#rrggbb` (what Obsidian derives from `--color-accent`). */
+  getAccentColor(): string {
+    const probe = document.createElement('span');
+    probe.style.color = getComputedStyle(document.body).getPropertyValue('--interactive-accent').trim() || getComputedStyle(document.body).getPropertyValue('--color-accent').trim() || '#7b6cd9';
+    document.body.appendChild(probe);
+    const rgb = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(getComputedStyle(probe).color);
+    probe.remove();
+    return rgb ? `#${[1, 2, 3].map((i) => Number(rgb[i]).toString(16).padStart(2, '0')).join('')}` : '#7b6cd9';
+  }
   get isDarkMode(): boolean { return document.documentElement.classList.contains('theme-dark') || document.body.classList.contains('theme-dark') || document.documentElement.dataset.theme === 'dark'; }
   loadLocalStorage(key: string): unknown {
     try { const v = localStorage.getItem(`wo-plugin:${key}`); return v === null ? null : JSON.parse(v); } catch { return null; }
@@ -1200,6 +1299,8 @@ export class Keymap {
   pushScope(scope: Scope) { this.stack.push(scope); }
   popScope(scope: Scope) { const i = this.stack.lastIndexOf(scope); if (i >= 0) this.stack.splice(i, 1); }
   get currentScope(): Scope | undefined { return this.stack[this.stack.length - 1]; }
+  /** The app-wide scope (`app.scope`): key handlers registered there apply when no modal scope is on top. */
+  getRootScope(): Scope { return getSharedApp().scope; }
   static isModifier(evt: Event, modifier: string): boolean {
     const e = evt as KeyboardEvent;
     return modifier === 'Mod' ? (Platform.isMacOS ? e.metaKey : e.ctrlKey) : modifier === 'Ctrl' ? e.ctrlKey : modifier === 'Meta' ? e.metaKey : modifier === 'Alt' ? e.altKey : modifier === 'Shift' ? e.shiftKey : false;

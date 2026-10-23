@@ -155,6 +155,8 @@ const SettingsSchema = z.object({
       // How often the compatibility catalogue (community-plugins.json of the webobsidian-community-plugins repo) is re-downloaded.
       // 0 = only when the user presses "Check now". The catalogue itself is rebuilt daily, so < 1 day gains little.
       catalogRefreshHours: z.number().min(0).max(24 * 30).default(24),
+      // Adds 'unsafe-eval' to the page CSP so plugins that evaluate strings (Excalidraw, …) can run. Weakens XSS protection.
+      allowUnsafeEval: z.boolean().default(false),
     })
     .default({}),
 });
