@@ -71,9 +71,17 @@ function saveDataCoalesced(id: string, data: unknown): Promise<void> {
   });
 }
 
+/**
+ * Obsidian ships a patched `@codemirror/language` that also exports `tokenClassNodeProp` (the CSS classes of a syntax node,
+ * e.g. "formatting formatting-strong"); plugins read it with `node.type.prop(tokenClassNodeProp)`. Without it they pass
+ * `undefined` to `prop()` and the editor crashes. Nodes simply carry no classes here, so `prop()` answers `undefined`.
+ */
+const tokenClassNodeProp = new lezerCommon.NodeProp<string>({ deserialize: (s) => s });
+const cmLanguageObsidian = { ...cmLanguage, tokenClassNodeProp };
+
 const EXTERNALS: Record<string, unknown> = {
   '@codemirror/state': cmState, '@codemirror/view': cmView, '@codemirror/commands': cmCommands,
-  '@codemirror/autocomplete': cmAutocomplete, '@codemirror/language': cmLanguage, '@codemirror/search': cmSearch,
+  '@codemirror/autocomplete': cmAutocomplete, '@codemirror/language': cmLanguageObsidian, '@codemirror/search': cmSearch,
   '@codemirror/lint': cmLint, '@lezer/common': lezerCommon, '@lezer/highlight': lezerHighlight, '@lezer/lr': lezerLr,
 };
 /** Evaluate one plugin's main.js against the shim. */

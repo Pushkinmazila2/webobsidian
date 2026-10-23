@@ -256,7 +256,7 @@ export default function Editor() {
     // Place the caret after the frontmatter so Properties render immediately.
     const fmMatch = isMd ? content.match(/^---\r?\n[\s\S]*?\r?\n---[ \t]*\r?\n?/) : null;
     const initPos = Math.min(fmMatch ? fmMatch[0].length : 0, content.length);
-    const state = EditorState.create({
+    const buildState = (withPlugins: boolean) => EditorState.create({
       doc: content,
       selection: { anchor: initPos },
       extensions: [
@@ -290,7 +290,7 @@ export default function Editor() {
         livePreviewReadonly.init(() => viewMode === 'reading'),
         readonlyComp.of(readonlyExt(viewMode === 'reading')),
         // Extensions registered by community plugins (registerEditorExtension).
-        pluginExtComp.of(safePluginExtensions()),
+        pluginExtComp.of(withPlugins ? safePluginExtensions() : []),
         noteTitleField.init(() => titleOf(activePath)),
         inlineTitleField,
         frontmatterField,
@@ -312,6 +312,10 @@ export default function Editor() {
         }),
       ],
     });
+    // A plugin extension that throws while the state is built must not leave a white screen: retry without plugin extensions.
+    let state: EditorState;
+    try { state = buildState(true); }
+    catch (e) { console.warn('[plugin] editor extensions rejected while opening the note; opening without them:', e); state = buildState(false); }
     const v = new EditorView({ state, parent: host.current });
     view.current = v;
     setActiveEditor(v);

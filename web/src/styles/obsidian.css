@@ -1900,3 +1900,6 @@ audio.media-embed { display: block; width: min(100%, 480px); max-width: 100%; ma
 .bases-filter-head, .bases-filter-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
 .bases-filter-row input { flex: 1; min-width: 90px; }
 .bases-filter-raw { flex: 1; opacity: 0.8; font-size: 12px; word-break: break-all; }
+
+/* Plugin views have Obsidian's [header, content] structure; our own tab/sidebar chrome replaces the header. */
+.plugin-view-host .view-container > .view-header { display: none; }

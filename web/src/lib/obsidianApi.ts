@@ -10,6 +10,7 @@ import { EditorSelection, StateField, type Extension } from '@codemirror/state';
 import { livePreviewState, ensureKatex } from './livePreview';
 import { EditorView } from '@codemirror/view';
 import { undo, redo, indentMore, indentLess, cursorDocStart, cursorDocEnd, selectAll, deleteLine } from '@codemirror/commands';
+import { currentVaultId } from './vault';
 import { api } from './api';
 import { useStore, type ContextMenuItem } from './store';
 import { getActiveEditor } from './activeEditor';
@@ -445,6 +446,33 @@ const hashStr = (s: string) => { let h = 5381; for (let i = 0; i < s.length; i++
  * the server's `/api/metadata`, kept fresh whenever the file tree changes or a note is saved. Also
  * the source of `vault` create/modify/delete events, which plugins use to keep their own indexes.
  */
+/** `app.metadataTypeManager`: the vault's properties (front matter keys) and their types, fed by the server index. */
+export class MetadataTypeManager extends Events {
+  properties: Record<string, { name: string; type: string; occurrences: number }> = {};
+  types: Record<string, string> = {};
+  async refresh(): Promise<void> {
+    try {
+      const [{ properties }, { types }] = await Promise.all([api.properties(), api.propertyTypes()]);
+      const next: MetadataTypeManager['properties'] = {};
+      for (const p of properties) next[p.key.toLowerCase()] = { name: p.key, type: types[p.key] ?? p.type ?? 'text', occurrences: p.count };
+      this.properties = next; this.types = types;
+      this.trigger('changed');
+    } catch { /* not signed in yet / offline: the next refresh retries */ }
+  }
+  getAllProperties() { return this.properties; }
+  getPropertyInfo(name: string) { return this.properties[name.toLowerCase()] ?? null; }
+  getAssignedWidget(name: string): string | null { return this.types[name] ?? this.properties[name.toLowerCase()]?.type ?? null; }
+  getTypeInfo(name: string) { return { name, type: this.getAssignedWidget(name) ?? 'text' }; }
+  async setType(name: string, type: string): Promise<void> {
+    await api.setPropertyType(name, type);
+    this.types[name] = type;
+    const p = this.properties[name.toLowerCase()];
+    if (p) p.type = type; else this.properties[name.toLowerCase()] = { name, type, occurrences: 0 };
+    this.trigger('changed');
+  }
+}
+export const sharedTypeManager = new MetadataTypeManager();
+
 export class MetadataCache extends Events {
   resolvedLinks: Record<string, Record<string, number>> = {};
   unresolvedLinks: Record<string, Record<string, number>> = {};
@@ -532,6 +560,7 @@ export class MetadataCache extends Events {
     this.treeSig = treeNow;
 
     this.rebuildResolved();
+    void sharedTypeManager.refresh();
     if (!this.initialized) { this.initialized = true; this.trigger('resolved'); return; }
     const vault = getVault();
     for (const f of created) vault.trigger('create', f);
@@ -727,6 +756,8 @@ export class ItemView extends View {
   contentEl: HTMLElement;
   constructor(leaf?: WorkspaceLeaf) {
     super(leaf);
+    // Obsidian's layout: containerEl = [header, content]. Plugins reach the content as `containerEl.children[1]`.
+    this.containerEl.createDiv('view-header');
     this.contentEl = this.containerEl.createDiv('view-content');
   }
   addAction(icon: string, title: string, cb: (e: MouseEvent) => any): HTMLElement { return super.addAction(icon, title, cb); }
@@ -1200,11 +1231,13 @@ function createInternalPlugins() {
     'global-search': { openGlobalSearch: (q: string) => useStore.getState().searchFor(q), getGlobalSearchQuery: () => '' },
     'file-explorer': { revealInFolder: (f: { path: string }) => useStore.getState().revealInTree(f.path) },
     'tag-pane': { requestUpdateTags: () => {} },
+    // Obsidian Sync is not available: report "not syncing" so plugins that wait for it carry on.
+    sync: { syncStatus: 'unconfigured', getStatus: () => 'unconfigured', isSyncing: () => false },
   };
   const plugins: Record<string, { id: string; enabled: boolean; instance: Record<string, unknown>; enable(): void; disable(): void; [k: string]: unknown }> = {};
   for (const [id, name, enabled] of CORE_PLUGIN_IDS) {
     const pl = {
-      id, enabled, instance: { id, name, ...(instances[id] ?? {}) } as Record<string, unknown>,
+      id, enabled, instance: Object.assign(new Events(), { id, name, ...(instances[id] ?? {}) }) as unknown as Record<string, unknown>,
       enable() { pl.enabled = true; }, disable() { pl.enabled = false; },
       async load() { pl._loaded = true; },
       _loaded: enabled,
@@ -1229,6 +1262,9 @@ export class App {
   /** Internal embed registry: no native embeds are registered, so plugins that probe it fall back to their own UI. */
   embedRegistry = { embedByExtension: {} as Record<string, unknown>, registerExtension(ext: string, creator: unknown) { this.embedByExtension[ext] = creator; }, registerExtensions(exts: string[], creator: unknown) { exts.forEach((e) => this.registerExtension(e, creator)); }, unregisterExtension(ext: string) { delete this.embedByExtension[ext]; }, unregisterExtensions(exts: string[]) { exts.forEach((e) => delete this.embedByExtension[e]); }, isExtensionRegistered(ext: string) { return ext in this.embedByExtension; } };
   secretStorage = new SecretStorage();
+  /** Stable id of this vault for plugins that key IndexedDB/localStorage by it (`app.appId`). */
+  appId = `webobsidian-${currentVaultId()}`;
+  metadataTypeManager = sharedTypeManager;
   /** Plugin manager as seen by other plugins (`app.plugins.plugins[id]`, `getPlugin`). */
   plugins = { plugins: {} as Record<string, unknown>, enabledPlugins: new Set<string>(), manifests: {} as Record<string, unknown>, getPlugin(id: string): unknown { return this.plugins[id] ?? null; } };
   /** Core plugins as plugins see them (`app.internalPlugins.plugins[id].enabled`, `.instance`). Enabled = the feature exists in WebObsidian. */
