@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { promises as fs, createReadStream } from 'node:fs';
 import path from 'node:path';
 import chokidar from 'chokidar';
@@ -216,7 +217,7 @@ export class LocalFsStorage implements VaultStorage {
   async writeText(rel: string, content: string): Promise<void> {
     const abs = await this.resolve(rel);
     await fs.mkdir(path.dirname(abs), { recursive: true });
-    const tmp = `${abs}.tmp-${Date.now()}`;
+    const tmp = `${abs}.tmp-${Date.now()}-${randomBytes(4).toString('hex')}`; // unique: concurrent writes to one file must not share a temp file
     await fs.writeFile(tmp, content, 'utf8');
     await fs.rename(tmp, abs);
   }

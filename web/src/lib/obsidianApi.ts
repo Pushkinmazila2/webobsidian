@@ -6,9 +6,11 @@
  * DOM helpers (`createEl`, `setText`, …), a CodeMirror-backed Editor, vault access and events.
  * Anything not implemented is a no-op or throws a clear error — the loader reports it per plugin.
  */
-import { EditorSelection, StateField, type Extension } from '@codemirror/state';
+import { EditorSelection, EditorState, StateField, type Extension } from '@codemirror/state';
 import { livePreviewState, ensureKatex } from './livePreview';
-import { EditorView } from '@codemirror/view';
+import { EditorView, keymap } from '@codemirror/view';
+import { insertNewlineContinueMarkup, markdown } from '@codemirror/lang-markdown';
+import { insertNewlineAndIndent, history, defaultKeymap, historyKeymap } from '@codemirror/commands';
 import { undo, redo, indentMore, indentLess, cursorDocStart, cursorDocEnd, selectAll, deleteLine } from '@codemirror/commands';
 import { currentVaultId } from './vault';
 import { api } from './api';
@@ -331,6 +333,16 @@ export class DataAdapter {
   getBasePath() { return ''; }
 }
 
+/**
+ * Desktop/mobile adapters exist so `adapter instanceof FileSystemAdapter` (a common platform probe) has a right-hand side.
+ * `app.vault.adapter` is neither (the vault lives on the server), so the probe answers "no" and plugins take their web path.
+ */
+export class FileSystemAdapter extends DataAdapter {
+  static async readLocalFile(_path: string): Promise<ArrayBuffer> { throw new Error('readLocalFile: files outside the vault are not reachable from WebObsidian'); }
+  static async mkdir(_path: string): Promise<void> { throw new Error('mkdir: folders outside the vault are not reachable from WebObsidian'); }
+}
+export class CapacitorAdapter extends DataAdapter {}
+
 /** Obsidian's app-level settings (`app.vault.getConfig(key)`); plugins read a few of these. Values are the Obsidian defaults. */
 const VAULT_CONFIG: Record<string, unknown> = {
   useMarkdownLinks: false, newLinkFormat: 'shortest', vimMode: false, showLineNumber: false, tabSize: 4, useTab: true, spellcheck: false,
@@ -591,18 +603,25 @@ export const startMetadataCache = (): Promise<void> => sharedMetadataCache.start
 export interface EditorPosition { line: number; ch: number }
 
 export class Editor {
+  /** Without an argument the active note's editor is addressed; embedded editors pass their own view. */
+  constructor(private bound?: EditorView) {}
   /** Undocumented in the public typings, but plugins (e.g. Editing Toolbar) call these on the active editor. */
   toggleMarkdownFormatting(type: string): void {
     const mark = FORMAT_MARKS[type];
     if (!mark) throw new Error(`Unsupported formatting "${type}"`);
     toggleInline(this.v, mark);
   }
+  /** Enter in a list: continue the list (or end it on an empty item), as Obsidian's editor does. */
+  newlineAndIndentContinueMarkdownList(): void {
+    const v = this.v;
+    if (!insertNewlineContinueMarkup(v)) insertNewlineAndIndent(v);
+  }
   toggleBulletList(): void { toggleLinePrefix(this.v, 'bullet'); }
   toggleNumberList(): void { toggleLinePrefix(this.v, 'number'); }
   toggleCheckList(_withCheckbox?: boolean): void { toggleLinePrefix(this.v, 'check'); }
   toggleBlockquote(): void { toggleLinePrefix(this.v, 'quote'); }
   private get v() {
-    const v = getActiveEditor();
+    const v = this.bound ?? getActiveEditor();
     if (!v) throw new Error('No active editor');
     return v;
   }
@@ -1253,6 +1272,78 @@ function createInternalPlugins() {
 
 export class RenderContext { hoverPopover: HoverPopover | null = null; }
 
+
+/**
+ * Obsidian's internal markdown editor widgets, reached through `app.embedRegistry.embedByExtension.md(...)`.
+ * Kanban, TaskNotes, Meta Bind & co. pull the editor class out of an embed (`getPrototypeOf(getPrototypeOf(embed.editMode)).constructor`)
+ * and subclass it: they use `cm`, `editor`, `set/get`, `buildLocalExtensions()` and `onUpdate()`.
+ */
+class MarkdownBaseEditView extends Component {
+  constructor(public app: App, public containerEl: HTMLElement, public owner: unknown) { super(); }
+}
+class MarkdownScrollableEditView extends MarkdownBaseEditView {
+  cm: EditorView;
+  activeCM: EditorView;
+  editor: Editor;
+  editorEl: HTMLElement;
+  constructor(app: App, containerEl: HTMLElement, owner: unknown) {
+    super(app, containerEl, owner);
+    this.editorEl = containerEl;
+    this.cm = new EditorView({ parent: containerEl, state: EditorState.create({ doc: '', extensions: this.buildLocalExtensions() }) });
+    this.activeCM = this.cm;
+    this.editor = new Editor(this.cm);
+  }
+  /** The CodeMirror extensions of this editor; subclasses call `super.buildLocalExtensions()` and push their own. */
+  buildLocalExtensions(): Extension[] {
+    return [
+      history(),
+      markdown(),
+      EditorView.lineWrapping,
+      keymap.of([...defaultKeymap, ...historyKeymap]),
+      EditorView.updateListener.of((u) => { if (u.docChanged || u.selectionSet || u.focusChanged) this.onUpdate(u, u.docChanged); }),
+    ];
+  }
+  onUpdate(_update: unknown, _changed: boolean): void {}
+  set(value: string, _clear?: boolean): void { this.cm.dispatch({ changes: { from: 0, to: this.cm.state.doc.length, insert: value } }); }
+  get(): string { return this.cm.state.doc.toString(); }
+  getValue(): string { return this.get(); }
+  clear(): void { this.set(''); }
+  focus(): void { this.cm.focus(); }
+  getSelection(): string { const r = this.cm.state.selection.main; return this.cm.state.sliceDoc(r.from, r.to); }
+  showSearch(_replace?: boolean): void {}
+  destroy(): void { this.cm.destroy(); }
+  onunload(): void { this.destroy(); }
+}
+class MarkdownEditViewImpl extends MarkdownScrollableEditView {}
+
+/** What `embedByExtension.md` hands out: an embedded note that can be shown rendered or as an editor. */
+class MarkdownEmbed extends Component {
+  app: App;
+  containerEl: HTMLElement;
+  editable = false;
+  editMode: MarkdownEditViewImpl | null = null;
+  constructor(public ctx: { app: App; containerEl: HTMLElement; state?: unknown }, public file: TFile | null, public subpath = '') {
+    super();
+    this.app = ctx.app; this.containerEl = ctx.containerEl;
+  }
+  get editor(): Editor | undefined { return this.editMode?.editor; }
+  get path(): string { return this.file?.path ?? ''; }
+  async loadFile(): Promise<void> {
+    if (!this.file) return;
+    const text = await readText(this.file.path);
+    if (this.editMode) this.editMode.set(text); else await MarkdownRenderer.render(this.app, text, this.containerEl, this.file.path, this);
+  }
+  showEditor(): void {
+    if (this.editMode) return;
+    this.containerEl.empty?.();
+    this.editMode = new MarkdownEditViewImpl(this.app, this.containerEl, this);
+    if (this.file) void readText(this.file.path).then((t) => this.editMode?.set(t));
+  }
+  showPreview(): void { this.editMode?.unload(); this.editMode = null; this.containerEl.empty?.(); void this.loadFile(); }
+  onunload(): void { this.editMode?.unload(); this.editMode = null; }
+}
+const createMarkdownEmbed = (ctx: { app: App; containerEl: HTMLElement; state?: unknown }, file: TFile | null, subpath?: string) => new MarkdownEmbed(ctx, file, subpath);
+
 export class App {
   vault = getVault();
   workspace = sharedWorkspace;
@@ -1260,7 +1351,7 @@ export class App {
   keymap = new Keymap();
   renderContext = new RenderContext();
   /** Internal embed registry: no native embeds are registered, so plugins that probe it fall back to their own UI. */
-  embedRegistry = { embedByExtension: {} as Record<string, unknown>, registerExtension(ext: string, creator: unknown) { this.embedByExtension[ext] = creator; }, registerExtensions(exts: string[], creator: unknown) { exts.forEach((e) => this.registerExtension(e, creator)); }, unregisterExtension(ext: string) { delete this.embedByExtension[ext]; }, unregisterExtensions(exts: string[]) { exts.forEach((e) => delete this.embedByExtension[e]); }, isExtensionRegistered(ext: string) { return ext in this.embedByExtension; } };
+  embedRegistry = { embedByExtension: { md: createMarkdownEmbed } as Record<string, unknown>, registerExtension(ext: string, creator: unknown) { this.embedByExtension[ext] = creator; }, registerExtensions(exts: string[], creator: unknown) { exts.forEach((e) => this.registerExtension(e, creator)); }, unregisterExtension(ext: string) { delete this.embedByExtension[ext]; }, unregisterExtensions(exts: string[]) { exts.forEach((e) => delete this.embedByExtension[e]); }, isExtensionRegistered(ext: string) { return ext in this.embedByExtension; } };
   secretStorage = new SecretStorage();
   /** Stable id of this vault for plugins that key IndexedDB/localStorage by it (`app.appId`). */
   appId = `webobsidian-${currentVaultId()}`;
@@ -2164,6 +2255,8 @@ export class PopoverSuggest<T> extends SuggestList<T> {
     this.listEl.className = 'suggestion-container suggestion';
     this.listEl.style.cssText = 'position:fixed;z-index:10000;';
   }
+  /** The popup's container element (`div.suggestion-container`); plugins add classes to it. */
+  get suggestEl(): HTMLElement { return this.listEl; }
   renderSuggestion(_value: T, _el: HTMLElement): void {}
   selectSuggestion(_value: T, _evt: MouseEvent | KeyboardEvent): void {}
   onHistoryBack(): boolean { return false; }
@@ -2302,7 +2395,7 @@ const rawModule = {
   TextComponent, TextAreaComponent, ToggleComponent, DropdownComponent, SliderComponent, ButtonComponent, ExtraButtonComponent,
   Platform, debounce, requestUrl, MetadataCache, editorLivePreviewField, editorInfoField, editorEditorField, editorViewField, setIcon, getIcon, addIcon, removeIcon, normalizePath, moment, sanitizeHTMLToDom,
   request, htmlToMarkdown, getAllTags, getIconIds, resolveSubpath, loadPdfJs,
-  View, FileView, TextFileView, EditableFileView, WorkspaceItem, WorkspaceParent, WorkspaceSplit, WorkspaceLeaf, TExternalFile, MarkdownPreviewRenderer, WorkspaceContainer, WorkspaceRoot, WorkspaceWindow, WorkspaceFloating, WorkspaceRibbon, WorkspaceMobileDrawer, WorkspaceSidedock,
+  FileSystemAdapter, CapacitorAdapter, View, FileView, TextFileView, EditableFileView, WorkspaceItem, WorkspaceParent, WorkspaceSplit, WorkspaceLeaf, TExternalFile, MarkdownPreviewRenderer, WorkspaceContainer, WorkspaceRoot, WorkspaceWindow, WorkspaceFloating, WorkspaceRibbon, WorkspaceMobileDrawer, WorkspaceSidedock,
   MarkdownRenderChild, MarkdownRenderer, EditorSuggest, SettingGroup, SecretStorage, SecretComponent,
   SettingPage, SettingTab,
   ...basesApi,

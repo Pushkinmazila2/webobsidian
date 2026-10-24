@@ -19,7 +19,15 @@ export async function readPropertyTypes(): Promise<Record<string, string>> {
   }
 }
 
-export async function setPropertyType(key: string, type: string): Promise<Record<string, string>> {
+/** Read-modify-write of one file: run the updates one after another so concurrent calls cannot lose each other's change. */
+let queue: Promise<unknown> = Promise.resolve();
+export function setPropertyType(key: string, type: string): Promise<Record<string, string>> {
+  const run = queue.then(() => setPropertyTypeNow(key, type));
+  queue = run.catch(() => undefined);
+  return run;
+}
+
+async function setPropertyTypeNow(key: string, type: string): Promise<Record<string, string>> {
   let data: { types: Record<string, string> } = { types: {} };
   try {
     const parsed = JSON.parse(await vault.readFileText(TYPES_FILE));

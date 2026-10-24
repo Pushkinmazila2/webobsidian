@@ -12,7 +12,7 @@ import { api } from './api';
 import { pluginHost } from './pluginHost';
 import { loadLucide } from '../components/Icon';
 import { Buffer, installNodeGlobals, nodeBuiltin, pluginProcess } from './nodeShims';
-import { App, Notice, Plugin, moment, obsidianModule, setPluginDataBackend, startMetadataCache } from './obsidianApi';
+import { getSharedApp, Notice, Plugin, moment, obsidianModule, setPluginDataBackend, startMetadataCache } from './obsidianApi';
 import * as cmState from '@codemirror/state';
 import * as cmView from '@codemirror/view';
 import * as cmCommands from '@codemirror/commands';
@@ -24,7 +24,8 @@ import * as lezerCommon from '@lezer/common';
 import * as lezerHighlight from '@lezer/highlight';
 import * as lezerLr from '@lezer/lr';
 
-const sharedApp = new App();
+// One `app` for everything (plugins, Bases, the shim itself): `app.plugins`, `app.workspace` … must be the same object everywhere.
+const sharedApp = getSharedApp();
 // Obsidian exposes the app as a global too (`window.app` / bare `app`); many plugins read it that way.
 (window as any).app = sharedApp;
 installNodeGlobals();
