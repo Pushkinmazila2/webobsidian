@@ -72,6 +72,10 @@ export function installDomExtensions() {
     }
     while (cur) { const next = cur.nextSibling; this.removeChild(cur); cur = next; }
   });
+  // `el.win` / `el.doc`: the window and document an element lives in (popout-window aware plugins use them; here always the one window).
+  for (const [k, get] of [['win', function (this: Node) { return this.ownerDocument?.defaultView ?? window; }], ['doc', function (this: Node) { return this.ownerDocument ?? document; }]] as const) {
+    if (!(k in Node.prototype)) Object.defineProperty(Node.prototype, k, { get, configurable: true });
+  }
   def(Node.prototype, 'instanceOf', function (this: Node, type: { new (...a: any[]): any }) { return this instanceof type; });
   def(Node.prototype, 'createSvg', function (this: Node, tag: string, o?: any, cb?: any) {
     const info = typeof o === 'string' ? { cls: o } : o ?? {};
@@ -117,6 +121,11 @@ export function installDomExtensions() {
   });
   def(HTMLElement.prototype, 'onWindowMigrated', function (this: HTMLElement, _listener: (win: Window) => any) { return () => {}; });
   def(HTMLElement.prototype, 'trigger', function (this: HTMLElement, type: string) { this.dispatchEvent(new Event(type, { bubbles: true })); });
+  // Obsidian adds `event.targetNode` (the event target typed as a Node); Kanban, Tasks & co. read it in click handlers.
+  // `event.win` / `event.doc`: the window/document the event happened in.
+  if (!('win' in Event.prototype)) Object.defineProperty(Event.prototype, 'win', { get(this: Event) { return (this.target as Node | null)?.ownerDocument?.defaultView ?? window; }, configurable: true });
+  if (!('doc' in Event.prototype)) Object.defineProperty(Event.prototype, 'doc', { get(this: Event) { return (this.target as Node | null)?.ownerDocument ?? document; }, configurable: true });
+  if (!('targetNode' in Event.prototype)) Object.defineProperty(Event.prototype, 'targetNode', { get(this: Event) { return this.target as Node | null; }, configurable: true });
   def(UIEvent.prototype, 'instanceOf', function (this: UIEvent, type: { new (...a: any[]): any }) { return this instanceof type; });
 
   // ---- globals ----

@@ -742,6 +742,8 @@ export class MarkdownView {
   showSearch(_replace = false) { useStore.setState({ searchOpen: true } as any); }
 }
 export class View extends Component {
+  /** Everything lives in the one browser window (Kanban keys its React root by it). */
+  getWindow(): Window { return window; }
   app: App = new App();
   containerEl: HTMLElement = document.createElement('div');
   icon = '';
@@ -1106,11 +1108,16 @@ export class SecretStorage {
 export interface MarkdownFileInfo { file: TFile | null; editor?: Editor }
 
 export class Workspace extends Events {
+  /** Obsidian's EditorSuggest manager: the registered suggests (Kanban reads Tasks' settings out of it). */
+  get editorSuggest() { return { suggests: pluginHost.editorSuggests().map((e) => e.suggest), currentSuggest: null as unknown }; }
   getActiveFile(): TFile | null {
     const p = useStore.getState().activePath;
     return p && !p.startsWith('__') ? new TFile(p) : null;
   }
-  get activeEditor() { return getActiveEditor() ? { editor: new Editor(), file: this.getActiveFile() } : null; }
+  /** Plugins with their own editors (Kanban cards) assign this; the built-in editor answers when nothing is assigned. */
+  private _activeEditorOverride: unknown = null;
+  get activeEditor(): any { return this._activeEditorOverride ?? (getActiveEditor() ? { editor: new Editor(), file: this.getActiveFile() } : null); }
+  set activeEditor(v: any) { this._activeEditorOverride = v; }
   /** The leaf whose view fills the main area right now, if a plugin view does. */
   private activePluginLeaf(): WorkspaceLeaf | null {
     const p = useStore.getState().activePath;
@@ -1251,12 +1258,15 @@ function createInternalPlugins() {
     'file-explorer': { revealInFolder: (f: { path: string }) => useStore.getState().revealInTree(f.path) },
     'tag-pane': { requestUpdateTags: () => {} },
     // Obsidian Sync is not available: report "not syncing" so plugins that wait for it carry on.
+    // Options plugins read blindly (Kanban: `internalPlugins.plugins.templates.instance.options.dateFormat`), with Obsidian's defaults.
+    'daily-notes': { options: { format: 'YYYY-MM-DD', folder: '', template: '', autorun: false } },
+    templates: { options: { folder: '', dateFormat: 'YYYY-MM-DD', timeFormat: 'HH:mm' } },
     sync: { syncStatus: 'unconfigured', getStatus: () => 'unconfigured', isSyncing: () => false },
   };
   const plugins: Record<string, { id: string; enabled: boolean; instance: Record<string, unknown>; enable(): void; disable(): void; [k: string]: unknown }> = {};
   for (const [id, name, enabled] of CORE_PLUGIN_IDS) {
     const pl = {
-      id, enabled, instance: Object.assign(new Events(), { id, name, ...(instances[id] ?? {}) }) as unknown as Record<string, unknown>,
+      id, enabled, instance: Object.assign(new Events(), { id, name, options: {}, ...(instances[id] ?? {}) }) as unknown as Record<string, unknown>,
       enable() { pl.enabled = true; }, disable() { pl.enabled = false; },
       async load() { pl._loaded = true; },
       _loaded: enabled,
