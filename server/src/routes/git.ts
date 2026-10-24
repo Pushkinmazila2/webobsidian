@@ -11,7 +11,7 @@ gitRouter.use(requireAuth);
 // With the GitHub storage driver there is no local repository: "sync" means
 // "commit what is buffered" and "pull" means "look at the branch now". The same
 // endpoints (and the status bar) keep working, mapped onto the driver.
-const remote = () => (getStorage().kind === 'github' ? getStorage() : null);
+const remote = () => (getStorage().kind !== 'local' ? getStorage() : null);
 
 async function remoteStatus() {
   const st = getStorage();
@@ -31,7 +31,7 @@ async function remoteStatus() {
     lfsAvailable: false,
     remote: info.repo,
     clean: pending === 0,
-    driver: 'github' as const,
+    driver: st.kind,
     lastError: info.lastError,
     conflictCopies: info.conflicts,
     autoSyncEnabled: s.git.enabled,
@@ -46,19 +46,19 @@ gitRouter.use((req, res, next) => {
       const route = `${req.method} ${req.path}`;
       if (route === 'GET /status') return res.json(await remoteStatus());
       if (route === 'GET /log' || route === 'GET /show') {
-        return res.status(501).json({ error: 'File history is not available yet for GitHub storage' });
+        return res.status(501).json({ error: 'File history is not available yet for remote storage' });
       }
       if (route === 'POST /init' || route === 'POST /clone') {
-        return res.status(400).json({ error: 'Not applicable: the vault is stored in a GitHub repository, there is nothing to initialise or clone' });
+        return res.status(400).json({ error: 'Not applicable: the vault is stored in a remote repository, there is nothing to initialise or clone' });
       }
       if (route === 'POST /pull') {
         await st.refresh!();
-        return res.json({ message: 'Checked GitHub for new commits' });
+        return res.json({ message: 'Checked the remote for new commits' });
       }
       if (route === 'POST /commit' || route === 'POST /push') {
         const n = st.pendingChanges?.() ?? 0;
         await st.flush!();
-        return res.json({ message: n ? `Committed ${n} change(s) to GitHub` : 'Nothing to commit' });
+        return res.json({ message: n ? `Saved ${n} change(s) to the remote` : 'Nothing to commit' });
       }
       if (route === 'POST /sync') {
         const n = st.pendingChanges?.() ?? 0;
@@ -68,7 +68,7 @@ gitRouter.use((req, res, next) => {
           await st.flush!();
           log.push(n ? `committed ${n} change(s)` : 'nothing to commit');
           await st.refresh!();
-          log.push('up to date with GitHub');
+          log.push('up to date with the remote');
         } catch (e: any) {
           ok = false;
           log.push(String(e?.message ?? e));

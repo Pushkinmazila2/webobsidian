@@ -38,7 +38,7 @@ export function readVaultsEnv(env: Record<string, string | undefined> = process.
       const base = VaultSchema.parse({ id: e.id, name: e.name ?? e.id, path: e.path ?? '', tokenEnv: e.tokenEnv ?? '' });
       if (seen.has(base.id)) throw new Error('duplicate id');
       seen.add(base.id);
-      const patch: any = { github: {}, cache: {} };
+      const patch: any = { github: {}, git: {}, cache: {} };
       if (e.repo) {
         const [owner, name] = parseRepoRef(String(e.repo));
         patch.github.owner = e.owner ?? owner;
@@ -47,14 +47,20 @@ export function readVaultsEnv(env: Record<string, string | undefined> = process.
       for (const k of ['branch', 'basePath', 'apiUrl', 'pollSec', 'flushSec', 'holdSec', 'holdMatch']) {
         if (e[k] !== undefined) patch.github[k] = e[k];
       }
+      if (e.git) {
+        // {"id":"wiki","git":"https://gitlab.example.com/me/wiki.git","branch":"main","username":"me","tokenEnv":"WIKI_TOKEN"}
+        patch.git.url = String(e.git);
+        for (const k of ['branch', 'basePath', 'username', 'pollSec', 'flushSec', 'authorName', 'authorEmail']) if (e[k] !== undefined) patch.git[k] = e[k];
+      }
       if (e.cache && typeof e.cache === 'object') patch.cache = e.cache;
       const rulesSrc = e.rules ?? (e.preset ? PRESET_RULES[String(e.preset).toLowerCase()] : undefined);
       if (e.preset && !rulesSrc) throw new Error(`unknown preset "${e.preset}"`);
       if (rulesSrc !== undefined) patch.rules = Array.isArray(rulesSrc) ? rulesSrc : parseRules(String(rulesSrc));
-      patch.driver = e.driver ?? (e.repo ? 'github' : 'local');
+      patch.driver = e.driver ?? (e.git ? 'git' : e.repo ? 'github' : 'local');
       applyStoragePatch(base.storage, patch);
-      if (e.token) base.storage.github.token = String(e.token);
+      if (e.token) { base.storage.github.token = String(e.token); base.storage.git.token = String(e.token); }
       if (base.storage.driver === 'local' && !base.path) throw new Error('a local vault needs "path"');
+      if (base.storage.driver === 'git' && !base.storage.git.url) throw new Error('a Git vault needs "git": "<remote URL>"');
       if (base.storage.driver === 'github' && (!base.storage.github.owner || !base.storage.github.repo)) throw new Error('a GitHub vault needs "repo": "owner/repo"');
       return VaultSchema.parse(base);
     } catch (err: any) {

@@ -6,7 +6,9 @@ import { Note, PRESETS, Row } from './StorageSettings';
 interface Form {
   id?: string; // set when editing
   name: string;
-  driver: 'local' | 'github';
+  driver: 'local' | 'github' | 'git';
+  url: string;
+  username: string;
   path: string;
   owner: string;
   repo: string;
@@ -17,7 +19,7 @@ interface Form {
   preset: number;
 }
 
-const EMPTY: Form = { name: '', driver: 'local', path: '', owner: '', repo: '', branch: '', basePath: '', token: '', tokenEnv: '', preset: 0 };
+const EMPTY: Form = { name: '', driver: 'local', url: '', username: '', path: '', owner: '', repo: '', branch: '', basePath: '', token: '', tokenEnv: '', preset: 0 };
 
 function presetOf(rules: any[]): number {
   const i = PRESETS.findIndex((p) => JSON.stringify(p.rules) === JSON.stringify((rules ?? []).map((r: any) => ({ match: r.match, mode: r.mode, ...(r.index === undefined ? {} : { index: r.index }) }))));
@@ -46,6 +48,8 @@ export default function VaultsSettings() {
       id,
       name: vault.name,
       driver: vault.storage.driver,
+      url: vault.storage.git?.url ?? '',
+      username: vault.storage.git?.username ?? '',
       path: vault.path,
       owner: vault.storage.github.owner,
       repo: vault.storage.github.repo,
@@ -59,11 +63,13 @@ export default function VaultsSettings() {
 
   const github = (f: Form) => ({ owner: f.owner.trim(), repo: f.repo.trim(), branch: f.branch.trim(), basePath: f.basePath.trim(), token: f.token });
 
+  const gitCfg = (f: Form) => ({ url: f.url.trim(), branch: f.branch.trim(), basePath: f.basePath.trim(), username: f.username.trim(), token: f.token });
+
   const payload = (f: Form) => ({
     name: f.name.trim(),
     path: f.driver === 'local' ? f.path.trim() : '',
     tokenEnv: f.tokenEnv.trim(),
-    storage: { driver: f.driver, ...(f.driver === 'github' ? { github: github(f), rules: PRESETS[f.preset].rules } : {}) },
+    storage: { driver: f.driver, ...(f.driver === 'github' ? { github: github(f), rules: PRESETS[f.preset].rules } : f.driver === 'git' ? { git: gitCfg(f) } : {}) },
   });
 
   const save = async () => {
@@ -84,7 +90,7 @@ export default function VaultsSettings() {
   };
 
   const remove = async (v: VaultInfo) => {
-    if (!confirm(`Remove "${v.name}" from the list? Its ${v.driver === 'github' ? 'repository' : 'folder'} is not touched. Unsaved changes are saved first.`)) return;
+    if (!confirm(`Remove "${v.name}" from the list? Its ${v.driver === 'local' ? 'folder' : 'repository'} is not touched. Unsaved changes are saved first.`)) return;
     try {
       await api.deleteVault(v.id);
       if (v.id === cur) switchVault('default');
@@ -98,7 +104,8 @@ export default function VaultsSettings() {
     if (!form) return;
     setTest(null);
     try {
-      setTest(await api.storageTest(github(form), { vault: form.id, tokenEnv: form.tokenEnv.trim() || undefined }));
+      const extra = { vault: form.id, tokenEnv: form.tokenEnv.trim() || undefined };
+      setTest(form.driver === 'git' ? await api.storageTestGit(gitCfg(form), extra) : await api.storageTest(github(form), extra));
     } catch (e: any) {
       setTest({ ok: false, error: e.message });
     }
@@ -109,7 +116,7 @@ export default function VaultsSettings() {
       <h3>Vaults</h3>
       <p style={{ color: 'var(--text-muted)' }}>
         Each browser tab works on one vault; switch with the vault name at the bottom of the sidebar. A vault can be a folder on
-        this server or a GitHub repository. The main vault is configured under <b>Vault &amp; Files</b> and <b>Storage</b>.
+        this server, a GitHub repository or any Git remote. The main vault is configured under <b>Vault &amp; Files</b> and <b>Storage</b>.
       </p>
       {msg && <Note kind={msg.kind}>{msg.text}</Note>}
 
@@ -117,7 +124,7 @@ export default function VaultsSettings() {
         <Row
           key={v.id}
           name={`${v.name}${v.id === cur ? ' · this tab' : ''}`}
-          desc={`${v.driver === 'github' ? 'GitHub' : 'Folder'}: ${v.location || '—'}${v.isDefault ? ' · main vault' : ''}${v.fromEnv ? ' · set by WEBOBSIDIAN_VAULTS (read-only)' : ''}`}
+          desc={`${v.driver === 'github' ? 'GitHub' : v.driver === 'git' ? 'Git' : 'Folder'}: ${v.location || '—'}${v.isDefault ? ' · main vault' : ''}${v.fromEnv ? ' · set by WEBOBSIDIAN_VAULTS (read-only)' : ''}`}
         >
           {v.id !== cur && <button onClick={() => switchVault(v.id)}>Open</button>}
           {!v.isDefault && !v.fromEnv && (
@@ -145,12 +152,39 @@ export default function VaultsSettings() {
             <select value={form.driver} disabled={!!form.id} onChange={(e) => set('driver', e.target.value)}>
               <option value="local">Folder on this server</option>
               <option value="github">GitHub repository</option>
+              <option value="git">Git remote (any host)</option>
             </select>
           </Row>
           {form.driver === 'local' ? (
             <Row name="Folder" desc="Must be inside the allowed roots (see Vault & Files).">
               <input value={form.path} placeholder="/data/notes" onChange={(e) => set('path', e.target.value)} />
             </Row>
+          ) : form.driver === 'git' ? (
+            <>
+              <Row name="Remote URL" desc="https://… (token below) or git@host:group/repo.git (the server’s SSH keys).">
+                <input value={form.url} placeholder="https://gitlab.com/me/notes.git" onChange={(e) => set('url', e.target.value)} />
+              </Row>
+              <Row name="Branch" desc="Empty = the remote’s default branch.">
+                <input value={form.branch} onChange={(e) => set('branch', e.target.value)} />
+              </Row>
+              <Row name="Folder in repo" desc="Empty = the repository root.">
+                <input value={form.basePath} onChange={(e) => set('basePath', e.target.value)} />
+              </Row>
+              <Row name="Username" desc="For https remotes (optional).">
+                <input value={form.username} onChange={(e) => set('username', e.target.value)} />
+              </Row>
+              <Row name="Token / password">
+                <input type="password" value={form.token} onChange={(e) => set('token', e.target.value)} />
+              </Row>
+              <Row name="Token variable" desc="Name of a server environment variable that holds the token (preferred). Empty = WEBOBSIDIAN_GIT_TOKEN.">
+                <input value={form.tokenEnv} placeholder="WIKI_TOKEN" onChange={(e) => set('tokenEnv', e.target.value)} />
+              </Row>
+              {test && (
+                <Note kind={test.ok ? 'ok' : 'error'}>
+                  {test.ok ? (test.empty ? 'Reachable · the repository is empty' : `Reachable · ${test.branches.length} branch(es)`) : test.error}
+                </Note>
+              )}
+            </>
           ) : (
             <>
               <Row name="Owner">
@@ -189,7 +223,7 @@ export default function VaultsSettings() {
           )}
           <p>
             <button disabled={busy || !form.name.trim()} onClick={save}>{form.id ? 'Save' : 'Add'}</button>{' '}
-            {form.driver === 'github' && <button onClick={runTest}>Test connection</button>}{' '}
+            {form.driver !== 'local' && <button onClick={runTest}>Test connection</button>}{' '}
             <button onClick={() => setForm(null)}>Cancel</button>
           </p>
         </div>

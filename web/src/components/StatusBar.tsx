@@ -45,13 +45,14 @@ export default function StatusBar() {
   const isText = activePath && /\.(md|markdown|txt)$/i.test(activePath);
   const words = isText ? content.trim().split(/\s+/).filter(Boolean).length : 0;
 
-  const gh = git?.driver === 'github';
+  const gh = git?.driver === 'github' || git?.driver === 'git';
+  const remoteName = git?.driver === 'git' ? 'Git' : 'GitHub';
   const gitLabel = gh
     ? git.lastError
-      ? 'GitHub: save failed — retrying'
+      ? `${remoteName}: save failed — retrying`
       : git.ahead
-        ? `${git.ahead} unsaved to GitHub`
-        : `GitHub ${git.branch} ✓`
+        ? `${git.ahead} unsaved to ${remoteName}`
+        : `${remoteName} ${git.branch} ✓`
     : !git?.isRepo
     ? 'No vault sync'
     : git.clean

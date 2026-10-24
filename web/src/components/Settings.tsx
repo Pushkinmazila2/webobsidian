@@ -167,10 +167,10 @@ function GitSettings({ s, reload }: { s: any; reload: () => void }) {
   return (
     <div>
       <h2>GitHub Sync</h2>
-      {s.storage?.driver === 'github' && (
+      {(s.storage?.driver === 'github' || s.storage?.driver === 'git') && (
         <div style={{ border: '1px solid var(--bg-modifier-border)', borderRadius: 6, padding: '8px 10px', marginBottom: 10, fontSize: 12.5 }}>
-          The vault is stored in a GitHub repository (see <b>Storage</b>), so there is no local clone to sync. Edits are committed
-          to GitHub automatically; <b>Sync now</b> commits immediately and checks for new commits. Init, Clone, history and the
+          The vault is stored in a {s.storage.driver === 'git' ? 'Git' : 'GitHub'} repository (see <b>Storage</b>), which the server handles itself. Edits are committed
+          and pushed automatically; <b>Sync now</b> does it immediately and checks for new commits. Init, Clone, history and the
           options below don’t apply.
         </div>
       )}

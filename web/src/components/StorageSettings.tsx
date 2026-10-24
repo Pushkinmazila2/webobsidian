@@ -69,8 +69,10 @@ export function Note({ kind, children }: { kind: 'info' | 'warn' | 'error' | 'ok
 }
 
 export default function StorageSettings({ s, reload }: { s: any; reload: () => Promise<void> | void }) {
-  const [driver, setDriver] = useState<'local' | 'github'>(s.storage.driver);
+  const [driver, setDriver] = useState<'local' | 'github' | 'git'>(s.storage.driver);
   const [g, setG] = useState({ ...s.storage.github });
+  const [gt, setGt] = useState({ ...s.storage.git });
+  const setGit = (k: string, v: any) => setGt((p: any) => ({ ...p, [k]: v }));
   const [cache, setCache] = useState({ ...s.storage.cache });
   const [rules, setRules] = useState<RuleRow[]>(s.storage.rules.map((r: any) => ({ ...r })));
   const [status, setStatus] = useState<any>(null);
@@ -117,11 +119,21 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
     token: g.token, // masked value is ignored by the server
   });
 
+  const gitPayload = () => ({
+    url: gt.url.trim(),
+    branch: gt.branch.trim(),
+    basePath: gt.basePath.trim(),
+    username: gt.username.trim(),
+    pollSec: Number(gt.pollSec),
+    flushSec: Number(gt.flushSec),
+    token: gt.token, // masked value is ignored by the server
+  });
+
   const runTest = async () => {
     setTesting(true);
     setTest(null);
     try {
-      setTest(await api.storageTest(ghPayload()));
+      setTest(driver === 'git' ? await api.storageTestGit(gitPayload()) : await api.storageTest(ghPayload()));
     } catch (e: any) {
       setTest({ ok: false, error: e.message });
     } finally {
@@ -137,6 +149,7 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
         storage: {
           driver,
           github: ghPayload(),
+          git: gitPayload(),
           cache: { persist: cache.persist, maxMB: Number(cache.maxMB), dir: cache.dir },
           rules: rules.map((r) => ({ match: r.match.trim(), mode: r.mode, index: effIndex(r) })),
         },
@@ -170,14 +183,14 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
       {status?.restartRequired && (
         <Note kind="warn">
           Saved storage settings differ from what the server is running. <b>Restart the server</b> to apply them — until then the
-          vault keeps using <b>{status.active === 'github' ? 'GitHub' : 'the local folder'}</b>.
+          vault keeps using <b>{status.active === 'github' ? 'GitHub' : status.active === 'git' ? 'the Git remote' : 'the local folder'}</b>.
         </Note>
       )}
 
-      {status?.active === 'github' && (
+      {(status?.active === 'github' || status?.active === 'git') && (
         <Note kind={remote?.lastError ? 'error' : 'info'}>
           Connected to <b>{remote?.repo}</b> ({remote?.branch}).{' '}
-          {pending > 0 ? <b>{pending} change(s) not yet saved to GitHub{remote?.held > 0 ? ` (${remote.held} of them plugin/app settings, held back on purpose)` : ''}.</b> : 'Everything is saved to GitHub.'}
+          {pending > 0 ? <b>{pending} change(s) not yet saved to {status.active === 'git' ? 'the remote' : 'GitHub'}{remote?.held > 0 ? ` (${remote.held} of them plugin/app settings, held back on purpose)` : ''}.</b> : `Everything is saved to ${status.active === 'git' ? 'the remote' : 'GitHub'}.`}
           {remote?.lastError && <div style={{ marginTop: 4 }}>Last save failed: {remote.lastError}. It will be retried automatically.</div>}
           {remote?.conflicts?.length > 0 && (
             <div style={{ marginTop: 4 }}>
@@ -187,12 +200,55 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
         </Note>
       )}
 
-      <Row name="Where the vault lives" desc="Local folder on the server, or a repository reached through the GitHub API (no clone is made).">
+      <Row name="Where the vault lives" desc="Local folder on the server, a repository reached through the GitHub API (no clone is made), or any Git remote (the server keeps a clone and pushes to it).">
         <select className="text-input" style={{ width: 220 }} value={driver} onChange={(e) => setDriver(e.target.value as any)} {...lock('driver')}>
           <option value="local">Local folder</option>
           <option value="github">GitHub repository</option>
+          <option value="git">Git remote (any host)</option>
         </select>
       </Row>
+
+      {driver === 'git' && (
+        <>
+          <Row name="Remote URL" desc="https://… (token below), or git@host:group/repo.git / ssh://… (uses the server’s SSH keys). GitLab, Gitea, Bitbucket, your own server…">
+            <input className="text-input" style={{ width: 275 }} placeholder="https://gitlab.com/me/notes.git" value={gt.url} onChange={(e) => setGit('url', e.target.value)} {...lock('git.url')} />
+          </Row>
+          <Row name="Branch" desc="Empty = the remote’s default branch">
+            <input className="text-input" style={{ width: 275 }} placeholder="(default branch)" value={gt.branch} onChange={(e) => setGit('branch', e.target.value)} {...lock('git.branch')} />
+          </Row>
+          <Row name="Folder inside the repo" desc="Use a subfolder as the vault root. Empty = whole repository.">
+            <input className="text-input" style={{ width: 275 }} placeholder="(repository root)" value={gt.basePath} onChange={(e) => setGit('basePath', e.target.value)} {...lock('git.basePath')} />
+          </Row>
+          <Row name="Username" desc="For https remotes. Most hosts accept any name when a token is used.">
+            <input className="text-input" style={{ width: 275 }} placeholder="(optional)" value={gt.username} onChange={(e) => setGit('username', e.target.value)} {...lock('git.username')} />
+          </Row>
+          <Row
+            name="Token / password"
+            desc={status?.gitTokenSource === 'env' ? `Using ${status.gitTokenEnvVar} from the server environment (takes precedence over this field).` : `Access token for https remotes. Safer: set ${status?.gitTokenEnvVar ?? 'WEBOBSIDIAN_GIT_TOKEN'} on the server instead. Never written to the repository.`}
+          >
+            <input className="text-input" type="password" autoComplete="off" style={{ width: 275 }} value={gt.token} onChange={(e) => setGit('token', e.target.value)} {...lock('git.token')} />
+          </Row>
+          <Row name="Saving" desc="Edits are committed and pushed in one batch after this many seconds without typing (also on Sync and on shutdown).">
+            <input className="text-input" type="number" min={1} style={{ width: 90 }} value={gt.flushSec} onChange={(e) => setGit('flushSec', e.target.value)} {...lock('git.flushSec')} />
+            <span style={{ marginLeft: 6, color: 'var(--text-muted)' }}>sec</span>
+          </Row>
+          <Row name="Check for outside changes" desc="How often the remote is fetched (minimum 5).">
+            <input className="text-input" type="number" min={5} style={{ width: 90 }} value={gt.pollSec} onChange={(e) => setGit('pollSec', e.target.value)} {...lock('git.pollSec')} />
+            <span style={{ marginLeft: 6, color: 'var(--text-muted)' }}>sec</span>
+          </Row>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '10px 0' }}>
+            <button className="btn secondary" onClick={runTest} disabled={testing}>{testing ? 'Testing…' : 'Test connection'}</button>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Doesn’t save or clone anything.</span>
+          </div>
+          {test && !test.ok && <Note kind="error">{test.error}</Note>}
+          {test?.ok && (
+            <Note kind="ok">
+              Reachable{test.empty ? ': the repository is empty (the first save creates the branch)' : `, branch ${test.branch ?? test.defaultBranch ?? '?'} (${test.branches.length} branch(es))`}.
+              <div style={{ color: 'var(--text-muted)' }}>Write access is checked on the first save. Conflicts keep both versions (“… (conflict …)”).</div>
+            </Note>
+          )}
+        </>
+      )}
 
       {driver === 'github' && (
         <>
@@ -377,7 +433,7 @@ export default function StorageSettings({ s, reload }: { s: any; reload: () => P
         </>
       )}
 
-      {driver === 'local' && s.storage.driver === 'github' && (
+      {driver === 'local' && s.storage.driver !== 'local' && (
         <Note kind="info">Switching back to the local folder uses the path set under “Vault &amp; Files”.</Note>
       )}
 

@@ -3,6 +3,25 @@ import { Rules, globToRegExp } from '../storage/github/rules.js';
 const MASK = '••••••••';
 const str = (v: unknown, max = 300) => (typeof v === 'string' ? v.trim().slice(0, max) : undefined);
 
+/**
+ * Why a Git remote URL is not acceptable, or null. Only network transports are allowed: git's `ext::` and local-path
+ * transports run commands / read arbitrary folders, which a web settings form must never be able to trigger.
+ * (WEBOBSIDIAN_GIT_ALLOW_LOCAL=1 additionally allows local paths and file:// — for tests and trusted setups.)
+ */
+export function gitUrlProblem(url: string): string | null {
+  if (/[\s\x00-\x1f]/.test(url)) return 'must not contain spaces or control characters';
+  if (url.startsWith('-')) return 'is not a URL';
+  if (/^(https?|ssh|git):\/\//i.test(url)) {
+    let u: URL;
+    try { u = new URL(url); } catch { return 'is not a valid URL'; }
+    if (/^https?:$/i.test(u.protocol) && (u.username || u.password)) return 'must not contain credentials — use the username/token fields';
+    return u.hostname ? null : 'has no host';
+  }
+  if (/^[A-Za-z0-9._-]+@[A-Za-z0-9.-]+:[^:]/.test(url)) return null; // scp-like: git@host:group/repo.git
+  if (process.env.WEBOBSIDIAN_GIT_ALLOW_LOCAL === '1' && (/^file:\/\//i.test(url) || url.startsWith('/'))) return null;
+  return 'must be an https://, http://, ssh:// or git@host:path URL';
+}
+
 export function badRequest(message: string): never {
   throw Object.assign(new Error(message), { status: 400 });
 }
@@ -10,7 +29,7 @@ export function badRequest(message: string): never {
 /** Validate + merge a `storage` patch. Throws 400 on anything malformed; the schema parse after it is the final gate. */
 export function applyStoragePatch(d: any, b: any): void {
   if (b.driver !== undefined) {
-    if (b.driver !== 'local' && b.driver !== 'github') badRequest('storage.driver must be "local" or "github"');
+    if (b.driver !== 'local' && b.driver !== 'github' && b.driver !== 'git') badRequest('storage.driver must be "local", "github" or "git"');
     d.driver = b.driver;
   }
   const g = b.github;
@@ -60,6 +79,43 @@ export function applyStoragePatch(d: any, b: any): void {
       });
     }
     if (typeof g.token === 'string' && g.token !== MASK) d.github.token = g.token.trim(); // empty string clears it
+  }
+  const gt = b.git;
+  if (gt && typeof gt === 'object') {
+    const url = str(gt.url, 500);
+    if (url !== undefined) {
+      if (url) { const why = gitUrlProblem(url); if (why) badRequest(`storage.git.url ${why}`); }
+      d.git.url = url;
+    }
+    const branch = str(gt.branch, 255);
+    if (branch !== undefined) {
+      if (/[\s~^:?*\[\\]|\.\.|^\/|\/$|^-/.test(branch)) badRequest('storage.git.branch is not a valid branch name');
+      d.git.branch = branch;
+    }
+    const base = str(gt.basePath, 500);
+    if (base !== undefined) {
+      const clean = base.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+      if (clean.split('/').some((seg: string) => seg === '..' || seg === '.git')) badRequest('storage.git.basePath is not allowed');
+      d.git.basePath = clean;
+    }
+    const user = str(gt.username, 200);
+    if (user !== undefined) {
+      if (/[\s:]/.test(user)) badRequest('storage.git.username must not contain spaces or ":"');
+      d.git.username = user;
+    }
+    for (const k of ['authorName', 'authorEmail'] as const) {
+      const v = str(gt[k], 200);
+      if (v !== undefined) {
+        if (/[\r\n<>]/.test(v)) badRequest(`storage.git.${k} has invalid characters`);
+        d.git[k] = v;
+      }
+    }
+    for (const [key, min] of [['pollSec', 5], ['flushSec', 1]] as const) {
+      if (gt[key] === undefined) continue;
+      if (typeof gt[key] !== 'number' || !Number.isFinite(gt[key]) || gt[key] < min) badRequest(`storage.git.${key} must be a number ≥ ${min}`);
+      d.git[key] = gt[key];
+    }
+    if (typeof gt.token === 'string' && gt.token !== MASK) d.git.token = gt.token.trim();
   }
   const c = b.cache;
   if (c && typeof c === 'object') {

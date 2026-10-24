@@ -50,7 +50,7 @@ export default function Sidebar() {
       y: Math.max(8, r.top - 8 - vaults.length * 30),
       items: [
         ...vaults.map((v) => ({
-          label: v.driver === 'github' ? `${v.name} (GitHub)` : v.name,
+          label: v.driver === 'github' ? `${v.name} (GitHub)` : v.driver === 'git' ? `${v.name} (Git)` : v.name,
           icon: v.id === curId ? 'check' : 'folder',
           onClick: () => { if (v.id !== curId) switchVault(v.id); },
         })),

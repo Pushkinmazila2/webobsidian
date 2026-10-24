@@ -142,6 +142,19 @@ export function readStorageEnv(env: Env = process.env): StorageEnv {
   const cacheDir = get('WEBOBSIDIAN_CACHE_DIR');
   if (cacheDir) set('cache.dir', 'WEBOBSIDIAN_CACHE_DIR', cacheDir);
 
+  // Plain Git remote (any host): WEBOBSIDIAN_GIT_URL + optional BRANCH / BASE_PATH / USERNAME / POLL_SEC / FLUSH_SEC; token in WEBOBSIDIAN_GIT_TOKEN.
+  const gitUrl = get('WEBOBSIDIAN_GIT_URL');
+  if (gitUrl) set('git.url', 'WEBOBSIDIAN_GIT_URL', gitUrl);
+  for (const [name, path] of [['WEBOBSIDIAN_GIT_BRANCH', 'git.branch'], ['WEBOBSIDIAN_GIT_BASE_PATH', 'git.basePath'], ['WEBOBSIDIAN_GIT_USERNAME', 'git.username']] as const) {
+    const v = get(name);
+    if (v) set(path, name, v);
+  }
+  for (const [name, path] of [['WEBOBSIDIAN_GIT_POLL_SEC', 'git.pollSec'], ['WEBOBSIDIAN_GIT_FLUSH_SEC', 'git.flushSec']] as const) {
+    const v = get(name);
+    if (v) set(path, name, wrap(name, () => num(name, v)));
+  }
+  if (get('WEBOBSIDIAN_GIT_TOKEN')) lockedBy['git.token'] = 'WEBOBSIDIAN_GIT_TOKEN';
+
   const preset = get('WEBOBSIDIAN_STORAGE_PRESET');
   if (preset) {
     const rules = PRESETS[preset.toLowerCase()];
@@ -157,12 +170,13 @@ export function readStorageEnv(env: Env = process.env): StorageEnv {
   const driver = get('WEBOBSIDIAN_STORAGE');
   if (driver) set('driver', 'WEBOBSIDIAN_STORAGE', driver.toLowerCase());
   else if (repoRef || ownerEnv) set('driver', 'WEBOBSIDIAN_GITHUB_REPO', 'github'); // a repository was given → use it
+  else if (gitUrl) set('driver', 'WEBOBSIDIAN_GIT_URL', 'git');
 
   // Final check with the same validator the settings API uses, per variable so the error names it.
   for (const [path, name] of Object.entries(lockedBy)) {
-    if (path === 'github.token') continue;
+    if (path === 'github.token' || path === 'git.token') continue;
     wrap(name, () => {
-      const scratch: any = { driver: 'local', github: {}, cache: {}, rules: [] };
+      const scratch: any = { driver: 'local', github: {}, git: {}, cache: {}, rules: [] };
       const [top, key] = path.split('.');
       const one: any = key ? { [top]: { [key]: (patch as any)[top][key] } } : { [top]: (patch as any)[top] };
       applyStoragePatch(scratch, one);

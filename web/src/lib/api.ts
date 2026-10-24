@@ -24,7 +24,7 @@ export interface TrashItem {
 export interface VaultInfo {
   id: string;
   name: string;
-  driver: 'local' | 'github';
+  driver: 'local' | 'github' | 'git';
   isDefault: boolean;
   fromEnv: boolean;
   location: string;
@@ -243,6 +243,9 @@ export const api = {
   storageStatus: () => req<any>('/api/settings/storage/status'),
   storageTest: (github: any, extra?: { vault?: string; tokenEnv?: string }) =>
     req<any>('/api/settings/storage/test', { method: 'POST', body: JSON.stringify({ github, ...extra }) }),
+
+  storageTestGit: (git: any, extra?: { vault?: string; tokenEnv?: string }) =>
+    req<any>('/api/settings/storage/test', { method: 'POST', body: JSON.stringify({ git, ...extra }) }),
 
   // vaults
   listVaults: () => req<{ vaults: VaultInfo[] }>('/api/vaults'),

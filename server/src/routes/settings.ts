@@ -10,6 +10,7 @@ import { getStorage } from '../services/vault.js';
 import { extraVaultConfigs, storageRestartRequired } from '../services/vaults.js';
 import { GithubClient, GithubError, TOKEN_ENV } from '../storage/github/index.js';
 import { applyStoragePatch } from '../services/storagepatch.js';
+import { GIT_TOKEN_ENV, testGitRemote } from '../storage/gitrepo/index.js';
 
 export const settingsRouter = Router();
 settingsRouter.use(requireAuth);
@@ -80,6 +81,8 @@ settingsRouter.get(
       restartRequired: storageRestartRequired(s),
       tokenSource: tokenSource(s.storage.github.token),
       tokenEnvVar: TOKEN_ENV,
+      gitTokenSource: process.env[GIT_TOKEN_ENV] ? 'env' : s.storage.git.token ? 'settings' : 'none',
+      gitTokenEnvVar: GIT_TOKEN_ENV,
       locked: storageLockedBy(), // settings path → environment variable that sets it (read-only in the UI)
       remote: st.remoteInfo?.() ?? null,
     });
@@ -94,6 +97,15 @@ settingsRouter.post(
     // `vault` = test an extra vault (its saved settings + env token), else the main one.
     const extra = req.body?.vault ? extraVaultConfigs(s).find((v) => v.conf.id === req.body.vault)?.conf : undefined;
     const draft: any = JSON.parse(JSON.stringify(extra ? extra.storage : s.storage));
+    if (req.body?.git !== undefined) {
+      // Git remote: `git ls-remote` with the given (or saved) URL + credentials; nothing is cloned or saved.
+      applyStoragePatch(draft, { git: req.body.git ?? {} });
+      const gt = draft.git;
+      if (!gt.url) return res.json({ ok: false, error: 'Enter the remote URL first' });
+      const tokenVar = (typeof req.body?.tokenEnv === 'string' && req.body.tokenEnv) || extra?.tokenEnv || GIT_TOKEN_ENV;
+      const r = await testGitRemote({ url: gt.url, branch: gt.branch || undefined, username: gt.username || undefined, token: process.env[tokenVar] || gt.token || undefined });
+      return res.json(r.ok ? { ...r, branch: gt.branch || r.defaultBranch } : r);
+    }
     applyStoragePatch(draft, { github: req.body?.github ?? {} });
     const g = draft.github;
     const tokenVar = (typeof req.body?.tokenEnv === 'string' && req.body.tokenEnv) || extra?.tokenEnv || TOKEN_ENV;

@@ -67,7 +67,7 @@ export type StopWatching = () => Promise<void>;
 
 /** Snapshot of a remote-backed driver's sync state (GitHub). */
 export interface RemoteInfo {
-  repo: string; // owner/repo
+  repo: string; // owner/repo (GitHub) or the remote URL without credentials (Git)
   branch: string;
   commit: string | null; // commit sha the committed view is based on
   pending: number; // changes not yet committed
@@ -78,7 +78,7 @@ export interface RemoteInfo {
 
 export interface VaultStorage {
   /** Driver identifier, for diagnostics and capability checks. */
-  readonly kind: 'local' | 'github';
+  readonly kind: 'local' | 'github' | 'git';
 
   /**
    * Whether `rel` takes part in search / backlinks / graph. Local vaults index

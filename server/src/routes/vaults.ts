@@ -39,7 +39,7 @@ export async function vaultMiddleware(req: Request, res: Response, next: NextFun
     await ensureReady(ctx);
     // Git sync (a local clone + remote) belongs to the main vault; a GitHub vault maps the same
     // endpoints onto its driver (status bar, "save now").
-    if (req.path.startsWith('/git') && ctx.storage.kind !== 'github') {
+    if (req.path.startsWith('/git') && ctx.storage.kind === 'local') {
       res.status(400).json({ error: 'Git sync is only available for the main vault' });
       return;
     }
@@ -52,7 +52,7 @@ export async function vaultMiddleware(req: Request, res: Response, next: NextFun
 const redact = (c: VaultConfig, fromEnv: boolean) => ({
   ...c,
   fromEnv,
-  storage: { ...c.storage, github: { ...c.storage.github, token: c.storage.github.token ? MASK : '' } },
+  storage: { ...c.storage, github: { ...c.storage.github, token: c.storage.github.token ? MASK : '' }, git: { ...c.storage.git, token: c.storage.git.token ? MASK : '' } },
 });
 
 const slugify = (name: string) =>
@@ -73,6 +73,8 @@ async function build(body: any, existing?: VaultConfig): Promise<VaultConfig> {
   if (base.storage.driver === 'local') {
     if (!base.path) badRequest('a local vault needs a folder path');
     await assertVaultPathAllowed({ path: base.path });
+  } else if (base.storage.driver === 'git') {
+    if (!base.storage.git.url) badRequest('a Git vault needs the remote URL');
   } else if (!base.storage.github.owner || !base.storage.github.repo) {
     badRequest('a GitHub vault needs the repository owner and name');
   }

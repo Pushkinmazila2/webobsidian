@@ -20,7 +20,7 @@ const ApiKeySchema = z.object({
 
 const StorageSchema = z
     .object({
-      driver: z.enum(['local', 'github']).default('local'),
+      driver: z.enum(['local', 'github', 'git']).default('local'),
       github: z
         .object({
           owner: z.string().default(''),
@@ -41,6 +41,25 @@ const StorageSchema = z
           // spam commits. Notes are unaffected (they follow flushSec).
           holdSec: z.number().min(1).default(300),
           holdMatch: z.array(z.string().min(1)).default(['.obsidian/**']),
+        })
+        .default({}),
+      // driver "git": any Git remote (GitLab, Gitea, a bare repo over SSH, …). The server keeps a clone,
+      // commits edits in batches and pushes them; see storage/gitrepo.
+      git: z
+        .object({
+          url: z.string().default(''),
+          // Empty = the remote's default branch.
+          branch: z.string().default(''),
+          // HTTP(S) credentials: username (any non-empty for most hosts) + token/password. SSH URLs use the server's own keys.
+          username: z.string().default(''),
+          token: z.string().default(''),
+          // Folder inside the repository that is the vault root ('' = repository root).
+          basePath: z.string().default(''),
+          pollSec: z.number().min(5).default(60),
+          // Edits are committed + pushed in one batch after this many quiet seconds (write-behind).
+          flushSec: z.number().min(1).default(30),
+          authorName: z.string().default(''),
+          authorEmail: z.string().default(''),
         })
         .default({}),
       cache: z
@@ -328,6 +347,7 @@ export function redactSettings(s: Settings) {
     storage: {
       ...s.storage,
       github: { ...s.storage.github, token: s.storage.github.token ? '••••••••' : '' },
+      git: { ...s.storage.git, token: s.storage.git.token ? '••••••••' : '' },
     },
     api: {
       ...s.api,

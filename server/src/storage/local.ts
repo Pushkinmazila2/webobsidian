@@ -25,7 +25,7 @@ const IGNORED = new Set(['.git', 'node_modules']);
 
 /** The vault is a plain folder on the local disk. */
 export class LocalFsStorage implements VaultStorage {
-  readonly kind = 'local' as const;
+  readonly kind: 'local' | 'git' = 'local';
 
   /**
    * In-memory mtime/ctime cache so sort-by-time costs ONE stat per file total,

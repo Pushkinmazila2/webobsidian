@@ -2,6 +2,7 @@ import path from 'node:path';
 import { config, INDEX_FILE } from '../config.js';
 import { LocalFsStorage } from '../storage/local.js';
 import { createGithubStorage } from '../storage/github/index.js';
+import { createGitStorage, publicUrl } from '../storage/gitrepo/index.js';
 import type { VaultStorage } from '../storage/types.js';
 import { getSettings, peekSettings, type Settings, type VaultConfig } from './settings.js';
 import { readVaultsEnv } from './vaultconf.js';
@@ -67,12 +68,18 @@ function makeCtx(id: string, name: string, isDefault: boolean, storage: VaultSto
 }
 
 function buildDefaultStorage(s: Settings): VaultStorage {
+  if (s.storage.driver === 'git') return createGitStorage(s, { dataDir: config.dataDir, trashDir });
   return s.storage.driver === 'github'
     ? createGithubStorage(s, { dataDir: config.dataDir, trashDir })
     : new LocalFsStorage({ root: async () => (await getSettings()).vault.path, trashDir });
 }
 
 function buildExtraStorage(c: VaultConfig, s: Settings): VaultStorage {
+  if (c.storage.driver === 'git') {
+    return createGitStorage({ storage: c.storage, git: s.git }, {
+      dataDir: config.dataDir, trashDir, tokenEnv: c.tokenEnv || undefined, cacheName: c.id,
+    });
+  }
   if (c.storage.driver === 'github') {
     return createGithubStorage({ storage: c.storage, git: s.git }, {
       dataDir: config.dataDir, trashDir, tokenEnv: c.tokenEnv || undefined, cacheName: c.id,
@@ -175,7 +182,7 @@ export async function dropVault(id: string): Promise<void> {
 export interface VaultInfo {
   id: string;
   name: string;
-  driver: 'local' | 'github';
+  driver: 'local' | 'github' | 'git';
   isDefault: boolean;
   fromEnv: boolean;
   /** Short human description: folder or owner/repo. */
@@ -186,12 +193,12 @@ export async function listVaults(): Promise<VaultInfo[]> {
   const s = await getSettings();
   const out: VaultInfo[] = [{
     id: DEFAULT_VAULT_ID, name: 'Main vault', driver: s.storage.driver, isDefault: true, fromEnv: false,
-    location: s.storage.driver === 'github' ? `${s.storage.github.owner}/${s.storage.github.repo}` : s.vault.path,
+    location: s.storage.driver === 'github' ? `${s.storage.github.owner}/${s.storage.github.repo}` : s.storage.driver === 'git' ? publicUrl(s.storage.git.url) : s.vault.path,
   }];
   for (const { conf, fromEnv } of extraVaultConfigs(s)) {
     out.push({
       id: conf.id, name: conf.name, driver: conf.storage.driver, isDefault: false, fromEnv,
-      location: conf.storage.driver === 'github' ? `${conf.storage.github.owner}/${conf.storage.github.repo}` : conf.path,
+      location: conf.storage.driver === 'github' ? `${conf.storage.github.owner}/${conf.storage.github.repo}` : conf.storage.driver === 'git' ? publicUrl(conf.storage.git.url) : conf.path,
     });
   }
   return out;

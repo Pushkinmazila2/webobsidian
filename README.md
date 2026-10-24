@@ -205,7 +205,9 @@ written to `settings.json`. A malformed value stops the server at startup and na
 |-----|---------|-------------|
 | `WEBOBSIDIAN_GITHUB_REPO` | – | `owner/repo` (or a GitHub URL). Setting it selects the GitHub driver |
 | `WEBOBSIDIAN_GITHUB_TOKEN` | – | Fine-grained token for that repo, *Contents: Read and write* |
-| `WEBOBSIDIAN_STORAGE` | – | `github` or `local` — explicit driver (`local` wins over `REPO`) |
+| `WEBOBSIDIAN_GIT_URL` | – | Use any Git remote (GitLab, Gitea, self-hosted, `https://…` or `git@host:path`) as the vault: the server keeps a clone, commits edits in batches and pushes. Sets the driver to `git` |
+| `WEBOBSIDIAN_GIT_TOKEN` | – | Token/password for an https Git remote (never stored in the clone). Also `WEBOBSIDIAN_GIT_USERNAME`, `WEBOBSIDIAN_GIT_BRANCH`, `WEBOBSIDIAN_GIT_BASE_PATH`, `WEBOBSIDIAN_GIT_FLUSH_SEC` (default 30), `WEBOBSIDIAN_GIT_POLL_SEC` (default 60) |
+| `WEBOBSIDIAN_STORAGE` | – | `github`, `git` or `local` — explicit driver (`local` wins over `REPO`) |
 | `WEBOBSIDIAN_GITHUB_BRANCH` | default branch | Branch to use (try a separate test branch first) |
 | `WEBOBSIDIAN_GITHUB_BASE_PATH` | repo root | Subfolder used as the vault root, e.g. `docs` |
 | `WEBOBSIDIAN_GITHUB_FLUSH_SEC` | `15` | Seconds without edits before they are saved in one commit |
