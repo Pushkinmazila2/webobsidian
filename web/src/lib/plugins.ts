@@ -7,6 +7,7 @@
  * main.js against it. Plugins relying on Electron/Node internals will fail
  * softly (their missing-API calls throw and are caught) — logged, not fatal.
  */
+import { installLibraryLinkRewrite, importLibraryFromHash } from './excalidrawLibraries';
 import { vaultHeaders, withVault } from './vault';
 import { api } from './api';
 import { pluginHost } from './pluginHost';
@@ -182,6 +183,8 @@ export async function loadPlugins(): Promise<void> {
   // Plugins index the vault through app.metadataCache as soon as they load, so it must be populated first.
   await Promise.race([startMetadataCache().catch((e) => console.warn('[metadata] initial load failed:', e)), new Promise((r) => setTimeout(r, 20000))]);
   await syncPlugins();
+  installLibraryLinkRewrite();
+  void importLibraryFromHash().catch((e) => console.warn('[excalidraw] library import failed:', e));
   setInterval(() => { if (!document.hidden) void syncPlugins(); }, SYNC_EVERY_MS);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) void syncPlugins(); });
 }

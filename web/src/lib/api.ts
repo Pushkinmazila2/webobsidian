@@ -306,6 +306,7 @@ export const api = {
     return req<CatalogPage>(`/api/plugins/catalog?${p}`);
   },
   refreshPluginCatalog: () => req<{ info: CatalogInfo }>('/api/plugins/catalog/refresh', { method: 'POST' }),
+  metadataOf: (path: string) => req<{ size: number; cache: any }>(`/api/metadata/file?path=${encodeURIComponent(path)}`),
   metadata: () => req<{ files: Record<string, { size: number; cache: any }> }>('/api/metadata'),
   pluginData: (id: string) => req<{ data: unknown }>(`/api/plugins/${encodeURIComponent(id)}/data`),
   savePluginData: (id: string, data: unknown) =>

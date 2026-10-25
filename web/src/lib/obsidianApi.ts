@@ -497,6 +497,8 @@ export class MetadataCache extends Events {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private running: Promise<void> | null = null;
   private dirtyAgain = false;
+  /** Notes fetched one by one (the vault's rules don't index them): kept across full refreshes. */
+  private pinned = new Set<string>();
 
   getFileCache(file: TFile | null | undefined): CachedMetadata | null { return file ? this.caches.get(file.path)?.meta ?? null : null; }
   getCache(path: string): CachedMetadata | null { return this.caches.get(path)?.meta ?? null; }
@@ -536,8 +538,24 @@ export class MetadataCache extends Events {
   scheduleSoon(ms = 250) { this.schedule(ms); }
   private schedule(ms = 1500) { if (this.timer) clearTimeout(this.timer); this.timer = setTimeout(() => { void this.refresh(); }, ms); }
 
+  /**
+   * Metadata of one note, fetched on demand when the full list doesn't have it (a vault whose rules skip search for that
+   * folder, or a file created a moment ago). Plugins that redirect notes by front matter depend on this.
+   */
+  async ensure(path: string): Promise<CachedMetadata | null> {
+    const have = this.caches.get(path);
+    if (have) return have.meta;
+    try {
+      const { size, cache } = await api.metadataOf(path);
+      this.pinned.add(path);
+      this.caches.set(path, { sig: `${size}:${hashStr(JSON.stringify(cache))}`, meta: cache as CachedMetadata });
+      return cache as CachedMetadata;
+    } catch { return null; }
+  }
+
   refresh(): Promise<void> {
-    if (this.running) { this.dirtyAgain = true; return this.running; }
+    // A refresh that is already running may have listed the files before this call's change: wait for it, then run again.
+    if (this.running) { this.dirtyAgain = true; return this.running.then(() => this.refresh()); }
     this.running = this.doRefresh().catch((e) => console.warn('[metadata] refresh failed:', e)).finally(() => {
       this.running = null;
       if (this.dirtyAgain) { this.dirtyAgain = false; this.schedule(200); }
@@ -559,6 +577,10 @@ export class MetadataCache extends Events {
       const sig = `${size}:${hashStr(JSON.stringify(cache))}`;
       next.set(path, { sig, meta: cache as CachedMetadata });
       if (this.caches.get(path)?.sig !== sig) changed.push(this.byPath.get(path) ?? fileFor({ path }));
+    }
+    for (const p of this.pinned) {
+      const keep = this.caches.get(p);
+      if (keep && !next.has(p) && this.byPath.has(p)) next.set(p, keep); else if (!this.byPath.has(p)) this.pinned.delete(p);
     }
     const removed = [...this.caches.keys()].filter((p) => !next.has(p));
     const prevCaches = this.caches;
@@ -1225,7 +1247,8 @@ useStore.subscribe((s, prev) => {
     if (path && /\.(md|markdown)$/i.test(path) && !pluginHost.leafByPath(path) && getSharedApp().plugins.enabledPlugins.size > 0) {
       const probe = new WorkspaceLeaf();
       probe.probe = true;
-      void probe.setViewState({ type: 'markdown', state: { file: path }, active: false });
+      // Plugins read the note's front matter from the metadata cache: make sure it has this note even when it isn't indexed.
+      void sharedMetadataCache.ensure(path).then(() => probe.setViewState({ type: 'markdown', state: { file: path }, active: false }));
     }
     sharedWorkspace.trigger('file-open', f);
     sharedWorkspace.trigger('active-leaf-change', sharedWorkspace.getMostRecentLeaf() ?? sharedWorkspace.getLeaf());
