@@ -3,7 +3,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import type { Settings } from '../../services/settings.js';
 import { LocalFsStorage } from '../local.js';
-import type { DirEntry, ReadHandle, RemoteInfo, StopWatching, StorageEventHandler, TreeNode } from '../types.js';
+import type { DirEntry, FileVersion, ReadHandle, RemoteInfo, StopWatching, StorageEventHandler, TreeNode } from '../types.js';
 import { Rules, type RuleConfig } from '../github/rules.js';
 import { Readable } from 'node:stream';
 
@@ -587,6 +587,28 @@ export class GitStorage extends LocalFsStorage {
     return { size: buf.length, createReadStream: (range) => Readable.from([range ? buf.subarray(range.start, range.end + 1) : buf]) };
   }
 
+  // ---- version history ---------------------------------------------------------------------------------
+
+  private repoFile(rel: string): string {
+    const parts = rel.split('/').filter(Boolean);
+    if (!parts.length || parts.some((x) => x === '..' || x === '.')) throw Object.assign(new Error('Bad path'), { status: 400 });
+    return this.toRepo(parts.join('/'));
+  }
+
+  /** `git log` for one file: author name, e-mail and (for the hosts that put it there) no login — the name is what was committed. */
+  async history(rel: string, limit = 50): Promise<FileVersion[]> {
+    const out = await this.g(['log', `--max-count=${Math.min(200, Math.max(1, limit))}`, '--format=%H%x1f%aI%x1f%an%x1f%ae%x1f%s%x1e', '--', this.repoFile(rel)]).catch(() => '');
+    return out.split('\x1e').map((r) => r.trim()).filter(Boolean).map((r) => {
+      const [hash, date, author, email, message] = r.split('\x1f');
+      return { hash, date, author, ...(email ? { email } : {}), message: message ?? '' };
+    });
+  }
+
+  async fileAt(hash: string, rel: string): Promise<string> {
+    if (!/^[0-9a-f]{7,64}$/i.test(hash)) throw Object.assign(new Error('Bad commit id'), { status: 400 });
+    return this.g(['show', `${hash}:${this.repoFile(rel)}`]); // a partial clone fetches the one blob it lacks
+  }
+
   // ---- VaultStorage remote API ---------------------------------------------
 
   pendingChanges(): number { return this.dirty.size; }
@@ -603,6 +625,12 @@ export class GitStorage extends LocalFsStorage {
   }
 }
 
+/** Placeholder address for a login: github.com's own noreply form links the commit to the account, elsewhere it is just a label. */
+function noreplyEmail(login: string, url: string): string {
+  const safe = login.replace(/[^\w.-]/g, '');
+  return /^(https?:\/\/|git@)(www\.)?github\.com[/:]/i.test(url) ? `${safe}@users.noreply.github.com` : `${safe}@localhost`;
+}
+
 /** Build the Git driver from persisted settings. */
 export function createGitStorage(
   s: Pick<Settings, 'storage' | 'git'>,
@@ -612,12 +640,16 @@ export function createGitStorage(
   const g = s.storage.git;
   if (!g.url) throw new Error('Git storage needs a remote URL (storage.git.url)');
   const token = env[opts.tokenEnv || GIT_TOKEN_ENV] || g.token;
-  const email = g.authorEmail || env.WEBOBSIDIAN_GIT_AUTHOR_EMAIL?.trim() || (s.git.authorEmail !== 'webobsidian@localhost' ? s.git.authorEmail : '');
+  const login = g.username || env.WEBOBSIDIAN_GIT_USERNAME?.trim() || '';
+  const globalEmail = s.git.authorEmail !== 'webobsidian@localhost' ? s.git.authorEmail : '';
+  const name = g.authorName || env.WEBOBSIDIAN_GIT_AUTHOR_NAME?.trim() || (s.git.authorName !== 'WebObsidian' ? s.git.authorName : '') || login || 'WebObsidian';
+  // Commits are signed with the account's login unless an identity is configured, so the history says who made each one.
+  const email = g.authorEmail || env.WEBOBSIDIAN_GIT_AUTHOR_EMAIL?.trim() || globalEmail || (login ? noreplyEmail(login, g.url) : '');
   return new GitStorage({
     url: g.url, branch: g.branch || undefined, username: g.username || env.WEBOBSIDIAN_GIT_USERNAME || undefined, token: token || undefined,
     basePath: g.basePath, repoDir: path.join(opts.dataDir, 'git', opts.cacheName ?? 'default', 'repo'), trashDir: opts.trashDir,
     pollMs: g.pollSec * 1000, flushDelayMs: g.flushSec * 1000,
     rules: s.storage.rules, maxLazyBytes: s.storage.cache.maxMB * 1024 * 1024,
-    author: email ? { name: g.authorName || env.WEBOBSIDIAN_GIT_AUTHOR_NAME?.trim() || s.git.authorName || 'WebObsidian', email } : undefined,
+    author: email ? { name, email } : undefined,
   });
 }

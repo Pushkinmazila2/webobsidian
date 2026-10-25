@@ -101,6 +101,8 @@ export class MockGithub {
   private server!: http.Server;
   private failures: Failure[] = [];
   private blobs = new Map<string, Buffer>();
+  /** GitHub login linked to a commit's author (null/undefined: the e-mail matches no account). */
+  loginFor?: (author?: { name: string; email: string }) => string;
   private trees = new Map<string, TreeEntryRaw[]>();
   private commits = new Map<string, { tree: string; files: Files; parents: string[]; message: string; author?: { name: string; email: string } }>();
   private treeFiles = new Map<string, Files>();
@@ -282,6 +284,35 @@ export class MockGithub {
       }
       this.remaining--;
       return this.send(res, 200, { object: { sha: this.head } }, { etag });
+    }
+    if (req.method === 'GET' && path === `${base}/commits`) {
+      bump('commits-list');
+      this.remaining--;
+      const q = new URL(url, 'http://x').searchParams;
+      const want = q.get('path') ?? '';
+      const out: unknown[] = [];
+      for (let sha = this.head; sha; ) {
+        const c = this.commits.get(sha)!;
+        const parent = c.parents[0];
+        const before = parent ? this.commits.get(parent)!.files.get(want) : undefined;
+        const now = c.files.get(want);
+        if ((now === undefined) !== (before === undefined) || (now && before && Buffer.compare(now, before) !== 0)) {
+          out.push({
+            sha, commit: { message: c.message, author: { name: c.author?.name ?? 'octo', email: c.author?.email ?? 'octo@example.com', date: '2026-10-25T10:00:00Z' } },
+            author: this.loginFor ? { login: this.loginFor(c.author) } : null,
+          });
+        }
+        sha = parent;
+      }
+      return this.send(res, 200, out.slice(0, Number(q.get('per_page') ?? 30)));
+    }
+    if (req.method === 'GET' && path.startsWith(`${base}/contents/`)) {
+      bump('contents');
+      this.remaining--;
+      const file = decodeURIComponent(path.slice(`${base}/contents/`.length));
+      const ref = new URL(url, 'http://x').searchParams.get('ref') ?? this.head;
+      const data = this.commits.get(ref)?.files.get(file);
+      return data ? this.send(res, 200, data) : this.send(res, 404, { message: 'Not Found' });
     }
     if ((m = path.match(new RegExp(`^${base}/git/commits/([0-9a-f]{40})$`)))) {
       bump('commit');

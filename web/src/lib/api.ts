@@ -103,6 +103,9 @@ export interface GitCommit {
   date: string;
   message: string;
   author: string;
+  /** Account that made the commit (GitHub login), when the host reports it. */
+  login?: string;
+  email?: string;
 }
 
 async function req<T>(url: string, opts: RequestInit = {}): Promise<T> {

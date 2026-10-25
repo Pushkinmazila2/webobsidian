@@ -2,6 +2,7 @@ import { Readable } from 'node:stream';
 import type {
   ByteRange,
   DirEntry,
+  FileVersion,
   ReadHandle,
   RemoteInfo,
   StopWatching,
@@ -299,6 +300,29 @@ export class GitHubStorage implements VaultStorage {
       rate: this.client.rate,
       cache: this.cache.stats(),
     };
+  }
+
+  /** Commits that touched `rel` on the branch (what the version history shows), with the GitHub login of whoever made each. */
+  async history(rel: string, limit = 50): Promise<FileVersion[]> {
+    const p = this.repoPath(this.norm(rel));
+    const list = await this.client.listCommits(this.o.owner, this.o.repo, { sha: this.branch, path: p, perPage: Math.min(100, Math.max(1, limit)) });
+    return list.map((c) => {
+      const a = c.commit.author ?? {};
+      const login = c.author?.login ?? c.committer?.login;
+      return {
+        hash: c.sha,
+        date: a.date ?? c.commit.committer?.date ?? '',
+        message: c.commit.message.split('\n')[0] ?? '',
+        author: a.name || login || '',
+        ...(login ? { login } : {}),
+        ...(a.email ? { email: a.email } : {}),
+      };
+    });
+  }
+
+  async fileAt(hash: string, rel: string): Promise<string> {
+    if (!/^[0-9a-f]{7,64}$/i.test(hash)) throw httpError('Bad commit id', 400);
+    return (await this.client.getFileAt(this.o.owner, this.o.repo, hash, this.repoPath(this.norm(rel)))).toString('utf8');
   }
 
   remoteInfo(): RemoteInfo {

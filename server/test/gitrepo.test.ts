@@ -217,3 +217,40 @@ test('[git rules] a restart keeps the same view', async () => {
   assert.equal(await again.readText('notes/z.md'), 'zed');
   again.dispose();
 });
+
+test('[git history] commits that touched a file, with who made them; old versions can be read back', async () => {
+  const { tmp, bare, other } = await setup();
+  const st = new GitStorage({ url: bare, branch: 'main', repoDir: path.join(tmp, 'clone'), trashDir: async () => '.trash', pollMs: 3_600_000, flushDelayMs: 3_600_000, author: { name: 'alice', email: 'alice@users.noreply.github.com' } });
+  await st.init();
+  await st.writeText('n.md', 'one\n');
+  await st.writeText('x.md', 'other file');
+  await st.flush();
+  await st.writeText('n.md', 'two\n');
+  await st.flush();
+  const h = await st.history('n.md');
+  assert.equal(h.length, 2);
+  assert.equal(h[0].author, 'alice');
+  assert.equal(h[0].email, 'alice@users.noreply.github.com');
+  assert.ok(h[0].date && h[0].message);
+  assert.equal(await st.fileAt(h[0].hash, 'n.md'), 'two\n');
+  assert.equal(await st.fileAt(h[1].hash, 'n.md'), 'one\n', 'trailing newline kept');
+  assert.deepEqual(await st.history('missing.md'), []);
+  await assert.rejects(st.fileAt('--output=/tmp/x', 'n.md'), /Bad commit id/);
+  await assert.rejects(st.fileAt(h[0].hash, '../etc/passwd'), /Bad path/);
+  st.dispose();
+  void other;
+});
+
+test('[git history] without a configured identity commits are signed with the account login', async () => {
+  const { createGitStorage } = await import('../src/storage/gitrepo/index.js');
+  const { tmp, bare } = await setup();
+  const base = { storage: { git: { url: bare, branch: 'main', username: 'bob', token: '', basePath: '', pollSec: 3600, flushSec: 3600, authorName: '', authorEmail: '' }, rules: [], cache: { maxMB: 10 } }, git: { authorName: 'WebObsidian', authorEmail: 'webobsidian@localhost' } } as any;
+  const st = createGitStorage(base, { dataDir: tmp, trashDir: async () => '.trash', env: {} });
+  await st.init();
+  await st.writeText('a.md', 'x');
+  await st.flush();
+  const [c] = await st.history('a.md');
+  assert.equal(c.author, 'bob');
+  assert.equal(c.email, 'bob@localhost');
+  st.dispose();
+});

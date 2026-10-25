@@ -125,7 +125,8 @@ test('[server+github] routes, search, Range, writes + commit, external commits, 
     assert.equal(st1.ahead, 6); // 2 saves + rename (2 paths) + trash (2 paths)
     assert.equal(st1.remote, `${mock.owner}/${mock.repo}`);
     assert.equal((await api('/api/git/init', { method: 'POST' })).status, 400);
-    assert.equal((await api('/api/git/log?path=Welcome.md')).status, 501);
+    assert.equal((await api('/api/git/log?path=Welcome.md')).status, 200); // history now works for remote drivers
+    assert.equal((await api('/api/git/log')).status, 400);
 
     const sync = await json('/api/git/sync', { method: 'POST' });
     assert.equal(sync.ok, true, JSON.stringify(sync));

@@ -51,6 +51,13 @@ export interface GithubClientOptions {
   sleep?: (ms: number) => Promise<void>;
 }
 
+export interface GithubCommitInfo {
+  sha: string;
+  commit: { message: string; author?: { name?: string; email?: string; date?: string } | null; committer?: { name?: string; date?: string } | null };
+  author?: { login?: string } | null; // the GitHub account the commit is linked to (null when the email matches none)
+  committer?: { login?: string } | null;
+}
+
 export interface TreeEntry {
   path: string;
   mode: string;
@@ -253,6 +260,18 @@ export class GithubClient {
 
   async getTree(owner: string, repo: string, treeSha: string, recursive: boolean): Promise<TreeResult> {
     return this.json(`${this.repoPath(owner, repo)}/git/trees/${treeSha}${recursive ? '?recursive=1' : ''}`);
+  }
+
+  /** Commits that touched `path` on `sha` (branch or commit), newest first. */
+  async listCommits(owner: string, repo: string, o: { sha: string; path: string; perPage: number }): Promise<GithubCommitInfo[]> {
+    const q = new URLSearchParams({ sha: o.sha, path: o.path, per_page: String(o.perPage) });
+    return this.json(`${this.repoPath(owner, repo)}/commits?${q}`);
+  }
+
+  /** File content at a ref (commit sha), raw. */
+  async getFileAt(owner: string, repo: string, ref: string, path: string): Promise<Buffer> {
+    const p = path.split('/').map(encodeURIComponent).join('/');
+    return this.request(`${this.repoPath(owner, repo)}/contents/${p}?ref=${encodeURIComponent(ref)}`, { accept: RAW_ACCEPT });
   }
 
   /** Raw blob bytes (up to GitHub's 100 MB limit). */

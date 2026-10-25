@@ -76,6 +76,16 @@ export interface RemoteInfo {
   conflicts: string[]; // conflict copies created since start
 }
 
+/** One commit that touched a file (remote drivers' version history). */
+export interface FileVersion {
+  hash: string;
+  date: string; // ISO 8601
+  message: string;
+  author: string; // display name from the commit
+  login?: string; // account that made the commit (GitHub login) when the host tells us
+  email?: string;
+}
+
 export interface VaultStorage {
   /** Driver identifier, for diagnostics and capability checks. */
   readonly kind: 'local' | 'github' | 'git';
@@ -137,6 +147,10 @@ export interface VaultStorage {
   /** Re-check the remote immediately. */
   refresh?(): Promise<void>;
   remoteInfo?(): RemoteInfo;
+  /** Commits that touched `rel`, newest first (committed history only — pending changes are not in it). */
+  history?(rel: string, limit?: number): Promise<FileVersion[]>;
+  /** Text of `rel` as of commit `hash`. */
+  fileAt?(hash: string, rel: string): Promise<string>;
 
   // --- local-only escape hatch --------------------------------------------
   /**

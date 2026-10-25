@@ -1079,3 +1079,25 @@ test('[github] isIndexed follows the rules: mirror notes yes, index:false / lazy
   assert.deepEqual(r.resolve('Public/x.md'), { mode: 'remote', index: true });
   assert.deepEqual(r.resolve('Draft/x.md'), { mode: 'mirror', index: false });
 });
+
+// ---- version history ----------------------------------------------------------
+
+test('[github] file history lists the commits that touched the file with the GitHub login, and reads old versions', async () => {
+  const { mock, storage, stop } = await setup({ files: { 'n.md': 'one' }, basePath: undefined });
+  try {
+    mock.loginFor = (a) => (a?.email === 'alice@example.com' ? 'alice-gh' : 'token-owner');
+    await storage.init();
+    const first = mock.commit({ 'other.md': 'x' }); // does not touch n.md
+    await storage.refresh();
+    await storage.writeText('n.md', 'two');
+    await storage.flush();
+    const h = await storage.history('n.md');
+    assert.equal(h.length, 2, 'the seed commit and our edit; the unrelated commit is skipped');
+    assert.equal(h[0].login, 'token-owner');
+    assert.ok(h[0].date);
+    assert.notEqual(h[0].hash, first);
+    assert.equal(await storage.fileAt(h[0].hash, 'n.md'), 'two');
+    assert.equal(await storage.fileAt(h[1].hash, 'n.md'), 'one');
+    await assert.rejects(storage.fileAt('../x', 'n.md'), /Bad commit id/);
+  } finally { await storage.flush().catch(() => {}); await stop(); }
+});

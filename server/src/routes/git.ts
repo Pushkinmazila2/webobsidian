@@ -45,8 +45,18 @@ gitRouter.use((req, res, next) => {
     try {
       const route = `${req.method} ${req.path}`;
       if (route === 'GET /status') return res.json(await remoteStatus());
-      if (route === 'GET /log' || route === 'GET /show') {
-        return res.status(501).json({ error: 'File history is not available yet for remote storage' });
+      if (route === 'GET /log') {
+        const p = String(req.query.path ?? '').trim();
+        if (!p) return res.status(400).json({ error: 'path required' });
+        if (!st.history) return res.status(501).json({ error: 'File history is not available for this storage' });
+        return res.json({ commits: await st.history(p) });
+      }
+      if (route === 'GET /show') {
+        const hash = String(req.query.hash ?? '').trim();
+        const p = String(req.query.path ?? '').trim();
+        if (!hash || !p) return res.status(400).json({ error: 'hash and path required' });
+        if (!st.fileAt) return res.status(501).json({ error: 'File history is not available for this storage' });
+        return res.json({ content: await st.fileAt(hash, p) });
       }
       if (route === 'POST /init' || route === 'POST /clone') {
         return res.status(400).json({ error: 'Not applicable: the vault is stored in a remote repository, there is nothing to initialise or clone' });

@@ -78,7 +78,7 @@ export default function VersionHistory() {
             {loading && <div className="vh-empty">Loading…</div>}
             {error && <div className="vh-empty">{error}</div>}
             {!loading && !error && commits.length === 0 && (
-              <div className="vh-empty">No history. Enable Git Sync to track versions.</div>
+              <div className="vh-empty">No history. Enable Git Sync (or use a Git/GitHub vault) to track versions.</div>
             )}
             {commits.map((c, i) => (
               <div
@@ -90,7 +90,7 @@ export default function VersionHistory() {
                   {i === 0 ? 'Latest' : c.message || '(no message)'}
                 </div>
                 <div className="vh-item-meta">
-                  {fmtDate(c.date)} · {c.author}
+                  {fmtDate(c.date)} · {c.login ? `@${c.login}` : c.author}{c.login && c.author && c.author !== c.login ? ` (${c.author})` : ''}
                 </div>
               </div>
             ))}
