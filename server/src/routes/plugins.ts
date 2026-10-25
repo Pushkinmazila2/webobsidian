@@ -4,9 +4,21 @@ import { requireAuth } from '../middleware/auth.js';
 import * as plugins from '../services/plugins.js';
 import * as catalog from '../services/plugincatalog.js';
 import { getStorage } from '../services/vault.js';
+import { currentVault, runInVault } from '../services/vaultals.js';
+import { ensureReady, getDefaultContext, pluginsModeOf } from '../services/vaults.js';
 
 export const pluginsRouter = Router();
 pluginsRouter.use(requireAuth);
+
+// A vault set to "same plugins as the main vault" reads and writes the main vault's plugin folder, so the plugin list, the
+// code and every plugin's saved settings are literally the same files.
+pluginsRouter.use(asyncHandler(async (_req, _res, next) => {
+  const cur = currentVault();
+  if (cur.isDefault || (await pluginsModeOf(cur.id)) !== 'shared') return next();
+  const main = getDefaultContext();
+  await ensureReady(main);
+  runInVault(main, next);
+}));
 
 pluginsRouter.get(
   '/',

@@ -25,6 +25,7 @@ export interface VaultInfo {
   id: string;
   name: string;
   driver: 'local' | 'github' | 'git';
+  pluginsMode: 'own' | 'shared';
   isDefault: boolean;
   fromEnv: boolean;
   location: string;
@@ -252,6 +253,9 @@ export const api = {
   getVault: (id: string) => req<{ vault: any }>(`/api/vaults/${id}`),
   createVault: (body: any) => req<{ vault: any }>('/api/vaults', { method: 'POST', body: JSON.stringify(body) }),
   updateVault: (id: string, body: any) => req<{ vault: any }>(`/api/vaults/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  vaultPlugins: (id: string, from?: string) => req<any>(`/api/vaults/${id}/plugins${from ? `?from=${encodeURIComponent(from)}` : ''}`),
+  transferPlugins: (id: string, body: { ids: string[]; from?: string; move?: boolean }) =>
+    req<{ done: string[]; failed: { id: string; error: string }[] }>(`/api/vaults/${id}/plugins/transfer`, { method: 'POST', body: JSON.stringify(body) }),
   deleteVault: (id: string) => req<{ ok: true }>(`/api/vaults/${id}`, { method: 'DELETE' }),
   vaultStatus: (id: string) => req<any>(`/api/vaults/${id}/status`),
   browse: (dir?: string) =>

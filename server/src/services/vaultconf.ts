@@ -56,6 +56,8 @@ export function readVaultsEnv(env: Record<string, string | undefined> = process.
       const rulesSrc = e.rules ?? (e.preset ? PRESET_RULES[String(e.preset).toLowerCase()] : undefined);
       if (e.preset && !rulesSrc) throw new Error(`unknown preset "${e.preset}"`);
       if (rulesSrc !== undefined) patch.rules = Array.isArray(rulesSrc) ? rulesSrc : parseRules(String(rulesSrc));
+      if (e.plugins !== undefined && e.plugins !== 'own' && e.plugins !== 'shared') throw new Error('"plugins" must be "own" or "shared"');
+      if (e.plugins === 'shared') base.plugins.mode = 'shared';
       patch.driver = e.driver ?? (e.git ? 'git' : e.repo ? 'github' : 'local');
       applyStoragePatch(base.storage, patch);
       if (e.token) { base.storage.github.token = String(e.token); base.storage.git.token = String(e.token); }

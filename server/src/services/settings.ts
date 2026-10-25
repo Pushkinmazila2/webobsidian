@@ -99,6 +99,9 @@ export const VaultSchema = z.object({
   // Name of an environment variable holding this vault's GitHub token (preferred over storage.github.token).
   tokenEnv: z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/).or(z.literal('')).default(''),
   storage: StorageSchema.default({}),
+  // Community plugins: 'own' = this vault keeps its own set (in its .obsidian folder); 'shared' = the same plugins and the same
+  // plugin settings as the main vault (the main vault's plugin folder is used, nothing is copied).
+  plugins: z.object({ mode: z.enum(['own', 'shared']).default('own') }).default({}),
 });
 export type VaultConfig = z.infer<typeof VaultSchema>;
 

@@ -2,18 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../lib/store';
 import { api } from '../lib/api';
 import Icon from './Icon';
-import StorageSettings from './StorageSettings';
 import VaultsSettings from './VaultsSettings';
 import { syncPlugins } from '../lib/plugins';
 import { pluginHost, usePluginHost } from '../lib/pluginHost';
 import PluginBrowser, { CompatBadge } from './PluginBrowser';
 
-type Section = 'vault' | 'storage' | 'vaults' | 'git' | 'api' | 'sharing' | 'plugins' | 'appearance' | 'account' | 'about';
+type Section = 'vaults' | 'git' | 'api' | 'sharing' | 'plugins' | 'appearance' | 'account' | 'about';
 
 export default function Settings() {
   const open = useStore((s) => s.settingsOpen);
   const setOpen = useStore((s) => s.setSettings);
-  const [section, setSection] = useState<Section>('vault');
+  const [section, setSection] = useState<Section>('vaults');
   const [settings, setSettings] = useState<any>(null);
 
   useEffect(() => {
@@ -27,16 +26,14 @@ export default function Settings() {
       <div className="modal settings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="settings-layout">
           <div className="settings-nav">
-            {(['vault', 'storage', 'vaults', 'git', 'api', 'sharing', 'plugins', 'appearance', 'account', 'about'] as Section[]).map((s) => (
+            {(['vaults', 'git', 'api', 'sharing', 'plugins', 'appearance', 'account', 'about'] as Section[]).map((s) => (
               <button key={s} className={section === s ? 'active' : ''} onClick={() => setSection(s)}>
                 {labels[s]}
               </button>
             ))}
           </div>
           <div className="settings-content">
-            {settings && section === 'vault' && <VaultSettings s={settings} reload={() => api.getSettings().then(setSettings)} />}
-            {settings && section === 'storage' && <StorageSettings s={settings} reload={() => api.getSettings().then(setSettings)} />}
-            {section === 'vaults' && <VaultsSettings />}
+            {settings && section === 'vaults' && <VaultsSettings s={settings} reload={() => api.getSettings().then(setSettings)} />}
             {settings && section === 'git' && <GitSettings s={settings} reload={() => api.getSettings().then(setSettings)} />}
             {section === 'api' && <ApiKeys />}
             {section === 'sharing' && <Shares />}
@@ -52,8 +49,6 @@ export default function Settings() {
 }
 
 const labels: Record<Section, string> = {
-  vault: 'Vault & Files',
-  storage: 'Storage',
   vaults: 'Vaults',
   git: 'GitHub Sync',
   api: 'API Keys',
@@ -72,66 +67,6 @@ function Row({ name, desc, children }: { name: string; desc?: string; children: 
         {desc && <div className="desc">{desc}</div>}
       </div>
       <div className="control">{children}</div>
-    </div>
-  );
-}
-
-function VaultSettings({ s, reload }: { s: any; reload: () => void }) {
-  const [path, setPath] = useState(s.vault.path);
-  const [deleteMode, setDeleteMode] = useState(s.vault.deleteMode ?? 'trash');
-  const [browser, setBrowser] = useState<any>(null);
-  const save = async () => {
-    await api.putSettings({ vault: { path } });
-    await reload();
-    alert('Vault path saved. Reindex from the command palette if needed.');
-  };
-  const saveDeleteMode = async (mode: string) => {
-    setDeleteMode(mode);
-    await api.putSettings({ vault: { deleteMode: mode } });
-    await reload();
-  };
-  const browse = async (dir?: string) => setBrowser(await api.browse(dir).catch((e) => ({ error: e.message })));
-  return (
-    <div>
-      <h2>Vault & Files</h2>
-      <Row name="Vault path" desc="Absolute path on the server to your notes folder">
-        <input className="text-input" style={{ width: 260 }} value={path} onChange={(e) => setPath(e.target.value)} />
-      </Row>
-      <div style={{ display: 'flex', gap: 8, margin: '8px 0' }}>
-        <button className="btn secondary" onClick={() => browse()}>Browse…</button>
-        <button className="btn" onClick={save}>Save vault path</button>
-      </div>
-      {browser && !browser.error && (
-        <div style={{ border: '1px solid var(--bg-modifier-border)', borderRadius: 6, padding: 8, marginTop: 8 }}>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{browser.dir}</div>
-          <div className="result" onClick={() => browse(browser.parent)} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="folder" size={15} /> ..
-          </div>
-          {browser.folders.map((f: any) => (
-            <div className="result" key={f.path} onClick={() => browse(f.path)} onDoubleClick={() => setPath(f.path)} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="folder" size={15} /> {f.name}
-              <button className="btn secondary" style={{ float: 'right', padding: '2px 8px' }} onClick={(e) => { e.stopPropagation(); setPath(f.path); }}>
-                Select
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-      {browser?.error && <div style={{ color: '#e5534b' }}>{browser.error}</div>}
-      <Row
-        name="When deleting a file"
-        desc="Move to .trash keeps a recoverable copy (Open trash to restore). Permanently delete removes it immediately."
-      >
-        <select
-          className="text-input"
-          style={{ width: 220 }}
-          value={deleteMode}
-          onChange={(e) => saveDeleteMode(e.target.value)}
-        >
-          <option value="trash">Move to .trash (recoverable)</option>
-          <option value="permanent">Permanently delete</option>
-        </select>
-      </Row>
     </div>
   );
 }
@@ -169,7 +104,7 @@ function GitSettings({ s, reload }: { s: any; reload: () => void }) {
       <h2>GitHub Sync</h2>
       {(s.storage?.driver === 'github' || s.storage?.driver === 'git') && (
         <div style={{ border: '1px solid var(--bg-modifier-border)', borderRadius: 6, padding: '8px 10px', marginBottom: 10, fontSize: 12.5 }}>
-          The vault is stored in a {s.storage.driver === 'git' ? 'Git' : 'GitHub'} repository (see <b>Storage</b>), which the server handles itself. Edits are committed
+          The vault is stored in a {s.storage.driver === 'git' ? 'Git' : 'GitHub'} repository (see <b>Vaults</b>), which the server handles itself. Edits are committed
           and pushed automatically; <b>Sync now</b> does it immediately and checks for new commits. Init, Clone, history and the
           options below don’t apply.
         </div>

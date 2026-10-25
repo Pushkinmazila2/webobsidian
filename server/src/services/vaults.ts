@@ -88,6 +88,13 @@ function buildExtraStorage(c: VaultConfig, s: Settings): VaultStorage {
   return new LocalFsStorage({ root: async () => c.path, trashDir });
 }
 
+/** Whether a vault shares the main vault's community plugins. */
+export async function pluginsModeOf(id: string): Promise<'own' | 'shared'> {
+  if (id === DEFAULT_VAULT_ID) return 'own';
+  const found = extraVaultConfigs(await getSettings()).find((v) => v.conf.id === id);
+  return found?.conf.plugins.mode === 'shared' ? 'shared' : 'own';
+}
+
 export function getDefaultContext(): VaultCtx {
   let e = entries.get(DEFAULT_VAULT_ID);
   if (!e) {
@@ -183,6 +190,8 @@ export interface VaultInfo {
   id: string;
   name: string;
   driver: 'local' | 'github' | 'git';
+  /** Community plugins: own set or the main vault's. */
+  pluginsMode: 'own' | 'shared';
   isDefault: boolean;
   fromEnv: boolean;
   /** Short human description: folder or owner/repo. */
@@ -192,12 +201,12 @@ export interface VaultInfo {
 export async function listVaults(): Promise<VaultInfo[]> {
   const s = await getSettings();
   const out: VaultInfo[] = [{
-    id: DEFAULT_VAULT_ID, name: 'Main vault', driver: s.storage.driver, isDefault: true, fromEnv: false,
+    id: DEFAULT_VAULT_ID, name: 'Main vault', driver: s.storage.driver, pluginsMode: 'own', isDefault: true, fromEnv: false,
     location: s.storage.driver === 'github' ? `${s.storage.github.owner}/${s.storage.github.repo}` : s.storage.driver === 'git' ? publicUrl(s.storage.git.url) : s.vault.path,
   }];
   for (const { conf, fromEnv } of extraVaultConfigs(s)) {
     out.push({
-      id: conf.id, name: conf.name, driver: conf.storage.driver, isDefault: false, fromEnv,
+      id: conf.id, name: conf.name, driver: conf.storage.driver, pluginsMode: conf.plugins.mode, isDefault: false, fromEnv,
       location: conf.storage.driver === 'github' ? `${conf.storage.github.owner}/${conf.storage.github.repo}` : conf.storage.driver === 'git' ? publicUrl(conf.storage.git.url) : conf.path,
     });
   }

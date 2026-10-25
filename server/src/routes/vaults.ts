@@ -5,7 +5,9 @@ import { verifyToken } from '../services/auth.js';
 import { getSettings, updateSettings, VaultSchema, type VaultConfig } from '../services/settings.js';
 import { applyStoragePatch, badRequest } from '../services/storagepatch.js';
 import { DEFAULT_VAULT_ID, runInVault } from '../services/vaultals.js';
-import { dropVault, ensureReady, extraVaultConfigs, getVaultContext, listVaults } from '../services/vaults.js';
+import { dropVault, ensureReady, extraVaultConfigs, getDefaultContext, getVaultContext, listVaults, pluginsModeOf } from '../services/vaults.js';
+import * as pluginsSvc from '../services/plugins.js';
+import type { VaultCtx } from '../services/vaultals.js';
 import { assertVaultPathAllowed } from './settings.js';
 
 const MASK = '••••••••';
@@ -68,6 +70,10 @@ async function build(body: any, existing?: VaultConfig): Promise<VaultConfig> {
   if (typeof body.tokenEnv === 'string') {
     if (body.tokenEnv && !/^[A-Za-z_][A-Za-z0-9_]*$/.test(body.tokenEnv)) badRequest('tokenEnv is not a valid variable name');
     base.tokenEnv = body.tokenEnv;
+  }
+  if (body.plugins && typeof body.plugins === 'object' && body.plugins.mode !== undefined) {
+    if (body.plugins.mode !== 'own' && body.plugins.mode !== 'shared') badRequest('plugins.mode must be "own" or "shared"');
+    base.plugins.mode = body.plugins.mode;
   }
   if (body.storage && typeof body.storage === 'object') applyStoragePatch(base.storage, body.storage);
   if (base.storage.driver === 'local') {
@@ -140,4 +146,79 @@ vaultsRouter.get('/:id/status', asyncHandler(async (req, res) => {
     return void res.json({ id: ctx.id, active: ctx.storage.kind, error: String(e?.message ?? e), remote: null });
   }
   res.json({ id: ctx.id, active: ctx.storage.kind, remote: runInVault(ctx, () => ctx.storage.remoteInfo?.() ?? null) });
+}));
+
+// ---- plugins: which ones a vault has -----------------------------------------------------------------------
+
+const PLUGIN_ID = /^[a-zA-Z0-9._-]+$/;
+const PLUGINS_DIR = '.obsidian/plugins';
+
+async function openCtx(id: string): Promise<VaultCtx> {
+  const ctx = id === DEFAULT_VAULT_ID ? getDefaultContext() : await getVaultContext(id);
+  if (!ctx) throw Object.assign(new Error('Unknown vault'), { status: 404 });
+  await ensureReady(ctx);
+  return ctx;
+}
+
+/** Every file of a plugin folder (code, styles, manifest and its saved settings). */
+async function readPluginFiles(ctx: VaultCtx, id: string): Promise<{ rel: string; data: Buffer }[]> {
+  const out: { rel: string; data: Buffer }[] = [];
+  const walk = async (dir: string): Promise<void> => {
+    for (const e of await ctx.storage.listDir(dir)) {
+      const rel = `${dir}/${e.name}`;
+      if (e.isDir) await walk(rel);
+      else out.push({ rel, data: await ctx.storage.readBuffer(rel) });
+    }
+  };
+  await walk(`${PLUGINS_DIR}/${id}`);
+  return out;
+}
+
+/** Plugins the vault itself has, and those another vault has that it could take over. */
+vaultsRouter.get('/:id/plugins', asyncHandler(async (req, res) => {
+  const mode = await pluginsModeOf(req.params.id);
+  const from = String(req.query.from ?? DEFAULT_VAULT_ID);
+  const list = async (id: string) => {
+    const ctx = await openCtx(id);
+    return runInVault(ctx, () => pluginsSvc.listInstalled());
+  };
+  const own = mode === 'shared' ? [] : await list(req.params.id);
+  const source = from === req.params.id ? [] : await list(from);
+  const have = new Set(own.map((p) => p.id));
+  const pick = (p: any) => ({ id: p.id, name: p.name, version: p.version, enabled: p.enabled });
+  res.json({ mode, from, own: own.map(pick), available: source.filter((p) => !have.has(p.id)).map(pick) });
+}));
+
+/**
+ * Take chosen plugins over from another vault (default: the main one): the whole folder is copied — code and the plugin's saved
+ * settings — and switched on if it was on. `move: true` removes them from the source afterwards.
+ */
+vaultsRouter.post('/:id/plugins/transfer', asyncHandler(async (req, res) => {
+  const target = req.params.id;
+  const from = String(req.body?.from ?? DEFAULT_VAULT_ID);
+  const ids: unknown = req.body?.ids;
+  if (!Array.isArray(ids) || !ids.length || ids.length > 100 || !ids.every((x) => typeof x === 'string' && PLUGIN_ID.test(x) && x !== '.' && x !== '..')) {
+    badRequest('ids must be a list of plugin ids');
+  }
+  if (from === target) badRequest('choose a different source vault');
+  if ((await pluginsModeOf(target)) === 'shared') badRequest('This vault uses the main vault’s plugins; switch it to “own plugins” first');
+  if ((await pluginsModeOf(from)) === 'shared') badRequest('The source vault uses the main vault’s plugins; take them from the main vault instead');
+  const src = await openCtx(from);
+  const dst = await openCtx(target);
+  const done: string[] = [];
+  const failed: { id: string; error: string }[] = [];
+  for (const id of ids as string[]) {
+    try {
+      const wasEnabled = await runInVault(src, async () => (await pluginsSvc.listInstalled()).find((p) => p.id === id)?.enabled ?? false);
+      const files = await readPluginFiles(src, id);
+      if (!files.length) throw new Error('not installed in the source vault');
+      for (const f of files) await dst.storage.writeBuffer(f.rel, f.data);
+      if (wasEnabled) await runInVault(dst, () => pluginsSvc.setEnabled(id, true));
+      if (req.body?.move) await runInVault(src, () => pluginsSvc.uninstall(id));
+      done.push(id);
+    } catch (e: any) {
+      failed.push({ id, error: String(e?.message ?? e) });
+    }
+  }
+  res.json({ done, failed });
 }));

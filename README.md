@@ -198,7 +198,7 @@ Useful scripts:
 Instead of a folder on disk, the vault can live in a GitHub repository, read and written through the
 GitHub API. Set the variables below (in `.env` for docker compose, or `-e` for `docker run`) and the
 container starts straight into that repository. Each variable you set **overrides `settings.json` and is
-greyed out in Settings → Storage**; variables you leave out stay editable in the UI. Overrides are never
+greyed out in Settings → Vaults (main vault)**; variables you leave out stay editable in the UI. Overrides are never
 written to `settings.json`. A malformed value stops the server at startup and names the variable.
 
 | Var | Default | Description |
@@ -397,7 +397,7 @@ Run `npm run typecheck` before opening a PR.
 One server can host several vaults of different kinds (a folder on the server, a GitHub repository). **Each browser tab
 works on its own vault**: pick it with the vault name at the bottom of the sidebar (a second tab can stay on another
 vault). Every vault has its own search index, link graph, plugins/settings (stored inside the vault), UI state and share
-links. Manage them in *Settings → Vaults*, or declare them for a container:
+links. Manage them in *Settings → Vaults* (one list: Configure opens that vault’s storage settings, rules and plugin mode), or declare them for a container. Add `"plugins": "shared"` to give a vault the main vault’s plugins and plugin settings instead of its own set; `"git": "<url>"` makes it a Git-remote vault:
 
 ```bash
 -e WEBOBSIDIAN_VAULTS='[{"id":"work","name":"Work","path":"/data/work"},
