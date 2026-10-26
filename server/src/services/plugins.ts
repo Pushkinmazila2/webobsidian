@@ -209,7 +209,7 @@ async function releaseAssets(repo: string): Promise<Record<string, string>> {
   if (tagged) return tagged;
   let apiError = '';
   try {
-    const res = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, { headers: { 'User-Agent': 'WebObsidian' } });
+    const res = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, { headers: { 'User-Agent': 'WebObsidian' }, signal: AbortSignal.timeout(15_000) });
     if (res.ok) {
       const release = (await res.json()) as { assets: { name: string; browser_download_url: string }[] };
       const assets = Object.fromEntries(release.assets.map((a) => [a.name, a.browser_download_url]));
@@ -223,7 +223,7 @@ async function releaseAssets(repo: string): Promise<Record<string, string>> {
     apiError = String(e?.message ?? e);
   }
   const base = `https://github.com/${repo}/releases/latest/download`;
-  const probe = await fetch(`${base}/main.js`, { method: 'HEAD', headers: { 'User-Agent': 'WebObsidian' } }).catch(() => null);
+  const probe = await fetch(`${base}/main.js`, { method: 'HEAD', headers: { 'User-Agent': 'WebObsidian' }, signal: AbortSignal.timeout(15_000) }).catch(() => null);
   if (!probe?.ok) throw new Error(`GitHub release lookup failed: ${apiError}${probe ? ` (and no downloadable release: ${probe.status})` : ''}`);
   return { 'manifest.json': `${base}/manifest.json`, 'main.js': `${base}/main.js`, 'styles.css': `${base}/styles.css` };
 }
@@ -231,12 +231,12 @@ async function releaseAssets(repo: string): Promise<Record<string, string>> {
 /** Assets of the release tagged with the version in the repository's root manifest.json (Obsidian's own method), or null. */
 async function taggedAssets(repo: string): Promise<Record<string, string> | null> {
   try {
-    const head = await fetch(`https://raw.githubusercontent.com/${repo}/HEAD/manifest.json`, { headers: { 'User-Agent': 'WebObsidian' } });
+    const head = await fetch(`https://raw.githubusercontent.com/${repo}/HEAD/manifest.json`, { headers: { 'User-Agent': 'WebObsidian' }, signal: AbortSignal.timeout(15_000) });
     if (!head.ok) return null;
     const version = ((await head.json()) as { version?: unknown }).version;
     if (typeof version !== 'string' || !/^[\w.+-]{1,64}$/.test(version)) return null;
     const base = `https://github.com/${repo}/releases/download/${version}`;
-    const probe = await fetch(`${base}/main.js`, { method: 'HEAD', headers: { 'User-Agent': 'WebObsidian' } });
+    const probe = await fetch(`${base}/main.js`, { method: 'HEAD', headers: { 'User-Agent': 'WebObsidian' }, signal: AbortSignal.timeout(15_000) });
     if (!probe.ok) return null;
     return { 'manifest.json': `${base}/manifest.json`, 'main.js': `${base}/main.js`, 'styles.css': `${base}/styles.css` };
   } catch {
@@ -244,12 +244,35 @@ async function taggedAssets(repo: string): Promise<Record<string, string> | null
   }
 }
 
+/** Why a request failed, in words: Node's `fetch failed` hides the cause (DNS, timeout, blocked host…) in `error.cause`. */
+function describeNetworkError(url: string, e: unknown): string {
+  const err = e as { name?: string; message?: string; cause?: { code?: string; message?: string } };
+  const host = (() => { try { return new URL(url).host; } catch { return url; } })();
+  if (err?.name === 'TimeoutError' || err?.name === 'AbortError') return `timed out reaching ${host}`;
+  const why = err?.cause?.code || err?.cause?.message || err?.message || 'network error';
+  return `cannot reach ${host} (${why})`;
+}
+
+/** GET with a timeout and a few retries (GitHub's CDN hosts are flaky from some networks); 404 is an answer, not a failure. */
+async function download(url: string, tries = 3): Promise<Response> {
+  let last: unknown;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const r = await fetch(url, { headers: { 'User-Agent': 'WebObsidian' }, signal: AbortSignal.timeout(30_000), redirect: 'follow' });
+      if (r.status < 500 && r.status !== 429) return r;
+      last = new Error(`HTTP ${r.status}`);
+    } catch (e) { last = e; }
+    if (i < tries - 1) await new Promise((res) => setTimeout(res, 400 * (i + 1)));
+  }
+  throw Object.assign(new Error(`Download failed: ${describeNetworkError(url, last)}`), { status: 502 });
+}
+
 async function fetchText(url: string, optional?: false): Promise<string>;
 async function fetchText(url: string, optional: true): Promise<string | null>;
 async function fetchText(url: string, optional = false): Promise<string | null> {
-  const r = await fetch(url, { headers: { 'User-Agent': 'WebObsidian' } });
+  const r = await download(url);
   if (optional && r.status === 404) return null;
-  if (!r.ok) throw new Error(`Download failed: ${url} (${r.status})`);
+  if (!r.ok) throw Object.assign(new Error(`Download failed: ${url} (${r.status})`), { status: 502 });
   return r.text();
 }
 

@@ -1,0 +1,4 @@
+
+/* Excalidraw: its dropdown menus (library "Open"/"Export", …) sit at z-index 1 inside the drawing, below the sidebar (120), so they
+   looked faded and clicks never reached them. */
+.excalidraw .dropdown-menu { z-index: 200 !important; }
