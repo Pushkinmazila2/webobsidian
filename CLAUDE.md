@@ -22,7 +22,7 @@ WebObsidian là web app self-hosted clone toàn diện Obsidian. Thiết kế ch
 
 ## Quy ước kỹ thuật
 - Ngôn ngữ: TypeScript cho cả server và web. Tránh `any` khi có thể.
-- Cấu hình runtime: chỉ dùng file JSON (`data/settings.json`) — không thêm DB engine.
+- Cấu hình runtime vault/storage: file JSON (`data/settings.json`). Dữ liệu người dùng/nhóm/ACL/phiên: DB qua `UserStore` (SQLite mặc định, PostgreSQL qua `DATABASE_URL`) — xem PRD FR-16. Không dùng ORM; SQL trung tính + migration tăng dần trong `server/src/db/migrations.ts`.
 - Bảo mật: không log secret/token/API key; hash trước khi lưu; guard path traversal.
 - Commit/push git **chỉ khi người dùng yêu cầu**.
 

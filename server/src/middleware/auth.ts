@@ -1,16 +1,41 @@
 import type { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../services/auth.js';
+import { authenticateToken, type AuthUser } from '../services/auth.js';
 
 export const COOKIE_NAME = 'webobsidian_token';
 
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Express {
+    interface Request {
+      /** The signed-in user (set by requireAuth). */
+      user?: AuthUser;
+    }
+  }
+}
+
+export function sessionToken(req: Request): string | undefined {
+  return req.cookies?.[COOKIE_NAME] || bearer(req);
+}
+
 /** Require a valid session cookie for web/session routes. */
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const token = req.cookies?.[COOKIE_NAME] || bearer(req);
-  if (token && (await verifyToken(token))) {
+  const token = sessionToken(req);
+  const user = token ? await authenticateToken(token) : null;
+  if (user) {
+    req.user = user;
     next();
     return;
   }
   res.status(401).json({ error: 'Unauthorized' });
+}
+
+/** Administrators only (after requireAuth). */
+export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+  if (req.user?.isAdmin) {
+    next();
+    return;
+  }
+  res.status(403).json({ error: 'Administrator access required' });
 }
 
 function bearer(req: Request): string | undefined {

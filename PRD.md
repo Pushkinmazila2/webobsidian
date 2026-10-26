@@ -1,7 +1,8 @@
 # PRD — WebObsidian
 
 > Product Requirements Document
-> Phiên bản: 2.15 · Cập nhật: 2026-10-25 · Trạng thái: Draft
+> Phiên bản: 2.16 · Cập nhật: 2026-10-27 · Trạng thái: Draft
+> Changelog 2.16 (FR-16 — nhiều người dùng, theo yêu cầu người dùng): từ single-user sang **nhiều người dùng** (tới ~100): tài khoản, nhóm, phiên có thu hồi tức thì, quyền theo thư mục (ACL), SSO (OIDC + SAML) với SCIM, cấu hình khai báo (JSON + biến `.env`), và **soạn thảo cộng tác thời gian thực** (Yjs, hiện con trỏ từng người) có lớp đệm giữa editor và storage ngoài. **Đổi quyết định kiến trúc:** bỏ ràng buộc "không thêm DB engine" — người dùng/nhóm/ACL/phiên/nhật ký sửa lưu trong DB qua giao diện `UserStore` (SQLite mặc định, PostgreSQL qua `DATABASE_URL`); `settings.json` vẫn giữ cấu hình vault/storage. Bỏ non-goal "realtime multi-user (CRDT)". Lộ trình ở FR-16 và IMPLEMENTATION_PLAN Phase 32.
 > Changelog 2.15 (FR-4/FR-7 — lịch sử phiên bản cho vault từ xa, theo yêu cầu người dùng): *Version history* hoạt động với storage `github` và `git` (trước đây 501): danh sách commit đã chạm file + xem/khôi phục bản cũ; mỗi dòng hiện login người commit (GitHub: tài khoản gắn với commit; Git: tên tác giả). Khi chưa cấu hình danh tính, commit của driver `git` mang tên là login (`storage.git.username`) thay cho "WebObsidian"; driver GitHub vẫn dùng chủ sở hữu token.
 > Changelog 2.14 (plugin compat — Excalidraw, theo yêu cầu người dùng): (1) nút *Open* của thư viện Excalidraw hoạt động trên mọi origin (polyfill `showOpenFilePicker` bằng `<input type=file>`), liên kết *Browse libraries* trỏ lại về app và `#addLibrary=<url>` từ libraries.excalidraw.com được nhập tự động (tải qua proxy server, chỉ chấp nhận https + host libraries.excalidraw.com). (2) `GET /api/metadata/file?path=` trả metadata của một ghi chú kể cả khi rules của vault không index nó; `metadataCache.ensure()` dùng khi mở file để plugin đọc front matter (Excalidraw/Kanban chuyển sang view riêng) trong vault GitHub/Git dùng rules.
 > Changelog 2.13 (FR-14/FR-15 — cấu hình vault gộp một chỗ, theo yêu cầu người dùng): (1) **Settings → Vaults** thay cho 3 mục *Vaults / Vault & Files / Storage*: danh sách mọi vault (vault chính + vault bổ sung) với nút *Configure* mở cấu hình tại chỗ (nơi vault nằm: thư mục / GitHub / Git remote, bảng rules, cache, token…) và nút *Add vault*; vault chính mang thêm các tuỳ chọn file cũ (đường dẫn, cách xoá). (2) **Mỗi vault có rules/cache riêng**, và rules mirror/lazy/remote áp dụng cả cho driver `git` bằng **partial clone** (`--filter=blob:none` + cờ skip-worktree): `mirror` luôn nằm trong thư mục làm việc, `lazy` tải khi dùng và giữ tới `cache.maxMB` (LRU, dọn sau mỗi lần lưu), `remote` không bao giờ lưu (đọc thẳng từ repo bằng `git cat-file`); danh sách file/cây thư mục vẫn đầy đủ; host không hỗ trợ filter → clone đầy đủ, cùng rules quyết định cái gì ở lại thư mục làm việc. (3) **Plugin theo vault**: `vaults[].plugins.mode` = `own` (bộ plugin riêng trong `.obsidian` của vault) hoặc `shared` (đúng bộ plugin + cấu hình plugin của vault chính — `/api/plugins` của vault đó chạy trong vault chính); với `own` có `GET /api/vaults/:id/plugins` + `POST /api/vaults/:id/plugins/transfer {ids, from?, move?}` để sao chép/chuyển các plugin được chọn (cả `data.json`); env `WEBOBSIDIAN_VAULTS` nhận `"plugins": "shared"`.
@@ -128,7 +129,7 @@
 - Đóng gói **Docker stack** chạy 1 lệnh.
 
 ### 1.2 Ngoài phạm vi (Non-goals — v1)
-- Realtime multi-user collaborative editing (CRDT). v1 là single-user (1 password).
+- ~~Realtime multi-user collaborative editing (CRDT). v1 là single-user (1 password).~~ → đã chuyển thành mục tiêu, xem FR-16 (PRD 2.16).
 - Obsidian Sync/Publish độc quyền (thay bằng Git sync).
 - Mobile native app (chỉ responsive web).
 - 100% tương thích mọi plugin dùng Electron/Node API nội bộ (chỉ hỗ trợ subset Obsidian API phổ biến).
@@ -537,6 +538,37 @@ loại file nào được tải/cache, phần còn lại chỉ lấy từ GitHub
   `_CACHE_MAX_MB`, `_GIT_AUTHOR_NAME/_EMAIL`. Mẫu trong `.env.example`, `docker-compose.yml`, README.
 - **Token**: ưu tiên env `WEBOBSIDIAN_GITHUB_TOKEN`; hoặc `storage.github.token` trong settings (bị che `••••••••` khi trả
   về client). Fine-grained PAT, quyền `Contents: Read and write` trên đúng một repo (chỉ `Read` nếu dùng chế độ chỉ đọc).
+
+### FR-16 · Nhiều người dùng, phân quyền, SSO, cộng tác (PRD 2.16)
+Mục tiêu: một instance phục vụ tới ~100 người; một tiến trình Node (không cần Redis ở giai đoạn đầu).
+
+- **Dữ liệu** (DB, không phải `settings.json`): `users`, `identities` (issuer+sub của IdP), `user_groups`, `user_group_members`
+  (`source` = `local`|`idp`), `sessions`, sau này `acl_rules`, `edit_log`, cấu hình IdP, token SCIM. Giao diện `UserStore`
+  (`server/src/db`) với **SQLite** (mặc định, `node:sqlite`, file `data/webobsidian.db`) và **PostgreSQL**
+  (`DATABASE_URL=postgres://…`); SQL trung tính + migration tăng dần (`schema_migrations`). Tên người dùng/nhóm không phân biệt hoa thường.
+- **Phiên**: JWT `{sub: userId, sid}` + hàng trong `sessions`; mỗi request kiểm tra phiên chưa thu hồi/hết hạn và user chưa bị vô hiệu →
+  **thu hồi có hiệu lực ngay** (đăng xuất, đổi mật khẩu thu hồi các phiên khác, vô hiệu hoá user). Token cũ `sub:'owner'` bị từ chối (đăng nhập lại một lần).
+- **Nâng cấp từ single-user**: lần chạy đầu tạo quản trị viên `admin` mang theo `auth.userPasswordHash` (hoặc 123456 + bắt đổi).
+  Đăng nhập chỉ bằng mật khẩu (không username) và mật khẩu khôi phục (`auth.passwordHash`/`WEBOBSIDIAN_PASSWORD`) luôn mở **tài khoản chủ sở hữu**
+  (quản trị viên cũ nhất còn bật) — desktop app và script cũ không đổi.
+- **Chống dò mật khẩu**: chỉ đếm lần *thất bại*; 10/15 phút cho mỗi tài khoản, 50/15 phút cho mỗi địa chỉ (nhiều người sau cùng một proxy).
+- **Quản trị** `/api/admin/*` (chỉ admin): user (tạo/sửa/vô hiệu/xoá, đặt lại mật khẩu, thu hồi phiên), nhóm và thành viên. Không được xoá/hạ/vô hiệu
+  quản trị viên cuối cùng; đối tượng `managed` (khai báo trong file cấu hình) chỉ đọc.
+- **Phân quyền theo thư mục (Phase 32.3)**: quy tắc `{chủ thể: user|nhóm|everyone|authenticated, glob đường dẫn, mức: none<read<comment<write<manage, allow|deny}`;
+  quy tắc cụ thể nhất (prefix dài nhất) thắng, cùng mức deny thắng allow, không khớp → vai trò mặc định của vault. Áp ở REST, WebSocket và
+  **lọc kết quả** cây/search/backlink/graph/tag. Ghi vào `.obsidian` mặc định chỉ admin. Chọn plugin theo nhóm: để sau.
+- **SSO (Phase 32.4)**: OIDC (Authorization Code + PKCE; claim `groups` → nhóm cục bộ, tạo user lần đăng nhập đầu), SAML 2.0 cùng giao diện `AuthProvider`,
+  **SCIM 2.0** (`/scim/v2/Users|Groups`, token riêng) để tạo/vô hiệu/đồng bộ nhóm ngay. Tài khoản cục bộ giữ làm lối vào khẩn cấp.
+- **Cấu hình khai báo (Phase 32.2)**: file JSON (`WEBOBSIDIAN_CONFIG`), mọi giá trị chuỗi nội suy `${ENV}` từ môi trường/`.env`; mô tả IdP, nhóm,
+  user (tuỳ chọn), vault + storage, ACL. Đối chiếu với DB lúc khởi động và khi SIGHUP; mục đến từ file đánh `managed`; `--check` kiểm tra không áp dụng;
+  prune chỉ khi bật rõ ràng. `WEBOBSIDIAN_VAULTS`/`storageenv` giữ làm trường hợp riêng.
+- **Cộng tác thời gian thực (Phase 32.5)**: Yjs + `y-codemirror.next`; phòng theo (vault, đường dẫn); con trỏ/vùng chọn/tên từng người (awareness). Ba tầng:
+  tạm (Y.Doc + awareness trong RAM) → trung gian (nhật ký cập nhật Yjs trên đĩa, sống qua restart) → bền (storage driver, ghi debounce — GitHub/Git vẫn gom một commit).
+  Server là bên ghi duy nhất vào driver; ghi qua REST/plugin và thay đổi bên ngoài (git pull) khi file đang mở được **trộn bằng diff** vào Y.Doc.
+  `read`/`comment` bị server bỏ qua cập nhật. Phạm vi đầu: file văn bản (Canvas/Bases chưa).
+- **Tác giả commit**: commit của driver GitHub/Git ký bằng người nối vault (token của họ). Để biết *ai* sửa gì, có **nhật ký sửa** trong DB
+  (user, đường dẫn, khoảng dòng/ký tự, thời gian); chọn vùng văn bản → menu ngữ cảnh "Ai đã sửa".
+- **Ngoài phạm vi (đợt này)**: Redis/nhiều instance, comment/mention, đồng soạn Canvas/Bases, chọn plugin theo nhóm.
 
 ---
 

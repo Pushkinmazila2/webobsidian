@@ -144,10 +144,11 @@ export const api = {
   authStatus: () => req<{ passwordSet: boolean; mustChangePassword: boolean }>('/auth/status'),
   setup: (password: string) =>
     req<{ ok: true }>('/auth/setup', { method: 'POST', body: JSON.stringify({ password }) }),
-  login: (password: string) =>
-    req<{ ok: true; mustChangePassword: boolean }>('/auth/login', {
+  // `username` is optional: empty signs in as the owner (single-user behaviour).
+  login: (password: string, username?: string) =>
+    req<{ ok: true; mustChangePassword: boolean; user?: { id: string; username: string; displayName: string; isAdmin: boolean } }>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ password, ...(username?.trim() ? { username: username.trim() } : {}) }),
     }),
   logout: () => req<{ ok: true }>('/auth/logout', { method: 'POST' }),
   changePassword: (currentPassword: string, newPassword: string) =>
@@ -155,7 +156,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
-  me: () => req<{ authenticated: boolean; mustChangePassword: boolean }>('/auth/me'),
+  me: () =>
+    req<{ authenticated: boolean; mustChangePassword: boolean; user?: { id: string; username: string; displayName: string; email: string | null; isAdmin: boolean; groups: string[] } }>('/auth/me'),
 
   // files
   tree: () => req<TreeNode>('/api/files/'),

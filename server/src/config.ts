@@ -10,6 +10,8 @@ export interface RuntimeConfig {
   /** Roots the folder browser is allowed to traverse. */
   allowedRoots: string[];
   initialPassword?: string;
+  /** `postgres://…` | `sqlite:<file>` | empty = SQLite in dataDir (users, groups, ACL, sessions). */
+  databaseUrl: string;
   isProd: boolean;
   /**
    * Express `trust proxy` setting. Controls whether `X-Forwarded-*` headers are
@@ -61,6 +63,7 @@ export const config: RuntimeConfig = {
   defaultVaultPath: path.resolve(process.env.VAULT_PATH ?? './sample-vault'),
   allowedRoots: resolveRoots(),
   initialPassword: process.env.WEBOBSIDIAN_PASSWORD || undefined,
+  databaseUrl: (process.env.DATABASE_URL ?? '').trim(),
   isProd: process.env.NODE_ENV === 'production',
   trustProxy: resolveTrustProxy(),
 };

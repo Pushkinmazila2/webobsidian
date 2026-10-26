@@ -6,6 +6,7 @@ import Icon from './Icon';
 export default function Login({ onAuthed }: { onAuthed: () => void }) {
   const setMustChangePassword = useStore((s) => s.setMustChangePassword);
   const [needSetup, setNeedSetup] = useState(false);
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [err, setErr] = useState('');
@@ -28,7 +29,7 @@ export default function Login({ onAuthed }: { onAuthed: () => void }) {
         await api.setup(password);
         setMustChangePassword(false); // a freshly-set password is already custom
       } else {
-        const r = await api.login(password);
+        const r = await api.login(password, username);
         setMustChangePassword(Boolean(r.mustChangePassword));
       }
       onAuthed();
@@ -48,10 +49,23 @@ export default function Login({ onAuthed }: { onAuthed: () => void }) {
         <h1>WebObsidian</h1>
         <p>{needSetup ? 'Set a master password to secure your vault' : 'Enter your password to unlock'}</p>
         <div className="err">{err}</div>
+        {!needSetup && (
+          <input
+            className="text-input"
+            type="text"
+            placeholder="Username (empty = owner)"
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+        )}
         <input
           className="text-input"
           type="password"
           placeholder="Password"
+          autoComplete="current-password"
           autoFocus
           value={password}
           onChange={(e) => setPassword(e.target.value)}

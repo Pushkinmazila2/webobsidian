@@ -4,7 +4,7 @@
 > Quy ước: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 > Cập nhật file này **mỗi khi** một mục thay đổi trạng thái.
 
-Cập nhật lần cuối: 2026-10-26 (M31.45 — sửa menu Open của thư viện Excalidraw (z-index), tải plugin có retry/timeout + lỗi rõ ràng; M31.44 — lịch sử phiên bản cho vault Git/GitHub kèm login người commit; M31.43 — Excalidraw: nhập thư viện (Open + libraries.excalidraw.com), mở bản vẽ ở chế độ GitHub/Git; M31.42 — cấu hình vault gộp, rules cho Git, plugin theo vault; M31.41 — storage driver `git` (Git remote bất kỳ); M31.40 — Kanban chạy đầy đủ; M31.39 — kiểm tra top-10 plugin; M31.38 — sửa màn hình trắng do extension plugin; M31.37 — sửa Excalidraw/Leaflet/Linter; M31.36 — đóng các API "trung bình" bằng giải pháp thật (adapter thấy thư mục ẩn, requestUrl trực tiếp tới localhost/LAN, getMostRecentLeaf, MarkdownRenderer là class, setIcon); M31.35 — thêm symbol API (613→650/691, 94,1%; sửa xuất các lớp mới ra module `obsidian`); M31.34 — shim Node/Electron cho plugin (Buffer, process, crypto, http/https qua proxy), Tag Wrangler + Telegram Sync khởi động; M31.32 — trình quản lý plugin + bộ đánh giá tương thích hằng ngày bằng GitHub Actions; M31.33 — cài plugin theo cách của Obsidian)
+Cập nhật lần cuối: 2026-10-27 (M32.1 — nhiều người dùng: DB SQLite/PostgreSQL, user/nhóm/phiên thu hồi tức thì, API quản trị; M31.45 — sửa menu Open của thư viện Excalidraw (z-index), tải plugin có retry/timeout + lỗi rõ ràng; M31.44 — lịch sử phiên bản cho vault Git/GitHub kèm login người commit; M31.43 — Excalidraw: nhập thư viện (Open + libraries.excalidraw.com), mở bản vẽ ở chế độ GitHub/Git; M31.42 — cấu hình vault gộp, rules cho Git, plugin theo vault; M31.41 — storage driver `git` (Git remote bất kỳ); M31.40 — Kanban chạy đầy đủ; M31.39 — kiểm tra top-10 plugin; M31.38 — sửa màn hình trắng do extension plugin; M31.37 — sửa Excalidraw/Leaflet/Linter; M31.36 — đóng các API "trung bình" bằng giải pháp thật (adapter thấy thư mục ẩn, requestUrl trực tiếp tới localhost/LAN, getMostRecentLeaf, MarkdownRenderer là class, setIcon); M31.35 — thêm symbol API (613→650/691, 94,1%; sửa xuất các lớp mới ra module `obsidian`); M31.34 — shim Node/Electron cho plugin (Buffer, process, crypto, http/https qua proxy), Tag Wrangler + Telegram Sync khởi động; M31.32 — trình quản lý plugin + bộ đánh giá tương thích hằng ngày bằng GitHub Actions; M31.33 — cài plugin theo cách của Obsidian)
 
 ---
 
@@ -475,6 +475,16 @@ Cập nhật lần cuối: 2026-10-26 (M31.45 — sửa menu Open của thư vi�
 - [x] M31.45 Excalidraw *Open* thật sự bấm được + cài plugin bền hơn (plugin compat): menu dropdown của thư viện Excalidraw nằm dưới sidebar (z-index 1 < 120) nên mờ và không nhận click → `.excalidraw .dropdown-menu { z-index: 200 }`, kiểm bằng click chuột thật (Playwright) → file chooser mở, nhập `.excalidrawlib` thành công; `POST /api/plugins/install` không còn 500 "fetch failed" trần: tải có timeout 30 s + 3 lần thử, lỗi 502 nêu host và nguyên nhân (ENOTFOUND/ETIMEDOUT…).
 - [ ] M31.20 Driver thêm: Git thuần (clone cục bộ/ssh), S3 — chưa yêu cầu
 - [ ] M31.14 Git LFS qua Batch API; fallback GraphQL chỉ lấy `.md` cho repo có nhiều binary ngoài LFS
+
+## Phase 32 — Nhiều người dùng, phân quyền, SSO, cộng tác — FR-16, PRD 2.16 (theo yêu cầu người dùng)
+- [x] M32.0 PRD 2.16 + CLAUDE.md: bỏ ràng buộc "không DB engine", bỏ non-goal realtime multi-user
+- [x] M32.1 Dữ liệu & danh tính: `server/src/db` (SQLite `node:sqlite` + PostgreSQL, migration), `UserStore`, user/nhóm/identity/phiên; JWT gắn phiên, thu hồi tức thì; quản trị viên `admin` từ mật khẩu cũ; `/api/admin/users|groups`; `/auth/sessions`; chống dò mật khẩu theo tài khoản. Test: `userstore.test.ts` (SQLite + PostgreSQL), `server.users.test.ts`
+- [ ] M32.1b UI: ô username ở màn đăng nhập, Settings → Users & Groups, danh sách thiết bị đăng nhập
+- [ ] M32.2 Cấu hình khai báo (JSON + `${ENV}`), đối chiếu vào DB (`managed`), `--check`, SIGHUP
+- [ ] M32.3 ACL theo thư mục + vai trò vault; middleware mọi route; lọc cây/search/backlink/graph/tag; bảo vệ `.obsidian`
+- [ ] M32.4 SSO: OIDC → SAML (`AuthProvider`), ánh xạ nhóm IdP, SCIM 2.0
+- [ ] M32.5 Realtime: WS theo topic + quyền, phòng Yjs, nhật ký cập nhật trên đĩa, `y-codemirror.next` + presence, ghi vào driver (debounce), trộn thay đổi ngoài/REST
+- [ ] M32.6 Nhật ký sửa ("Ai đã sửa" trong menu ngữ cảnh), SCIM nâng cao, chọn plugin theo nhóm (sau)
 
 ### Nhật ký tiến độ
 - 2026-06-27 (security fix — leo thang quyền qua token share): `verifyToken()` (server/src/services/auth.ts)
@@ -1350,3 +1360,4 @@ Cập nhật lần cuối: 2026-10-26 (M31.45 — sửa menu Open của thư vi�
 - 2026-10-25: Phase 31 M31.43 — Excalidraw: nhập thư viện (Open, libraries.excalidraw.com) và mở bản vẽ trong vault GitHub/Git không index (metadata theo file).
 - 2026-10-25: Phase 31 M31.44 — lịch sử phiên bản cho vault Git/GitHub, hiển thị login người commit.
 - 2026-10-26: Phase 31 M31.45 — Excalidraw Open (z-index menu) và cài plugin có retry/timeout, lỗi mạng rõ ràng.
+- 2026-10-27: Phase 32 M32.0/M32.1 — nhiều người dùng, nền tảng: `UserStore` (SQLite + PostgreSQL, cùng một bộ test), JWT gắn phiên trong DB (thu hồi tức thì), quản trị viên `admin` kế thừa mật khẩu cũ, `/api/admin/users|groups`, chống dò mật khẩu theo tài khoản.

@@ -16,7 +16,8 @@ import { loadSettings, getSettings, setPasswordIfInitial } from './bootstrap.js'
 import { peekSettings } from './services/settings.js';
 import { errorHandler } from './middleware/error.js';
 import { COOKIE_NAME } from './middleware/auth.js';
-import { verifyToken } from './services/auth.js';
+import { verifyToken, ensureBootstrapAdmin } from './services/auth.js';
+import { initDb, closeDb, getUserStore } from './db/index.js';
 import { authRouter } from './routes/auth.js';
 import { filesRouter } from './routes/files.js';
 import { searchRouter } from './routes/search.js';
@@ -29,6 +30,7 @@ import { uiStateRouter } from './routes/uistate.js';
 import { sharesRouter, publicSharesRouter } from './routes/shares.js';
 import { sharePageRouter } from './routes/sharepage.js';
 import { vaultsRouter, vaultMiddleware } from './routes/vaults.js';
+import { adminRouter } from './routes/admin.js';
 import { ensureReady, envVaultList, flushAll, getDefaultContext } from './services/vaults.js';
 import { setBroadcaster, broadcast } from './services/realtime.js';
 import { startAutoSync } from './services/autosync.js';
@@ -49,6 +51,9 @@ process.on('unhandledRejection', (reason) => {
 async function main() {
   await loadSettings();
   await setPasswordIfInitial();
+  await initDb(); // users, groups, sessions (SQLite by default, PostgreSQL via DATABASE_URL)
+  await ensureBootstrapAdmin();
+  setInterval(() => void getUserStore().purgeSessions().catch(() => {}), 6 * 3600_000).unref();
   envVaultList(); // a malformed WEBOBSIDIAN_VAULTS stops startup here
 
   const app = express();
@@ -119,6 +124,7 @@ async function main() {
   // otherwise gate every /api/* path (incl. /api/v1 and /api/keys) by prefix.
   app.use('/auth', authRouter);
   app.use('/api/vaults', vaultsRouter); // vault list + management (auth)
+  app.use('/api/admin', adminRouter); // users & groups (administrators)
   app.use('/api', vaultMiddleware); // picks the vault of the request (X-Vault / ?vault=)
   app.use('/api/v1', agentRouter); // agent API (api-key auth)
   app.use('/api/files', filesRouter);
@@ -166,6 +172,8 @@ async function main() {
     const done = () => process.exit(0);
     flushAll()
       .catch((e) => console.error('[boot] could not save buffered changes:', e?.message ?? e))
+      .then(() => closeDb())
+      .catch(() => {})
       .finally(done);
     setTimeout(done, 20_000).unref();
   };
