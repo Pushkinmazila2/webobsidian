@@ -17,7 +17,7 @@
     "dist:publish": "node scripts/build.mjs && electron-builder --publish always"
   },
   "devDependencies": {
-    "electron": "33.4.11",
+    "electron": "35.7.5",
     "electron-builder": "^25.1.8",
     "esbuild": "^0.24.0"
   },
@@ -25,7 +25,7 @@
     "appId": "com.xnohat.webobsidian",
     "productName": "WebObsidian",
     "copyright": "Copyright © 2026 xnohat",
-    "electronVersion": "33.4.11",
+    "electronVersion": "35.7.5",
     "directories": {
       "output": "release",
       "buildResources": "buildResources"

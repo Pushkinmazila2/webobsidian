@@ -479,6 +479,7 @@ Cập nhật lần cuối: 2026-10-27 (M32.1 — nhiều người dùng: DB SQLi
 ## Phase 32 — Nhiều người dùng, phân quyền, SSO, cộng tác — FR-16, PRD 2.16 (theo yêu cầu người dùng)
 - [x] M32.0 PRD 2.16 + CLAUDE.md: bỏ ràng buộc "không DB engine", bỏ non-goal realtime multi-user
 - [x] M32.1 Dữ liệu & danh tính: `server/src/db` (SQLite `node:sqlite` + PostgreSQL, migration), `UserStore`, user/nhóm/identity/phiên; JWT gắn phiên, thu hồi tức thì; quản trị viên `admin` từ mật khẩu cũ; `/api/admin/users|groups`; `/auth/sessions`; chống dò mật khẩu theo tài khoản. Test: `userstore.test.ts` (SQLite + PostgreSQL), `server.users.test.ts`
+- [x] M32.1a Desktop: Electron 33 → 35.7.5 (Node 22.14, có `node:sqlite`); engines Node ≥ 22.5. Chưa kiểm chứng bản đóng gói (không build được GUI trong môi trường này)
 - [ ] M32.1b UI: ô username ở màn đăng nhập, Settings → Users & Groups, danh sách thiết bị đăng nhập
 - [ ] M32.2 Cấu hình khai báo (JSON + `${ENV}`), đối chiếu vào DB (`managed`), `--check`, SIGHUP
 - [ ] M32.3 ACL theo thư mục + vai trò vault; middleware mọi route; lọc cây/search/backlink/graph/tag; bảo vệ `.obsidian`

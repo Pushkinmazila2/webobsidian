@@ -339,7 +339,7 @@ webobsidian/
    (JSON config)   (.md+attach) (in-mem/disk) (git + LFS)   (.obsidian/plugins)
 ```
 
-**Tech stack:** Node 20+ · Express · TypeScript · React · Vite · CodeMirror 6 ·
+**Tech stack:** Node 22.5+ · Express · TypeScript · React · Vite · CodeMirror 6 ·
 unified/remark/rehype · MiniSearch (QMD) · simple-git + git-lfs · scrypt + JWT · Docker.
 
 See [PRD.md §2](PRD.md) for the full design.

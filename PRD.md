@@ -161,7 +161,7 @@
 ### 2.1 Tech stack
 | Layer | Lựa chọn | Lý do |
 |-------|----------|-------|
-| Backend | Node 20+, Express, TypeScript | Đồng nhất ngôn ngữ, hệ sinh thái git/markdown phong phú |
+| Backend | Node 22.5+ (node:sqlite), Express, TypeScript | Đồng nhất ngôn ngữ, hệ sinh thái git/markdown phong phú |
 | Frontend | React + Vite + TypeScript | Build nhanh, SPA |
 | Editor | CodeMirror 6 | Engine soạn thảo của chính Obsidian |
 | Markdown | unified/remark + rehype | Render an toàn, hỗ trợ plugin |
