@@ -190,6 +190,7 @@ Useful scripts:
 | `DATA_DIR` | `./data` | Where `settings.json` + search index live |
 | `ALLOWED_ROOTS` | – | Comma-separated roots the vault picker may browse |
 | `WEBOBSIDIAN_PASSWORD` | – | Seed/override the master password (recovery password of the owner account) |
+| `PUBLIC_URL` | from request | Public address of the instance; SSO callbacks (`/auth/sso/<id>/callback`, SAML `/acs`) are built from it |
 | `DATABASE_URL` | SQLite in `DATA_DIR` | Users/groups/sessions DB: `postgres://user:pass@host/db` or `sqlite:<file>` |
 | `WEBOBSIDIAN_WATCH` | `auto` | File-watch mode: `auto` or `polling` |
 | `NODE_OPTIONS` | `--max-old-space-size=4096` | Node heap size — raise for large vaults |
@@ -361,7 +362,7 @@ See [PRD.md §2](PRD.md) for the full design.
 ## 🗺️ Compatibility & scope
 
 - ✅ Works directly on an existing Obsidian vault, including `.obsidian/` config.
-- ⚠️ **Multi-user is being built** — accounts, groups and instantly-revocable sessions are in (admin API `/api/admin/*`; sign in with a username, or with just the password as the owner). Folder permissions are in (admin API `/api/admin/acl`, default `none` until an admin grants access). SSO/SCIM and real-time co-editing are next (see PRD FR-16).
+- ⚠️ **Multi-user is being built** — accounts, groups and instantly-revocable sessions are in (admin API `/api/admin/*`; sign in with a username, or with just the password as the owner). Folder permissions are in (admin API `/api/admin/acl`, default `none` until an admin grants access). SSO (OIDC, SAML) and SCIM provisioning are in (`/api/admin/idps`, `/api/admin/scim-tokens`); real-time co-editing is next (see PRD FR-16).
 - ⚠️ Git sync replaces Obsidian Sync/Publish.
 - ⚠️ Community-plugin support is a **subset** of the Obsidian API; plugins relying on
   Electron/Node internals may not work.

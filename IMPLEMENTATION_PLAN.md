@@ -483,7 +483,7 @@ Cập nhật lần cuối: 2026-10-27 (M32.1 — nhiều người dùng: DB SQLi
 - [ ] M32.1b UI: ô username ở màn đăng nhập, Settings → Users & Groups, danh sách thiết bị đăng nhập
 - [ ] M32.2 Cấu hình khai báo (JSON + `${ENV}`), đối chiếu vào DB (`managed`), `--check`, SIGHUP
 - [x] M32.3 ACL theo thư mục: `acl_rules`/`vault_defaults`, bộ đánh giá (cụ thể nhất thắng, deny chặn), kiểm tra ở facade vault theo người của request, lọc cây/search/tags/backlinks/graph/metadata/share/WS, `.obsidian` chỉ đọc, các route cấu hình chỉ admin, UI state theo người, `/api/admin/acl*`. Test: `acl.test.ts` (10), `server.acl.test.ts` (end-to-end)
-- [ ] M32.4 SSO: OIDC → SAML (`AuthProvider`), ánh xạ nhóm IdP, SCIM 2.0
+- [x] M32.4 SSO: OIDC (PKCE, state/nonce) + SAML (assertion ký bắt buộc, InResponseTo) + ánh xạ nhóm/adminGroups + SCIM 2.0 (Users/Groups, thu hồi phiên khi deactivate), nút đăng nhập SSO ở màn login. Test: `server.sso.test.ts` (IdP OIDC giả + SAML giả ký bằng xml-crypto, 2 test)
 - [ ] M32.5 Realtime: WS theo topic + quyền, phòng Yjs, nhật ký cập nhật trên đĩa, `y-codemirror.next` + presence, ghi vào driver (debounce), trộn thay đổi ngoài/REST
 - [ ] M32.6 Nhật ký sửa ("Ai đã sửa" trong menu ngữ cảnh), SCIM nâng cao, chọn plugin theo nhóm (sau)
 
@@ -1363,3 +1363,4 @@ Cập nhật lần cuối: 2026-10-27 (M32.1 — nhiều người dùng: DB SQLi
 - 2026-10-26: Phase 31 M31.45 — Excalidraw Open (z-index menu) và cài plugin có retry/timeout, lỗi mạng rõ ràng.
 - 2026-10-27: Phase 32 M32.0/M32.1 — nhiều người dùng, nền tảng: `UserStore` (SQLite + PostgreSQL, cùng một bộ test), JWT gắn phiên trong DB (thu hồi tức thì), quản trị viên `admin` kế thừa mật khẩu cũ, `/api/admin/users|groups`, chống dò mật khẩu theo tài khoản.
 - 2026-10-29: Phase 32 M32.3 — phân quyền theo thư mục: mặc định `none`, quy tắc user/nhóm/everyone × glob × mức, kiểm tra tập trung ở facade vault, lọc search/tags/graph/backlinks/WS, route cấu hình chỉ admin, workspace theo từng người. 215 test xanh.
+- 2026-10-29: Phase 32 M32.4 — SSO: OIDC, SAML, SCIM 2.0, ánh xạ nhóm, admin API cho IdP/token SCIM; kiểm thử với IdP giả (kể cả các trường hợp bị từ chối: chưa ký, sai khoá, sai audience, hết hạn, phát lại, IdP-initiated).

@@ -32,6 +32,8 @@ import { sharesRouter, publicSharesRouter } from './routes/shares.js';
 import { sharePageRouter } from './routes/sharepage.js';
 import { vaultsRouter, vaultMiddleware } from './routes/vaults.js';
 import { adminRouter } from './routes/admin.js';
+import { ssoRouter } from './routes/sso.js';
+import { scimRouter } from './routes/scim.js';
 import { ensureReady, envVaultList, flushAll, getDefaultContext } from './services/vaults.js';
 import { setBroadcaster, broadcast } from './services/realtime.js';
 import { startAutoSync } from './services/autosync.js';
@@ -66,7 +68,7 @@ async function main() {
   // address (see middleware/ratelimit.ts), not the spoofable X-Forwarded-For.
   // Set TRUST_PROXY=false for a directly-exposed instance with no proxy.
   app.set('trust proxy', config.trustProxy);
-  app.use(express.json({ limit: '32mb' }));
+  app.use(express.json({ limit: '32mb', type: ['application/json', 'application/scim+json'] }));
   app.use(cookieParser());
 
   // Per-request CSP nonce — used by the SSR share page's inline <script>.
@@ -124,6 +126,8 @@ async function main() {
   // Routes. NOTE: specific /api/* routers must be registered BEFORE the broad
   // '/api' search router, whose router-level requireAuth middleware would
   // otherwise gate every /api/* path (incl. /api/v1 and /api/keys) by prefix.
+  app.use('/scim/v2', scimRouter); // directory provisioning (bearer token)
+  app.use('/auth/sso', ssoRouter); // identity-provider sign-in (no session yet)
   app.use('/auth', authRouter);
   app.use('/api/vaults', vaultsRouter); // vault list + management (auth)
   app.use('/api/admin', adminRouter); // users & groups (administrators)
@@ -147,7 +151,7 @@ async function main() {
   if (await dirExists(publicDir)) {
     app.use(express.static(publicDir));
     app.get('*', (req, res, next) => {
-      if (req.path.startsWith('/api') || req.path.startsWith('/auth') || req.path.startsWith('/public')) return next();
+      if (req.path.startsWith('/api') || req.path.startsWith('/auth') || req.path.startsWith('/public') || req.path.startsWith('/scim')) return next();
       res.sendFile(path.join(publicDir, 'index.html'));
     });
   }

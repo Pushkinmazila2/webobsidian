@@ -11,9 +11,20 @@ export default function Login({ onAuthed }: { onAuthed: () => void }) {
   const [confirm, setConfirm] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [providers, setProviders] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     api.authStatus().then((s) => setNeedSetup(!s.passwordSet)).catch(() => {});
+    api.ssoProviders().then((r) => setProviders(r.providers)).catch(() => {});
+    // The server sends people back here with a short reason when single sign-on did not work.
+    const q = new URLSearchParams(location.search);
+    const why = q.get('sso_error');
+    if (why) {
+      setErr(why);
+      q.delete('sso_error');
+      const rest = q.toString();
+      history.replaceState(null, '', location.pathname + (rest ? `?${rest}` : '') + location.hash);
+    }
   }, []);
 
   const submit = async (e: React.FormEvent) => {
@@ -82,6 +93,17 @@ export default function Login({ onAuthed }: { onAuthed: () => void }) {
         <button className="btn" type="submit" disabled={busy}>
           {needSetup ? 'Create & Unlock' : 'Unlock'}
         </button>
+        {!needSetup &&
+          providers.map((p) => (
+            <a
+              key={p.id}
+              className="btn"
+              style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}
+              href={`/auth/sso/${encodeURIComponent(p.id)}/login?returnTo=${encodeURIComponent(location.pathname + location.search)}`}
+            >
+              Sign in with {p.name}
+            </a>
+          ))}
       </form>
     </div>
   );

@@ -150,6 +150,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ password, ...(username?.trim() ? { username: username.trim() } : {}) }),
     }),
+  ssoProviders: () => req<{ providers: { id: string; name: string; type: 'oidc' | 'saml' }[] }>('/auth/sso/providers'),
   logout: () => req<{ ok: true }>('/auth/logout', { method: 'POST' }),
   changePassword: (currentPassword: string, newPassword: string) =>
     req<{ ok: true }>('/auth/change-password', {

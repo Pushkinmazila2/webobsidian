@@ -184,6 +184,12 @@ export async function verifyToken(token: string): Promise<boolean> {
   return (await authenticateToken(token)) !== null;
 }
 
+/** Bearer token for an identity provider's SCIM client; only the hash is stored. */
+export function generateScimToken(): { raw: string; hash: string; prefix: string } {
+  const raw = `wst_${randomBytes(32).toString('base64url')}`;
+  return { raw, hash: hashApiKey(raw), prefix: raw.slice(0, 12) };
+}
+
 /** ---- API keys ----------------------------------------------------------- */
 
 export function hashApiKey(raw: string): string {

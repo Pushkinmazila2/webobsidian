@@ -37,6 +37,8 @@ export interface AclStore {
   getRule(id: string): Promise<AclRule | undefined>;
   createRule(r: NewAclRule): Promise<AclRule>;
   deleteRule(id: string): Promise<boolean>;
+  /** Drop every rule that names this user or group (call when the user/group is deleted). */
+  deleteRulesForSubject(type: 'user' | 'group', id: string): Promise<number>;
   listDefaults(): Promise<VaultDefault[]>;
   setDefault(vaultId: string, level: Level, managed?: boolean): Promise<void>;
 }
@@ -82,6 +84,9 @@ export class SqlAclStore implements AclStore {
   }
   async deleteRule(id: string): Promise<boolean> {
     return (await this.db.run('DELETE FROM acl_rules WHERE id = ?', [id])) > 0;
+  }
+  async deleteRulesForSubject(type: 'user' | 'group', id: string): Promise<number> {
+    return this.db.run('DELETE FROM acl_rules WHERE subject_type = ? AND subject_id = ?', [type, id]);
   }
   async listDefaults(): Promise<VaultDefault[]> {
     const rows = await this.db.all('SELECT * FROM vault_defaults');

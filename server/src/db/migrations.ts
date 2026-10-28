@@ -98,6 +98,32 @@ export const MIGRATIONS: Migration[] = [
        )`,
     ],
   },
+  {
+    id: '003_sso',
+    up: [
+      // type: oidc | saml. config: JSON text (issuer/client or entry point/cert, claim names, provisioning options).
+      `CREATE TABLE identity_providers (
+         id TEXT PRIMARY KEY,
+         type TEXT NOT NULL,
+         name TEXT NOT NULL,
+         enabled INTEGER NOT NULL DEFAULT 1,
+         config TEXT NOT NULL,
+         managed INTEGER NOT NULL DEFAULT 0,
+         created_at TEXT NOT NULL,
+         updated_at TEXT NOT NULL
+       )`,
+      // Bearer tokens an identity provider uses to call /scim/v2 (only the hash is stored).
+      `CREATE TABLE scim_tokens (
+         id TEXT PRIMARY KEY,
+         name TEXT NOT NULL,
+         hash TEXT NOT NULL UNIQUE,
+         prefix TEXT NOT NULL,
+         created_at TEXT NOT NULL,
+         last_used_at TEXT,
+         revoked_at TEXT
+       )`,
+    ],
+  },
 ];
 
 export async function migrate(db: Db, migrations: Migration[] = MIGRATIONS): Promise<string[]> {

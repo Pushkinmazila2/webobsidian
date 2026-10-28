@@ -566,8 +566,17 @@ Mục tiêu: một instance phục vụ tới ~100 người; một tiến trình
   Chia sẻ công khai cần `write` trên note. **Trạng thái UI (tab đang mở…) theo từng người** (`uistate[-vault]-<userId>.json`; admin kế thừa file cũ lần đầu).
   API: `/api/admin/acl` (GET?vault=), `PUT /acl/default`, `POST|DELETE /acl/rules`, `GET /acl/check?user=&path=` (mức hiệu lực).
   Giới hạn đã biết: đổi tên/xoá **thư mục** chỉ kiểm quyền trên thư mục đó, không kiểm từng con; API-key (agent) không bị ACL; chọn plugin theo nhóm để sau.
-- **SSO (Phase 32.4)**: OIDC (Authorization Code + PKCE; claim `groups` → nhóm cục bộ, tạo user lần đăng nhập đầu), SAML 2.0 cùng giao diện `AuthProvider`,
-  **SCIM 2.0** (`/scim/v2/Users|Groups`, token riêng) để tạo/vô hiệu/đồng bộ nhóm ngay. Tài khoản cục bộ giữ làm lối vào khẩn cấp.
+- **SSO (Phase 32.4, đã làm)**: bảng `identity_providers` (config JSON, bí mật chỉ ghi: đọc ra `••••••••`, ưu tiên `clientSecretEnv`), quản lý ở `/api/admin/idps`.
+  **OIDC** (`openid-client`: discovery, Authorization Code + **PKCE S256**, `state` + `nonce` trong cookie JWT 10 phút, kiểm tra chữ ký/iss/aud/exp của ID token):
+  `/auth/sso/:id/login|callback`. **SAML 2.0** (`@node-saml/node-saml`, SP-initiated, HTTP-Redirect → HTTP-POST): `/auth/sso/:id/login|acs|metadata`; bắt buộc assertion có chữ ký của IdP,
+  kiểm audience/issuer/thời hạn, **InResponseTo bắt buộc** (từ chối IdP-initiated và phát lại), RelayState ngẫu nhiên dùng một lần.
+  Đăng nhập ngoài → `signInExternal`: tìm theo `identities(issuer, sub)`; tài khoản do admin/SCIM chuẩn bị (cùng `externalId` hoặc e-mail) được nối; tài khoản **local** chỉ nối theo e-mail khi bật `autoLinkByEmail`
+  và e-mail đã xác minh; không có thì tạo mới nếu `autoProvision` (mặc định bật; tên đăng nhập trùng → thêm hậu tố). Tài khoản bị vô hiệu không vào được.
+  Nhóm: claim `groups` (`groupsClaim`) → nhóm cục bộ qua `groupMap`, tự tạo nếu `createGroups`; đồng bộ ở **mỗi lần đăng nhập**, chỉ đụng membership nguồn `idp`;
+  `adminGroups` → quyền admin (chỉ với tài khoản ngoài, không bao giờ hạ admin cuối cùng). `returnTo` chỉ nhận đường dẫn cùng site. `PUBLIC_URL` dựng URL callback (mặc định từ request).
+  **SCIM 2.0** `/scim/v2` (Bearer `wst_…`, chỉ lưu hash; `/api/admin/scim-tokens`): Users và Groups (GET/POST/PUT/PATCH/DELETE, filter `eq`, phân trang), ServiceProviderConfig/ResourceTypes.
+  `active=false` → vô hiệu + **thu hồi mọi phiên ngay**; xoá user/nhóm → xoá cả quy tắc ACL của họ. Ranh giới: SCIM chỉ quản tài khoản/nhóm nguồn directory (scim/oidc/saml), không đụng tài khoản local/config,
+  không cấp admin, không vô hiệu admin cuối cùng. Membership do SCIM có nguồn `scim` nên đăng nhập OIDC không xoá nhầm. Tài khoản cục bộ vẫn là lối vào khẩn cấp.
 - **Cấu hình khai báo (Phase 32.2)**: file JSON (`WEBOBSIDIAN_CONFIG`), mọi giá trị chuỗi nội suy `${ENV}` từ môi trường/`.env`; mô tả IdP, nhóm,
   user (tuỳ chọn), vault + storage, ACL. Đối chiếu với DB lúc khởi động và khi SIGHUP; mục đến từ file đánh `managed`; `--check` kiểm tra không áp dụng;
   prune chỉ khi bật rõ ràng. `WEBOBSIDIAN_VAULTS`/`storageenv` giữ làm trường hợp riêng.

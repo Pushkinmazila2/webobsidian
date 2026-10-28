@@ -2,10 +2,11 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { asyncHandler } from '../middleware/error.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
-import { getUserStore, getAclStore, LEVELS, levelNum, normPattern, type AclRule, type Group, type User } from '../db/index.js';
+import { getUserStore, getAclStore, getSsoStore, LEVELS, levelNum, normPattern, type AclRule, type Group, type User } from '../db/index.js';
 import { refreshAcl, levelFor, principalFor } from '../services/acl.js';
 import { listVaults } from '../services/vaults.js';
-import { hashPassword, MIN_PASSWORD_LEN } from '../services/auth.js';
+import { hashPassword, generateScimToken, MIN_PASSWORD_LEN } from '../services/auth.js';
+import { parseProviderConfig, redactProvider } from '../services/sso.js';
 
 /**
  * User & group administration (administrators only): /api/admin/*.
@@ -161,6 +162,8 @@ adminRouter.delete(
     if (id === req.user!.id) throw httpError(409, 'You cannot delete yourself');
     await assertNotLastAdmin(target);
     await store.deleteUser(id);
+    await getAclStore().deleteRulesForSubject('user', id);
+    await refreshAcl();
     res.json({ ok: true });
   }),
 );
@@ -226,6 +229,8 @@ adminRouter.delete(
     if (!g) throw httpError(404, 'Group not found');
     assertEditable(g);
     await store.deleteGroup(g.id);
+    await getAclStore().deleteRulesForSubject('group', g.id);
+    await refreshAcl();
     res.json({ ok: true });
   }),
 );
@@ -365,5 +370,104 @@ adminRouter.get(
     const rel = normPattern(String(req.query.path ?? ''));
     const level = LEVELS[levelFor(await principalFor(user), vault, rel)];
     res.json({ vault, user: user.username, path: rel, level, canRead: levelNum(level) >= 1, canWrite: levelNum(level) >= 3 });
+  }),
+);
+
+// ---- single sign-on providers ------------------------------------------------------------
+// OIDC / SAML identity providers. Secrets are write-only: reads show •••••••• and an empty secret on update keeps the stored one.
+
+const IdpBody = z.object({
+  type: z.enum(['oidc', 'saml']),
+  name: z.string().trim().min(1).max(80),
+  enabled: z.boolean().default(true),
+  config: z.record(z.unknown()),
+  id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,31}$/).optional(),
+});
+
+const MASK = '••••••••';
+
+adminRouter.get(
+  '/idps',
+  asyncHandler(async (_req, res) => {
+    res.json({ providers: (await getSsoStore().listProviders()).map(redactProvider) });
+  }),
+);
+
+adminRouter.post(
+  '/idps',
+  asyncHandler(async (req, res) => {
+    const b = parse(IdpBody, req.body);
+    let config: Record<string, unknown>;
+    try {
+      config = parseProviderConfig(b.type, b.config) as unknown as Record<string, unknown>;
+    } catch (e) {
+      throw httpError(400, e instanceof z.ZodError ? e.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') : 'Invalid configuration');
+    }
+    const store = getSsoStore();
+    if (b.id && (await store.getProvider(b.id))) throw httpError(409, 'A provider with this id exists');
+    res.status(201).json({ provider: redactProvider(await store.createProvider({ id: b.id, type: b.type, name: b.name, enabled: b.enabled, config })) });
+  }),
+);
+
+adminRouter.patch(
+  '/idps/:id',
+  asyncHandler(async (req, res) => {
+    const store = getSsoStore();
+    const cur = await store.getProvider(String(req.params.id));
+    if (!cur) throw httpError(404, 'Provider not found');
+    assertEditable(cur);
+    const b = parse(z.object({ name: z.string().trim().min(1).max(80).optional(), enabled: z.boolean().optional(), config: z.record(z.unknown()).optional() }), req.body);
+    let config: Record<string, unknown> | undefined;
+    if (b.config) {
+      const merged: Record<string, unknown> = { ...cur.config, ...b.config };
+      // Untouched secret fields come back masked or empty: keep what is stored.
+      for (const k of ['clientSecret']) if (b.config[k] === MASK || b.config[k] === '' || b.config[k] === undefined) merged[k] = cur.config[k];
+      try {
+        config = parseProviderConfig(cur.type, merged) as unknown as Record<string, unknown>;
+      } catch (e) {
+        throw httpError(400, e instanceof z.ZodError ? e.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') : 'Invalid configuration');
+      }
+    }
+    res.json({ provider: redactProvider((await store.updateProvider(cur.id, { name: b.name, enabled: b.enabled, config }))!) });
+  }),
+);
+
+adminRouter.delete(
+  '/idps/:id',
+  asyncHandler(async (req, res) => {
+    const store = getSsoStore();
+    const cur = await store.getProvider(String(req.params.id));
+    if (!cur) throw httpError(404, 'Provider not found');
+    assertEditable(cur);
+    await store.deleteProvider(cur.id);
+    res.json({ ok: true });
+  }),
+);
+
+// ---- SCIM tokens -------------------------------------------------------------------------------
+adminRouter.get(
+  '/scim-tokens',
+  asyncHandler(async (_req, res) => {
+    const list = await getSsoStore().listScimTokens();
+    res.json({ tokens: list.map((t) => ({ id: t.id, name: t.name, prefix: t.prefix, createdAt: t.createdAt, lastUsedAt: t.lastUsedAt, revoked: Boolean(t.revokedAt) })) });
+  }),
+);
+
+adminRouter.post(
+  '/scim-tokens',
+  asyncHandler(async (req, res) => {
+    const b = parse(z.object({ name: z.string().trim().min(1).max(80) }), req.body);
+    const t = generateScimToken();
+    const rec = await getSsoStore().createScimToken({ name: b.name, hash: t.hash, prefix: t.prefix });
+    // The token itself is shown exactly once.
+    res.status(201).json({ token: t.raw, id: rec.id, prefix: rec.prefix });
+  }),
+);
+
+adminRouter.delete(
+  '/scim-tokens/:id',
+  asyncHandler(async (req, res) => {
+    if (!(await getSsoStore().revokeScimToken(String(req.params.id)))) throw httpError(404, 'Token not found');
+    res.json({ ok: true });
   }),
 );

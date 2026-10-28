@@ -13,6 +13,8 @@ services:
       WEBOBSIDIAN_PASSWORD: ${WEBOBSIDIAN_PASSWORD:-}
       # Users/groups/sessions database: empty = SQLite in the data volume; or postgres://user:pass@host/db
       DATABASE_URL: ${DATABASE_URL:-}
+      # Public address (https://notes.example.com) — used for single sign-on callbacks
+      PUBLIC_URL: ${PUBLIC_URL:-}
       # File-watch mode: auto (native + polling fallback) | polling. See .env.example.
       WEBOBSIDIAN_WATCH: ${WEBOBSIDIAN_WATCH:-auto}
       # Proxy trust. Default "true" (trust immediate hop) so X-Forwarded-Proto

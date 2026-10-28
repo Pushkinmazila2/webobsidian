@@ -5,15 +5,18 @@ import { openSqlite } from './sqlite.js';
 import { openPostgres } from './postgres.js';
 import { SqlUserStore, type UserStore } from './userstore.js';
 import { SqlAclStore, type AclStore } from './aclstore.js';
+import { SqlSsoStore, type SsoStore } from './ssostore.js';
 import type { Db } from './types.js';
 
 export type { Db } from './types.js';
 export * from './userstore.js';
 export * from './aclstore.js';
+export * from './ssostore.js';
 
 let db: Db | null = null;
 let users: UserStore | null = null;
 let acl: AclStore | null = null;
+let sso: SsoStore | null = null;
 
 /**
  * `DATABASE_URL`: `postgres://…` / `postgresql://…`, `sqlite:<file>` (or `sqlite::memory:`), or empty =
@@ -38,6 +41,7 @@ export async function initDb(url?: string): Promise<UserStore> {
   db = opened;
   users = new SqlUserStore(opened);
   acl = new SqlAclStore(opened);
+  sso = new SqlSsoStore(opened);
   return users;
 }
 
@@ -56,11 +60,17 @@ export function getAclStore(): AclStore {
   return acl;
 }
 
+export function getSsoStore(): SsoStore {
+  if (!sso) throw new Error('Database not initialised (initDb() was not called)');
+  return sso;
+}
+
 /** Tests: drop the shared handles (closing the database). */
 export async function closeDb(): Promise<void> {
   const d = db;
   db = null;
   users = null;
   acl = null;
+  sso = null;
   await d?.close();
 }

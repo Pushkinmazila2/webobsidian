@@ -52,7 +52,7 @@ export interface Identity {
   createdAt: string;
 }
 
-export type MemberSource = 'local' | 'idp';
+export type MemberSource = 'local' | 'idp' | 'scim';
 
 export type NewUser = Partial<Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'lastLoginAt'>> & { username: string };
 export type UserPatch = Partial<Omit<User, 'id' | 'createdAt' | 'updatedAt'>>;

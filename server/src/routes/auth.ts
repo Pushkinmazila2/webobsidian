@@ -22,7 +22,7 @@ export const authRouter = Router();
 // via `trust proxy`); set COOKIE_SECURE=true/false to force.
 const COOKIE_SECURE = (process.env.COOKIE_SECURE ?? 'auto').toLowerCase();
 
-function cookieOpts(req: Request) {
+export function cookieOpts(req: Request) {
   const secure =
     COOKIE_SECURE === 'true' ? true : COOKIE_SECURE === 'false' ? false : req.secure;
   return {

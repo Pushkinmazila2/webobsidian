@@ -12,6 +12,8 @@ export interface RuntimeConfig {
   initialPassword?: string;
   /** `postgres://…` | `sqlite:<file>` | empty = SQLite in dataDir (users, groups, ACL, sessions). */
   databaseUrl: string;
+  /** Externally visible base URL (`https://notes.example.com`) — SSO callbacks are built from it. Empty = taken from the request. */
+  publicUrl: string;
   isProd: boolean;
   /**
    * Express `trust proxy` setting. Controls whether `X-Forwarded-*` headers are
@@ -64,6 +66,7 @@ export const config: RuntimeConfig = {
   allowedRoots: resolveRoots(),
   initialPassword: process.env.WEBOBSIDIAN_PASSWORD || undefined,
   databaseUrl: (process.env.DATABASE_URL ?? '').trim(),
+  publicUrl: (process.env.PUBLIC_URL ?? '').trim().replace(/\/+$/, ''),
   isProd: process.env.NODE_ENV === 'production',
   trustProxy: resolveTrustProxy(),
 };
