@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/error.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { listKeys, createKey, revokeKey, type Scope } from '../services/apikeys.js';
 
 export const keysRouter = Router();
-keysRouter.use(requireAuth);
+keysRouter.use(requireAuth, requireAdmin);
 
 keysRouter.get('/', asyncHandler(async (_req, res) => res.json({ keys: await listKeys() })));
 

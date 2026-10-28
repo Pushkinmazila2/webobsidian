@@ -554,9 +554,18 @@ Mục tiêu: một instance phục vụ tới ~100 người; một tiến trình
 - **Chống dò mật khẩu**: chỉ đếm lần *thất bại*; 10/15 phút cho mỗi tài khoản, 50/15 phút cho mỗi địa chỉ (nhiều người sau cùng một proxy).
 - **Quản trị** `/api/admin/*` (chỉ admin): user (tạo/sửa/vô hiệu/xoá, đặt lại mật khẩu, thu hồi phiên), nhóm và thành viên. Không được xoá/hạ/vô hiệu
   quản trị viên cuối cùng; đối tượng `managed` (khai báo trong file cấu hình) chỉ đọc.
-- **Phân quyền theo thư mục (Phase 32.3)**: quy tắc `{chủ thể: user|nhóm|everyone|authenticated, glob đường dẫn, mức: none<read<comment<write<manage, allow|deny}`;
-  quy tắc cụ thể nhất (prefix dài nhất) thắng, cùng mức deny thắng allow, không khớp → vai trò mặc định của vault. Áp ở REST, WebSocket và
-  **lọc kết quả** cây/search/backlink/graph/tag. Ghi vào `.obsidian` mặc định chỉ admin. Chọn plugin theo nhóm: để sau.
+- **Phân quyền theo thư mục (Phase 32.3, đã làm)**: bảng `acl_rules` + `vault_defaults`. Quy tắc `{chủ thể: user|nhóm|everyone, mẫu đường dẫn (thư mục/file/glob, '' = cả vault),
+  mức: read<comment<write<manage, allow|deny}`. Quản trị viên luôn có `manage`. Người khác bắt đầu từ **mức mặc định của vault (mặc định `none`)**, rồi duyệt các quy tắc khớp
+  từ ít cụ thể đến cụ thể nhất (độ cụ thể = số segment cố định ở đầu mẫu): `allow` cụ thể hơn thay thế mức; `deny L` chặn mức xuống dưới L; cùng độ cụ thể thì deny thắng,
+  nhiều allow lấy mức cao nhất. Mẫu áp cho chính đường dẫn và mọi thứ bên dưới.
+  **Áp ở một chỗ**: facade `services/vault.ts` kiểm tra theo người của request (`AsyncLocalStorage`, đặt bởi `requireAuth`); code không có người (boot, index, agent API-key) là "system", không bị chặn.
+  Cây/listDir/listFiles/trash được lọc; đọc→403, ghi/đổi tên/xoá cần `write` (đổi tên: cả hai đầu). **Lọc kết quả** search, tags, properties, backlinks, graph, metadata, resolve, share;
+  sự kiện WebSocket chỉ gửi cho client có quyền đọc đường dẫn đó (quyền và phiên được kiểm lại mỗi 30 giây, thu hồi thì đóng socket). Vault không có quyền nào thì không hiện trong danh sách (404).
+  `.obsidian` dựng sẵn: ai dùng được vault đều **đọc** được nhưng **không ghi** (plugin/cài đặt là của admin) — quy tắc sâu hơn như `.obsidian/plugins` ghi đè.
+  Chỉ admin: `/api/settings` (người khác chỉ nhận ui/search/trash/plugin bật tắt, không có đường dẫn/token), `/api/keys`, cài/bật plugin, quản lý vault, git sync/commit, reindex.
+  Chia sẻ công khai cần `write` trên note. **Trạng thái UI (tab đang mở…) theo từng người** (`uistate[-vault]-<userId>.json`; admin kế thừa file cũ lần đầu).
+  API: `/api/admin/acl` (GET?vault=), `PUT /acl/default`, `POST|DELETE /acl/rules`, `GET /acl/check?user=&path=` (mức hiệu lực).
+  Giới hạn đã biết: đổi tên/xoá **thư mục** chỉ kiểm quyền trên thư mục đó, không kiểm từng con; API-key (agent) không bị ACL; chọn plugin theo nhóm để sau.
 - **SSO (Phase 32.4)**: OIDC (Authorization Code + PKCE; claim `groups` → nhóm cục bộ, tạo user lần đăng nhập đầu), SAML 2.0 cùng giao diện `AuthProvider`,
   **SCIM 2.0** (`/scim/v2/Users|Groups`, token riêng) để tạo/vô hiệu/đồng bộ nhóm ngay. Tài khoản cục bộ giữ làm lối vào khẩn cấp.
 - **Cấu hình khai báo (Phase 32.2)**: file JSON (`WEBOBSIDIAN_CONFIG`), mọi giá trị chuỗi nội suy `${ENV}` từ môi trường/`.env`; mô tả IdP, nhóm,

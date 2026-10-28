@@ -72,6 +72,32 @@ export const MIGRATIONS: Migration[] = [
       `CREATE INDEX idx_sessions_user ON sessions(user_id)`,
     ],
   },
+  {
+    id: '002_acl',
+    up: [
+      // One row per rule. subject_type: user | group | everyone (subject_id is NULL for everyone).
+      // level: none < read < comment < write < manage. effect: allow grants up to `level`; deny caps access below `level`.
+      `CREATE TABLE acl_rules (
+         id TEXT PRIMARY KEY,
+         vault_id TEXT NOT NULL,
+         subject_type TEXT NOT NULL,
+         subject_id TEXT,
+         pattern TEXT NOT NULL,
+         level TEXT NOT NULL,
+         effect TEXT NOT NULL DEFAULT 'allow',
+         managed INTEGER NOT NULL DEFAULT 0,
+         note TEXT,
+         created_at TEXT NOT NULL
+       )`,
+      `CREATE INDEX idx_acl_rules_vault ON acl_rules(vault_id)`,
+      // What a signed-in non-administrator gets where no rule matches (absent row = none).
+      `CREATE TABLE vault_defaults (
+         vault_id TEXT PRIMARY KEY,
+         level TEXT NOT NULL,
+         managed INTEGER NOT NULL DEFAULT 0
+       )`,
+    ],
+  },
 ];
 
 export async function migrate(db: Db, migrations: Migration[] = MIGRATIONS): Promise<string[]> {

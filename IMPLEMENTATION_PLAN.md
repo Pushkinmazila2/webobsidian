@@ -482,7 +482,7 @@ Cập nhật lần cuối: 2026-10-27 (M32.1 — nhiều người dùng: DB SQLi
 - [x] M32.1a Desktop: Electron 33 → 35.7.5 (Node 22.14, có `node:sqlite`); engines Node ≥ 22.5. Chưa kiểm chứng bản đóng gói (không build được GUI trong môi trường này)
 - [ ] M32.1b UI: ô username ở màn đăng nhập, Settings → Users & Groups, danh sách thiết bị đăng nhập
 - [ ] M32.2 Cấu hình khai báo (JSON + `${ENV}`), đối chiếu vào DB (`managed`), `--check`, SIGHUP
-- [ ] M32.3 ACL theo thư mục + vai trò vault; middleware mọi route; lọc cây/search/backlink/graph/tag; bảo vệ `.obsidian`
+- [x] M32.3 ACL theo thư mục: `acl_rules`/`vault_defaults`, bộ đánh giá (cụ thể nhất thắng, deny chặn), kiểm tra ở facade vault theo người của request, lọc cây/search/tags/backlinks/graph/metadata/share/WS, `.obsidian` chỉ đọc, các route cấu hình chỉ admin, UI state theo người, `/api/admin/acl*`. Test: `acl.test.ts` (10), `server.acl.test.ts` (end-to-end)
 - [ ] M32.4 SSO: OIDC → SAML (`AuthProvider`), ánh xạ nhóm IdP, SCIM 2.0
 - [ ] M32.5 Realtime: WS theo topic + quyền, phòng Yjs, nhật ký cập nhật trên đĩa, `y-codemirror.next` + presence, ghi vào driver (debounce), trộn thay đổi ngoài/REST
 - [ ] M32.6 Nhật ký sửa ("Ai đã sửa" trong menu ngữ cảnh), SCIM nâng cao, chọn plugin theo nhóm (sau)
@@ -1362,3 +1362,4 @@ Cập nhật lần cuối: 2026-10-27 (M32.1 — nhiều người dùng: DB SQLi
 - 2026-10-25: Phase 31 M31.44 — lịch sử phiên bản cho vault Git/GitHub, hiển thị login người commit.
 - 2026-10-26: Phase 31 M31.45 — Excalidraw Open (z-index menu) và cài plugin có retry/timeout, lỗi mạng rõ ràng.
 - 2026-10-27: Phase 32 M32.0/M32.1 — nhiều người dùng, nền tảng: `UserStore` (SQLite + PostgreSQL, cùng một bộ test), JWT gắn phiên trong DB (thu hồi tức thì), quản trị viên `admin` kế thừa mật khẩu cũ, `/api/admin/users|groups`, chống dò mật khẩu theo tài khoản.
+- 2026-10-29: Phase 32 M32.3 — phân quyền theo thư mục: mặc định `none`, quy tắc user/nhóm/everyone × glob × mức, kiểm tra tập trung ở facade vault, lọc search/tags/graph/backlinks/WS, route cấu hình chỉ admin, workspace theo từng người. 215 test xanh.

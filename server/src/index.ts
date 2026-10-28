@@ -16,8 +16,9 @@ import { loadSettings, getSettings, setPasswordIfInitial } from './bootstrap.js'
 import { peekSettings } from './services/settings.js';
 import { errorHandler } from './middleware/error.js';
 import { COOKIE_NAME } from './middleware/auth.js';
-import { verifyToken, ensureBootstrapAdmin } from './services/auth.js';
-import { initDb, closeDb, getUserStore } from './db/index.js';
+import { authenticateToken, ensureBootstrapAdmin } from './services/auth.js';
+import { initDb, closeDb, getUserStore, levelNum } from './db/index.js';
+import { refreshAcl, principalFor, levelFor, type Principal } from './services/acl.js';
 import { authRouter } from './routes/auth.js';
 import { filesRouter } from './routes/files.js';
 import { searchRouter } from './routes/search.js';
@@ -53,6 +54,7 @@ async function main() {
   await setPasswordIfInitial();
   await initDb(); // users, groups, sessions (SQLite by default, PostgreSQL via DATABASE_URL)
   await ensureBootstrapAdmin();
+  await refreshAcl(); // folder permissions into memory
   setInterval(() => void getUserStore().purgeSessions().catch(() => {}), 6 * 3600_000).unref();
   envVaultList(); // a malformed WEBOBSIDIAN_VAULTS stops startup here
 
@@ -189,9 +191,18 @@ async function main() {
 
 // --- WebSocket: broadcast filesystem & UI-state events to connected clients ----
 // Auth-gated: the WS stream leaks vault structure (paths of created/changed/deleted
-// files), so the upgrade is rejected unless the request carries a valid session.
+// files), so the upgrade is rejected unless the request carries a valid session, and each
+// client only receives events about paths it may read (and its own workspace state).
+interface WsClient {
+  token: string;
+  userId: string;
+  principal: Principal;
+}
+const READ_LEVEL = levelNum('read');
+
 function setupWebsocket(server: http.Server) {
   const wss = new WebSocketServer({ noServer: true });
+  const clients = new Map<import('ws').WebSocket, WsClient>();
 
   server.on('upgrade', (req, socket, head) => {
     let pathname = '';
@@ -206,22 +217,49 @@ function setupWebsocket(server: http.Server) {
     }
     const token = cookieValue(req.headers.cookie, COOKIE_NAME) ?? bearerToken(req.headers.authorization);
     void (async () => {
-      if (!token || !(await verifyToken(token))) {
+      const user = token ? await authenticateToken(token) : null;
+      if (!token || !user) {
         socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
         socket.destroy();
         return;
       }
-      wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
+      const principal = await principalFor(user);
+      wss.handleUpgrade(req, socket, head, (ws) => {
+        clients.set(ws, { token, userId: user.id, principal });
+        ws.on('close', () => clients.delete(ws));
+        wss.emit('connection', ws, req);
+      });
     })();
   });
 
   wss.on('connection', (ws) => {
     ws.send(JSON.stringify({ type: 'hello' }));
   });
+
+  // A signed-out, revoked or disabled person's open sockets must not keep receiving events, and permission
+  // changes apply to sockets that are already open.
+  const recheck = setInterval(() => {
+    for (const [ws, c] of clients) {
+      void (async () => {
+        const user = await authenticateToken(c.token);
+        if (!user) return void ws.close(4401, 'session ended');
+        c.principal = await principalFor(user);
+      })().catch(() => {});
+    }
+  }, 30_000);
+  recheck.unref();
+
   setBroadcaster((msg) => {
+    const m = msg as { type?: string; vault?: string; path?: string; userId?: string };
     const data = JSON.stringify(msg);
-    for (const client of wss.clients) {
-      if (client.readyState === 1) client.send(data);
+    for (const [client, c] of clients) {
+      if (client.readyState !== 1) continue;
+      if (m.type === 'fs' && typeof m.path === 'string') {
+        if (levelFor(c.principal, m.vault ?? 'default', m.path) < READ_LEVEL) continue;
+      } else if (m.type === 'uistate') {
+        if (m.userId !== c.userId) continue;
+      }
+      client.send(data);
     }
   });
 }

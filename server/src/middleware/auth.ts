@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { authenticateToken, type AuthUser } from '../services/auth.js';
+import { principalFor, runAs } from '../services/acl.js';
 
 export const COOKIE_NAME = 'webobsidian_token';
 
@@ -23,7 +24,9 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   const user = token ? await authenticateToken(token) : null;
   if (user) {
     req.user = user;
-    next();
+    // From here on every vault call of this request is checked against this person's permissions.
+    const principal = await principalFor(user);
+    runAs(principal, next);
     return;
   }
   res.status(401).json({ error: 'Unauthorized' });

@@ -274,9 +274,11 @@ export class QmdEngine {
     return { path: rel, count: occ.length, contexts };
   }
 
-  allTags(): { tag: string; count: number }[] {
+  /** `visible` limits the count to notes the caller may read (names and counts of hidden notes must not leak). */
+  allTags(visible?: (rel: string) => boolean): { tag: string; count: number }[] {
     const counts = new Map<string, number>();
-    for (const tags of this.tagSet.values()) {
+    for (const [rel, tags] of this.tagSet) {
+      if (visible && !visible(rel)) continue;
       for (const t of tags) counts.set(t, (counts.get(t) ?? 0) + 1);
     }
     return [...counts.entries()]
@@ -285,7 +287,7 @@ export class QmdEngine {
   }
 
   /** Vault-wide frontmatter property keys (for the property-name suggester). */
-  allProperties(): { key: string; type: string; count: number }[] {
+  allProperties(visible?: (rel: string) => boolean): { key: string; type: string; count: number }[] {
     const count = new Map<string, number>();
     const types = new Map<string, Map<string, number>>();
     // Always offer Obsidian's built-in List properties, even if unused yet.
@@ -293,7 +295,8 @@ export class QmdEngine {
       count.set(k, 0);
       types.set(k, new Map([['list', 1]]));
     }
-    for (const meta of this.propMeta.values()) {
+    for (const [rel, meta] of this.propMeta) {
+      if (visible && !visible(rel)) continue;
       for (const [k, t] of Object.entries(meta)) {
         count.set(k, (count.get(k) ?? 0) + 1);
         const tm = types.get(k) ?? new Map<string, number>();

@@ -10,8 +10,8 @@ uiStateRouter.use(requireAuth);
 
 uiStateRouter.get(
   '/',
-  asyncHandler(async (_req, res) => {
-    res.json(await readUiState());
+  asyncHandler(async (req, res) => {
+    res.json(await readUiState(req.user!.id, req.user!.isAdmin));
   }),
 );
 
@@ -23,11 +23,12 @@ uiStateRouter.put(
       res.status(400).json({ error: 'object body required' });
       return;
     }
-    await writeUiState(body);
+    await writeUiState(req.user!.id, body);
     // Notify other tabs/devices so they sync live. originId lets the sender
     // ignore the echo of its own change.
     const originId = String(req.headers['x-client-id'] ?? '');
-    broadcast({ type: 'uistate', vault: currentVault().id, originId, state: body });
+    // userId: delivered to this person's other tabs/devices only.
+    broadcast({ type: 'uistate', vault: currentVault().id, userId: req.user!.id, originId, state: body });
     res.json({ ok: true });
   }),
 );

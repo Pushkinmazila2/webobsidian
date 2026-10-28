@@ -1,12 +1,27 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/error.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { assertRead } from '../services/acl.js';
 import * as git from '../services/git.js';
 import { getStorage } from '../services/vault.js';
 import { getSettings } from '../services/settings.js';
 
 export const gitRouter = Router();
 gitRouter.use(requireAuth);
+// Status and per-file history are for everyone (history only of files they may read); every other action
+// (commit, push, pull, clone, init, sync…) acts on the whole vault and is the administrator's.
+gitRouter.use((req, res, next) => {
+  if (req.user?.isAdmin) return next();
+  if (req.method !== 'GET' || !['/status', '/log', '/show'].includes(req.path)) return requireAdmin(req, res, next);
+  if (req.path !== '/status') {
+    try {
+      assertRead(String(req.query.path ?? '').trim());
+    } catch (e) {
+      return next(e);
+    }
+  }
+  next();
+});
 
 // With the GitHub storage driver there is no local repository: "sync" means
 // "commit what is buffered" and "pull" means "look at the branch now". The same

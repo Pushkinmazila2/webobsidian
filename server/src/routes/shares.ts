@@ -15,6 +15,7 @@ import { canvasEmbedTargets } from '../services/rendercanvas.js';
 import { mimeFor } from '../services/mime.js';
 import { sendFileWithRange } from '../services/httpfile.js';
 import { bindShareVault } from '../services/sharevault.js';
+import { assertWrite, canRead, currentPrincipal } from '../services/acl.js';
 
 const isMd = (p: string) => /\.(md|markdown)$/i.test(p);
 const isCanvas = (p: string) => /\.canvas$/i.test(p);
@@ -26,6 +27,13 @@ function redact(rec: ShareRecord) {
   return { ...rest, hasPassword: Boolean(passwordHash) };
 }
 
+/** Changing or removing a share needs write access to the shared note (404 for unknown ids). */
+async function assertCanManageShare(id: string): Promise<void> {
+  const rec = (await listShares()).find((s) => s.id === id);
+  if (!rec) throw Object.assign(new Error('share not found'), { status: 404 });
+  assertWrite(rec.path);
+}
+
 /** ---- Management API (session auth) — /api/shares ------------------------- */
 
 export const sharesRouter = Router();
@@ -34,7 +42,8 @@ sharesRouter.use(requireAuth);
 sharesRouter.get(
   '/',
   asyncHandler(async (_req, res) => {
-    res.json({ shares: (await listShares()).map(redact) });
+    const all = await listShares();
+    res.json({ shares: (currentPrincipal()?.isAdmin === false ? all.filter((s) => canRead(s.path)) : all).map(redact) });
   }),
 );
 
@@ -50,6 +59,7 @@ sharesRouter.post(
       res.status(404).json({ error: 'note not found' });
       return;
     }
+    assertWrite(rel);
     res.json({ share: redact(await createShare(rel)) });
   }),
 );
@@ -70,6 +80,7 @@ sharesRouter.patch(
       res.status(400).json({ error: 'password must be a string or null' });
       return;
     }
+    await assertCanManageShare(req.params.id);
     let rec = hasEnabled ? await setShareEnabled(req.params.id, enabled) : null;
     if (hasPassword) {
       const hash = password ? await hashPassword(password) : null;
@@ -86,6 +97,7 @@ sharesRouter.patch(
 sharesRouter.delete(
   '/:id',
   asyncHandler(async (req, res) => {
+    await assertCanManageShare(req.params.id);
     const ok = await deleteShare(req.params.id);
     if (!ok) {
       res.status(404).json({ error: 'share not found' });

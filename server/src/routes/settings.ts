@@ -3,7 +3,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { asyncHandler } from '../middleware/error.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { getSettings, updateSettings, redactSettings, ensureVaultBrowsable, storageLockedBy } from '../services/settings.js';
 import { config } from '../config.js';
 import { getStorage } from '../services/vault.js';
@@ -15,10 +15,22 @@ import { GIT_TOKEN_ENV, testGitRemote } from '../storage/gitrepo/index.js';
 export const settingsRouter = Router();
 settingsRouter.use(requireAuth);
 
+// Everything except GET / is the administrator's (tokens, storage, vault paths, plugin switches…).
+settingsRouter.use((req, res, next) => (req.method === 'GET' && req.path === '/' ? next() : requireAdmin(req, res, next)));
+
 settingsRouter.get(
   '/',
-  asyncHandler(async (_req, res) => {
-    res.json(redactSettings(await getSettings()));
+  asyncHandler(async (req, res) => {
+    const full = redactSettings(await getSettings());
+    if (req.user?.isAdmin) return void res.json(full);
+    // Other people get what the editor needs (theme, view mode, trash/attachment behaviour, plugin switches) and nothing about
+    // where the vault lives, how it is reached or how anyone signs in.
+    res.json({
+      ui: full.ui,
+      search: full.search,
+      vault: { trash: full.vault.trash, deleteMode: full.vault.deleteMode, attachmentDir: full.vault.attachmentDir },
+      plugins: { enabled: full.plugins.enabled, installed: full.plugins.installed, allowUnsafeEval: full.plugins.allowUnsafeEval },
+    });
   }),
 );
 

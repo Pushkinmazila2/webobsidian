@@ -1,7 +1,8 @@
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import { asyncHandler } from '../middleware/error.js';
-import { COOKIE_NAME, requireAuth } from '../middleware/auth.js';
-import { verifyToken } from '../services/auth.js';
+import { COOKIE_NAME, requireAuth, requireAdmin } from '../middleware/auth.js';
+import { authenticateToken } from '../services/auth.js';
+import { principalFor, vaultAccessible, currentPrincipal } from '../services/acl.js';
 import { getSettings, updateSettings, VaultSchema, type VaultConfig } from '../services/settings.js';
 import { applyStoragePatch, badRequest } from '../services/storagepatch.js';
 import { DEFAULT_VAULT_ID, runInVault } from '../services/vaultals.js';
@@ -32,7 +33,13 @@ export async function vaultMiddleware(req: Request, res: Response, next: NextFun
     const isAgent = req.path.startsWith('/v1/');
     // Session requests must be signed in before a vault is touched; agent (API-key) requests
     // are validated by their own guard, which runs inside the vault scope.
-    if (!isAgent && !(token && (await verifyToken(token)))) return next();
+    const user = !isAgent && token ? await authenticateToken(token) : null;
+    if (!isAgent && !user) return next();
+    // A person without any access to this vault is told it does not exist.
+    if (user && !vaultAccessible(await principalFor(user), id)) {
+      res.status(404).json({ error: 'Unknown vault' });
+      return;
+    }
     const ctx = await getVaultContext(id);
     if (!ctx) {
       res.status(404).json({ error: 'Unknown vault' });
@@ -90,8 +97,12 @@ async function build(body: any, existing?: VaultConfig): Promise<VaultConfig> {
 export const vaultsRouter = Router();
 vaultsRouter.use(requireAuth);
 
+// Listing is for everyone (only vaults they can open); everything else is the administrator's.
+vaultsRouter.use((req, res, next) => (req.method === 'GET' && req.path === '/' ? next() : requireAdmin(req, res, next)));
+
 vaultsRouter.get('/', asyncHandler(async (_req, res) => {
-  res.json({ vaults: await listVaults() });
+  const p = currentPrincipal();
+  res.json({ vaults: (await listVaults()).filter((v) => vaultAccessible(p, v.id)) });
 }));
 
 vaultsRouter.get('/:id', asyncHandler(async (req, res) => {

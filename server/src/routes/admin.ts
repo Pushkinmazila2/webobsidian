@@ -2,7 +2,9 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { asyncHandler } from '../middleware/error.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
-import { getUserStore, type Group, type User } from '../db/index.js';
+import { getUserStore, getAclStore, LEVELS, levelNum, normPattern, type AclRule, type Group, type User } from '../db/index.js';
+import { refreshAcl, levelFor, principalFor } from '../services/acl.js';
+import { listVaults } from '../services/vaults.js';
 import { hashPassword, MIN_PASSWORD_LEN } from '../services/auth.js';
 
 /**
@@ -66,7 +68,7 @@ const PatchUserBody = z.object({
 
 const GroupBody = z.object({ name: z.string().trim().min(1).max(80), description: z.string().max(400).optional() });
 
-function parse<T>(schema: z.ZodType<T>, body: unknown): T {
+function parse<S extends z.ZodTypeAny>(schema: S, body: unknown): z.output<S> {
   const r = schema.safeParse(body);
   if (!r.success) throw httpError(400, r.error.issues.map((i) => i.message).join('; '));
   return r.data;
@@ -259,5 +261,109 @@ adminRouter.delete(
     assertEditable(g);
     await store.removeMember(g.id, String(req.params.userId));
     res.json({ ok: true });
+  }),
+);
+
+// ---- folder permissions ---------------------------------------------------------
+// A rule says who (a user, a group or everyone) gets which level (read < comment < write < manage) on which
+// path (a folder, a file or a glob), and whether it grants (allow) or takes away (deny). See services/acl.ts.
+
+const RuleBody = z.object({
+  vault: z.string().min(1).default('default'),
+  subjectType: z.enum(['user', 'group', 'everyone']),
+  subjectId: z.string().min(1).nullish(),
+  // '' = the whole vault
+  pattern: z.string().max(500).default(''),
+  // `allow none` would grant nothing and `deny` below read is already "no access" → levels start at read.
+  level: z.enum(['read', 'comment', 'write', 'manage']),
+  effect: z.enum(['allow', 'deny']).default('allow'),
+  note: z.string().max(300).nullish(),
+});
+
+async function assertVault(id: string): Promise<void> {
+  if (!(await listVaults()).some((v) => v.id === id)) throw httpError(404, `Unknown vault "${id}"`);
+}
+
+async function ruleView(r: AclRule) {
+  const store = getUserStore();
+  let subject: string | null = null;
+  if (r.subjectType === 'user' && r.subjectId) subject = (await store.getUser(r.subjectId))?.username ?? null;
+  if (r.subjectType === 'group' && r.subjectId) subject = (await store.getGroup(r.subjectId))?.name ?? null;
+  return { ...r, subject };
+}
+
+adminRouter.get(
+  '/acl',
+  asyncHandler(async (req, res) => {
+    const vault = String(req.query.vault ?? 'default');
+    await assertVault(vault);
+    const defaults = await getAclStore().listDefaults();
+    const rules = await getAclStore().listRules(vault);
+    res.json({
+      vault,
+      levels: LEVELS,
+      default: defaults.find((d) => d.vaultId === vault)?.level ?? 'none',
+      rules: await Promise.all(rules.map(ruleView)),
+    });
+  }),
+);
+
+adminRouter.put(
+  '/acl/default',
+  asyncHandler(async (req, res) => {
+    const b = parse(z.object({ vault: z.string().min(1).default('default'), level: z.enum(LEVELS) }), req.body);
+    await assertVault(b.vault);
+    const cur = (await getAclStore().listDefaults()).find((d) => d.vaultId === b.vault);
+    if (cur?.managed) throw httpError(409, 'Managed by the configuration file — change it there');
+    await getAclStore().setDefault(b.vault, b.level);
+    await refreshAcl();
+    res.json({ ok: true, vault: b.vault, default: b.level });
+  }),
+);
+
+adminRouter.post(
+  '/acl/rules',
+  asyncHandler(async (req, res) => {
+    const b = parse(RuleBody, req.body);
+    await assertVault(b.vault);
+    if (b.subjectType === 'user' && !(b.subjectId && (await getUserStore().getUser(b.subjectId)))) throw httpError(404, 'User not found');
+    if (b.subjectType === 'group' && !(b.subjectId && (await getUserStore().getGroup(b.subjectId)))) throw httpError(404, 'Group not found');
+    const rule = await getAclStore().createRule({
+      vaultId: b.vault,
+      subjectType: b.subjectType,
+      subjectId: b.subjectType === 'everyone' ? null : (b.subjectId ?? null),
+      pattern: normPattern(b.pattern),
+      level: b.level,
+      effect: b.effect,
+      note: b.note ?? null,
+    });
+    await refreshAcl();
+    res.status(201).json({ rule: await ruleView(rule) });
+  }),
+);
+
+adminRouter.delete(
+  '/acl/rules/:id',
+  asyncHandler(async (req, res) => {
+    const rule = await getAclStore().getRule(String(req.params.id));
+    if (!rule) throw httpError(404, 'Rule not found');
+    assertEditable(rule);
+    await getAclStore().deleteRule(rule.id);
+    await refreshAcl();
+    res.json({ ok: true });
+  }),
+);
+
+/** "What can this person do with this path?" — for checking rules before (and after) changing them. */
+adminRouter.get(
+  '/acl/check',
+  asyncHandler(async (req, res) => {
+    const vault = String(req.query.vault ?? 'default');
+    await assertVault(vault);
+    const user = await getUserStore().getUser(String(req.query.user ?? ''));
+    if (!user) throw httpError(404, 'User not found');
+    const rel = normPattern(String(req.query.path ?? ''));
+    const level = LEVELS[levelFor(await principalFor(user), vault, rel)];
+    res.json({ vault, user: user.username, path: rel, level, canRead: levelNum(level) >= 1, canWrite: levelNum(level) >= 3 });
   }),
 );

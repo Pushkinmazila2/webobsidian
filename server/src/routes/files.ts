@@ -13,6 +13,7 @@ import { resolveFile } from '../services/fileindex.js';
 import { onFileRenamed } from '../services/shares.js';
 import { mimeFor } from '../services/mime.js';
 import { sendFileWithRange } from '../services/httpfile.js';
+import { asSystem } from '../services/acl.js';
 
 export const filesRouter = Router();
 filesRouter.use(requireAuth);
@@ -24,10 +25,13 @@ const isMd = (p: string) => /\.(md|markdown)$/i.test(p);
 // Refresh derived indexes after a mutation (best-effort, non-blocking).
 // Incremental: only the touched file(s) are reparsed, not the whole vault.
 function reindex(opts: { upsert?: string; added?: string; removed?: string } = {}) {
-  if (opts.upsert) void qmd.upsert(opts.upsert).catch(() => {});
-  if (opts.added && isMd(opts.added)) void updateLinkGraphForFile(opts.added).catch(() => {});
-  if (opts.removed && isMd(opts.removed)) void updateLinkGraphForFile(opts.removed, true).catch(() => {});
-  scheduleAutoCommitOnSave();
+  // Indexes are shared by everyone: update them as the system, not with this person's view of the vault.
+  asSystem(() => {
+    if (opts.upsert) void qmd.upsert(opts.upsert).catch(() => {});
+    if (opts.added && isMd(opts.added)) void updateLinkGraphForFile(opts.added).catch(() => {});
+    if (opts.removed && isMd(opts.removed)) void updateLinkGraphForFile(opts.removed, true).catch(() => {});
+    scheduleAutoCommitOnSave();
+  });
 }
 
 filesRouter.get(

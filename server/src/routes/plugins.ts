@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/error.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import * as plugins from '../services/plugins.js';
 import * as catalog from '../services/plugincatalog.js';
 import { getStorage } from '../services/vault.js';
@@ -9,6 +9,8 @@ import { ensureReady, getDefaultContext, pluginsModeOf } from '../services/vault
 
 export const pluginsRouter = Router();
 pluginsRouter.use(requireAuth);
+// Installing, enabling and configuring plugins is the administrator's call; everyone may list them.
+pluginsRouter.use((req, res, next) => (req.method === 'GET' || req.method === 'HEAD' ? next() : requireAdmin(req, res, next)));
 
 // A vault set to "same plugins as the main vault" reads and writes the main vault's plugin folder, so the plugin list, the
 // code and every plugin's saved settings are literally the same files.

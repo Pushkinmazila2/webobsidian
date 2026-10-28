@@ -361,7 +361,7 @@ See [PRD.md §2](PRD.md) for the full design.
 ## 🗺️ Compatibility & scope
 
 - ✅ Works directly on an existing Obsidian vault, including `.obsidian/` config.
-- ⚠️ **Multi-user is being built** — accounts, groups and instantly-revocable sessions are in (admin API `/api/admin/*`; sign in with a username, or with just the password as the owner). Folder permissions, SSO/SCIM and real-time co-editing are next (see PRD FR-16).
+- ⚠️ **Multi-user is being built** — accounts, groups and instantly-revocable sessions are in (admin API `/api/admin/*`; sign in with a username, or with just the password as the owner). Folder permissions are in (admin API `/api/admin/acl`, default `none` until an admin grants access). SSO/SCIM and real-time co-editing are next (see PRD FR-16).
 - ⚠️ Git sync replaces Obsidian Sync/Publish.
 - ⚠️ Community-plugin support is a **subset** of the Obsidian API; plugins relying on
   Electron/Node internals may not work.
