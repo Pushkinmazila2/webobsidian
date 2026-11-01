@@ -57,6 +57,14 @@ test('[server+sso] OIDC sign-in, provisioning, groups, SCIM', async () => {
     const cfg = { issuer: idp.url, clientId: idp.clientId, clientSecret: idp.clientSecret, allowInsecureHttp: true, adminGroups: ['wiki-admins'], groupMap: { devs: 'Developers' } };
     assert.equal((await call('', '/api/admin/idps', 'POST', { type: 'oidc', name: 'Mock', config: cfg })).status, 401);
     assert.equal((await call(admin, '/api/admin/idps', 'POST', { type: 'oidc', name: 'Bad', config: { issuer: 'not a url' } })).status, 400);
+    // setup wizard helpers
+    const ru = await call(admin, '/api/admin/idps/redirect-uri?id=authelia');
+    assert.match(ru.json.callback, /\/auth\/sso\/authelia\/callback$/);
+    assert.equal((await call(admin, '/api/admin/idps/redirect-uri?id=Bad%20Id')).status, 400);
+    const good = await call(admin, '/api/admin/idps/test', 'POST', { issuer: idp.url, allowInsecureHttp: true });
+    assert.equal(good.json.ok, true, JSON.stringify(good.json));
+    assert.equal((await call(admin, '/api/admin/idps/test', 'POST', { issuer: idp.url })).json.ok, false, 'http needs an explicit opt-in');
+    assert.equal((await call(admin, '/api/admin/idps/test', 'POST', { issuer: 'http://127.0.0.1:9/', allowInsecureHttp: true })).json.ok, false, 'unreachable');
     const created = await call(admin, '/api/admin/idps', 'POST', { type: 'oidc', name: 'Mock', id: 'mock', config: cfg });
     assert.equal(created.status, 201);
     assert.equal(created.json.provider.config.clientSecret, '••••••••');

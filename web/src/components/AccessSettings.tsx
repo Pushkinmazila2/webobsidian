@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { api } from '../lib/api';
 import { useStore } from '../lib/store';
 import { Note, Row } from './StorageSettings';
+import SsoWizard from './SsoWizard';
 
 /** Settings → Users & access (administrators): people, groups, folder permissions, single sign-on. */
 type Tab = 'users' | 'groups' | 'access' | 'sso';
@@ -224,12 +225,13 @@ function Access() {
 
 // ---- single sign-on ---------------------------------------------------------------------
 const OIDC_TEMPLATE = { issuer: 'https://idp.example.com', clientId: '', clientSecret: '', autoProvision: true, autoLinkByEmail: false };
-const SAML_TEMPLATE = { entryPoint: 'https://idp.example.com/sso', issuer: 'webobsidian', idpCert: '-----BEGIN CERTIFICATE-----…', autoProvision: true };
+const SAML_TEMPLATE = { entryPoint: 'https://idp.example.com/sso', issuer: 'webobsidian', cert: '-----BEGIN CERTIFICATE-----…', autoProvision: true };
 
 function Sso() {
   const [idps, setIdps] = useState<any[]>([]);
   const [tokens, setTokens] = useState<any[]>([]);
   const [draft, setDraft] = useState<{ id: string; type: 'oidc' | 'saml'; name: string; config: string } | null>(null);
+  const [wizard, setWizard] = useState(false);
   const [newToken, setNewToken] = useState('');
   const [tokenName, setTokenName] = useState('');
   const act = useAction();
@@ -269,9 +271,11 @@ function Sso() {
             <div style={muted}>{p.enabled ? 'enabled' : 'disabled'} · {window.location.origin}/auth/sso/{p.id}/{p.type === 'saml' ? 'acs' : 'callback'}</div>
           </div>
         ))}
+        {wizard && <SsoWizard onCancel={() => setWizard(false)} onDone={() => { setWizard(false); load(); }} />}
         <div style={line}>
-          <button className="btn secondary" onClick={() => start('oidc')}>Add OpenID Connect</button>
-          <button className="btn secondary" onClick={() => start('saml')}>Add SAML 2.0</button>
+          <button className="btn" onClick={() => { setDraft(null); setWizard(true); }}>Setup wizard (Authelia, Authentik, Keycloak…)</button>
+          <button className="btn secondary" onClick={() => start('oidc')}>Add OpenID Connect (JSON)</button>
+          <button className="btn secondary" onClick={() => start('saml')}>Add SAML 2.0 (JSON)</button>
         </div>
         {draft && (
           <div style={box}>

@@ -6,7 +6,7 @@ import { getUserStore, getAclStore, getSsoStore, LEVELS, levelNum, normPattern, 
 import { refreshAcl, levelFor, principalFor } from '../services/acl.js';
 import { listVaults } from '../services/vaults.js';
 import { hashPassword, generateScimToken, MIN_PASSWORD_LEN } from '../services/auth.js';
-import { parseProviderConfig, redactProvider } from '../services/sso.js';
+import { parseProviderConfig, redactProvider, callbackUrl } from '../services/sso.js';
 
 /**
  * User & group administration (administrators only): /api/admin/*.
@@ -383,6 +383,46 @@ const IdpBody = z.object({
   config: z.record(z.unknown()),
   id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,31}$/).optional(),
 });
+
+/** Setup wizard: the address the identity provider must be told to send people back to. */
+adminRouter.get(
+  '/idps/redirect-uri',
+  asyncHandler(async (req, res) => {
+    const id = String(req.query.id ?? '');
+    if (!/^[a-z0-9][a-z0-9-]{0,31}$/.test(id)) throw httpError(400, 'Invalid id');
+    const base = `${req.protocol}://${req.get('host')}`;
+    res.json({ callback: callbackUrl(base, id), acs: callbackUrl(base, id, 'acs'), metadata: `${callbackUrl(base, id, 'callback').replace(/\/callback$/, '')}/metadata` });
+  }),
+);
+
+/** Setup wizard: can this server reach the provider, and does it answer like an OIDC provider with the issuer we expect? */
+adminRouter.post(
+  '/idps/test',
+  asyncHandler(async (req, res) => {
+    const b = parse(z.object({ issuer: z.string().url(), allowInsecureHttp: z.boolean().optional() }), req.body);
+    if (b.issuer.startsWith('http://') && !b.allowInsecureHttp) return void res.json({ ok: false, error: 'The address uses http://. Use https://, or allow insecure http for local testing.' });
+    const url = `${b.issuer.replace(/\/+$/, '')}/.well-known/openid-configuration`;
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(8000), redirect: 'manual' });
+      if (!r.ok) return void res.json({ ok: false, error: `${url} answered ${r.status}` });
+      const d = (await r.json()) as Record<string, unknown>;
+      const same = String(d.issuer ?? '').replace(/\/+$/, '') === b.issuer.replace(/\/+$/, '');
+      const missing = ['authorization_endpoint', 'token_endpoint', 'jwks_uri'].filter((k) => typeof d[k] !== 'string');
+      if (missing.length) return void res.json({ ok: false, error: `The answer is not an OIDC discovery document (missing ${missing.join(', ')})` });
+      res.json({
+        ok: same,
+        error: same ? undefined : `The provider says its issuer is "${String(d.issuer)}" — use exactly that as the address.`,
+        issuer: d.issuer,
+        scopes: d.scopes_supported,
+        claims: d.claims_supported,
+        pkce: Array.isArray(d.code_challenge_methods_supported) ? (d.code_challenge_methods_supported as string[]).includes('S256') : null,
+        authMethods: d.token_endpoint_auth_methods_supported,
+      });
+    } catch (e: any) {
+      res.json({ ok: false, error: `Could not reach ${url}: ${e?.cause?.code ?? e?.message ?? e}` });
+    }
+  }),
+);
 
 const MASK = '••••••••';
 

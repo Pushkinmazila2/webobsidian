@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { api } from '../lib/api';
+import { api, takeTypedPassword } from '../lib/api';
 import { useStore } from '../lib/store';
 import Icon from './Icon';
 
 const MIN_LEN = 6;
-const DEFAULT_PASSWORD = '123456';
 
 /**
  * Blocking screen shown right after login when the account is still on the
@@ -13,6 +12,9 @@ const DEFAULT_PASSWORD = '123456';
  */
 export default function ForceChangePassword() {
   const setMustChangePassword = useStore((s) => s.setMustChangePassword);
+  // The password typed a moment ago at sign-in; after a page reload it is gone and the person types it again.
+  const [typed] = useState(() => takeTypedPassword());
+  const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
   const [err, setErr] = useState('');
@@ -25,8 +27,8 @@ export default function ForceChangePassword() {
       setErr(`Password must be at least ${MIN_LEN} characters`);
       return;
     }
-    if (next === DEFAULT_PASSWORD) {
-      setErr('Choose a password different from the default');
+    if (next === (typed ?? current)) {
+      setErr('Choose a password different from the current one');
       return;
     }
     if (next !== confirm) {
@@ -35,8 +37,7 @@ export default function ForceChangePassword() {
     }
     setBusy(true);
     try {
-      // Current password is the default; the server verifies it.
-      await api.changePassword(DEFAULT_PASSWORD, next);
+      await api.changePassword(typed ?? current, next);
       setMustChangePassword(false);
     } catch (e: any) {
       setErr(e.message ?? 'Failed to change password');
@@ -53,15 +54,26 @@ export default function ForceChangePassword() {
         </div>
         <h1>Set a new password</h1>
         <p>
-          You are signed in with the default password (<code>123456</code>). Choose a
-          new password to secure your vault before continuing.
+          Your password was set by an administrator (or is still the default). Choose your
+          own password before continuing.
         </p>
         <div className="err">{err}</div>
+        {typed === null && (
+          <input
+            className="text-input"
+            type="password"
+            placeholder="Current password"
+            autoFocus
+            autoComplete="current-password"
+            value={current}
+            onChange={(e) => setCurrent(e.target.value)}
+          />
+        )}
         <input
           className="text-input"
           type="password"
           placeholder="New password"
-          autoFocus
+          autoFocus={typed !== null}
           autoComplete="new-password"
           value={next}
           onChange={(e) => setNext(e.target.value)}

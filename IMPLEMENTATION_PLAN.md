@@ -488,6 +488,7 @@ Cập nhật lần cuối: 2026-11-01 (M32.5 — soạn thảo cộng tác Yjs: 
 - [~] M32.6 Nhật ký sửa: [x] bảng `edit_log` (migration 004), tác giả từng ký tự theo Yjs client (lưu qua restart), `GET /api/collab/blame|history`, menu ngữ cảnh "Who changed this?". Còn lại: SCIM nâng cao, chọn plugin theo nhóm (sau). Hạn chế: văn bản có trước khi cộng tác không có tác giả; nhật ký ghi sau 30s ngừng gõ hoặc khi đóng phòng; sửa qua REST/ngoài chỉ vào nhật ký, không gán tác giả theo ký tự.
 
 ### Nhật ký tiến độ
+- 2026-11-01 — Sửa lỗi đổi mật khẩu bắt buộc (màn hình luôn gửi mật khẩu hiện tại là 123456 nên user do admin tạo bị 401 "Unauthorized"): dùng mật khẩu vừa nhập ở đăng nhập hoặc hỏi lại; hiện lỗi thật của server. Thêm trình thiết lập SSO (Authelia/Authentik/Keycloak/OIDC khác): `SsoWizard.tsx`, `GET /api/admin/idps/redirect-uri`, `POST /api/admin/idps/test` (kiểm tra discovery).
 - 2026-11-01 — M32.1b: màn hình quản trị Users & access (AccessSettings.tsx) dùng API /api/admin.
 - 2026-11-01 — M32.6: nhật ký sửa (edit_log, blame, history, menu "Who changed this?").
 - 2026-11-01 — M32.5: `services/collab.ts` (phòng Yjs, sync+awareness, lưu trạng thái, merge ngoài/REST), `lib/textdiff.ts`, `/collab` WS + `GET /api/collab/access`, client `lib/collab.ts` + Editor/StatusBar. 218 test đạt.

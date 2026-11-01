@@ -117,7 +117,8 @@ async function req<T>(url: string, opts: RequestInit = {}): Promise<T> {
     // would drop Content-Type whenever a caller passes its own headers.
     headers: { 'Content-Type': 'application/json', ...vaultHeaders(), ...(optHeaders ?? {}) },
   });
-  if (res.status === 401) {
+  // A wrong current password is also a 401: keep the server's explanation for that one.
+  if (res.status === 401 && !url.endsWith('/auth/change-password')) {
     throw new ApiError('Unauthorized', 401);
   }
   if (!res.ok) {
@@ -139,17 +140,28 @@ export class ApiError extends Error {
   }
 }
 
+/** The password just typed at sign-in, kept in memory only so the forced password change need not ask for it again. */
+let justTyped: string | null = null;
+export const takeTypedPassword = (): string | null => {
+  const p = justTyped;
+  justTyped = null;
+  return p;
+};
+
 export const api = {
   // auth
   authStatus: () => req<{ passwordSet: boolean; mustChangePassword: boolean }>('/auth/status'),
   setup: (password: string) =>
     req<{ ok: true }>('/auth/setup', { method: 'POST', body: JSON.stringify({ password }) }),
   // `username` is optional: empty signs in as the owner (single-user behaviour).
-  login: (password: string, username?: string) =>
-    req<{ ok: true; mustChangePassword: boolean; user?: { id: string; username: string; displayName: string; isAdmin: boolean } }>('/auth/login', {
+  login: async (password: string, username?: string) => {
+    const r = await req<{ ok: true; mustChangePassword: boolean; user?: { id: string; username: string; displayName: string; isAdmin: boolean } }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ password, ...(username?.trim() ? { username: username.trim() } : {}) }),
-    }),
+    });
+    justTyped = r.mustChangePassword ? password : null;
+    return r;
+  },
   ssoProviders: () => req<{ providers: { id: string; name: string; type: 'oidc' | 'saml' }[] }>('/auth/sso/providers'),
   logout: () => req<{ ok: true }>('/auth/logout', { method: 'POST' }),
   changePassword: (currentPassword: string, newPassword: string) =>
