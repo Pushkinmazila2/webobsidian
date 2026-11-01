@@ -480,7 +480,7 @@ Cập nhật lần cuối: 2026-11-01 (M32.5 — soạn thảo cộng tác Yjs: 
 - [x] M32.0 PRD 2.16 + CLAUDE.md: bỏ ràng buộc "không DB engine", bỏ non-goal realtime multi-user
 - [x] M32.1 Dữ liệu & danh tính: `server/src/db` (SQLite `node:sqlite` + PostgreSQL, migration), `UserStore`, user/nhóm/identity/phiên; JWT gắn phiên, thu hồi tức thì; quản trị viên `admin` từ mật khẩu cũ; `/api/admin/users|groups`; `/auth/sessions`; chống dò mật khẩu theo tài khoản. Test: `userstore.test.ts` (SQLite + PostgreSQL), `server.users.test.ts`
 - [x] M32.1a Desktop: Electron 33 → 35.7.5 (Node 22.14, có `node:sqlite`); engines Node ≥ 22.5. Chưa kiểm chứng bản đóng gói (không build được GUI trong môi trường này)
-- [ ] M32.1b UI: ô username ở màn đăng nhập, Settings → Users & Groups, danh sách thiết bị đăng nhập
+- [x] M32.1b UI quản trị (Settings → Users & access, chỉ admin): người dùng (tạo, khóa, đặt lại mật khẩu, đăng xuất mọi nơi, phiên), nhóm + thành viên, quyền theo thư mục (mặc định, luật, kiểm tra), SSO (OIDC/SAML dạng JSON) + token SCIM; hiện diện ở status bar (M32.5). Chưa kiểm chứng trên trình duyệt thật; còn thiếu: danh sách phiên của chính mình ở mục Account.
 - [ ] M32.2 Cấu hình khai báo (JSON + `${ENV}`), đối chiếu vào DB (`managed`), `--check`, SIGHUP
 - [x] M32.3 ACL theo thư mục: `acl_rules`/`vault_defaults`, bộ đánh giá (cụ thể nhất thắng, deny chặn), kiểm tra ở facade vault theo người của request, lọc cây/search/tags/backlinks/graph/metadata/share/WS, `.obsidian` chỉ đọc, các route cấu hình chỉ admin, UI state theo người, `/api/admin/acl*`. Test: `acl.test.ts` (10), `server.acl.test.ts` (end-to-end)
 - [x] M32.4 SSO: OIDC (PKCE, state/nonce) + SAML (assertion ký bắt buộc, InResponseTo) + ánh xạ nhóm/adminGroups + SCIM 2.0 (Users/Groups, thu hồi phiên khi deactivate), nút đăng nhập SSO ở màn login. Test: `server.sso.test.ts` (IdP OIDC giả + SAML giả ký bằng xml-crypto, 2 test)
@@ -488,6 +488,7 @@ Cập nhật lần cuối: 2026-11-01 (M32.5 — soạn thảo cộng tác Yjs: 
 - [~] M32.6 Nhật ký sửa: [x] bảng `edit_log` (migration 004), tác giả từng ký tự theo Yjs client (lưu qua restart), `GET /api/collab/blame|history`, menu ngữ cảnh "Who changed this?". Còn lại: SCIM nâng cao, chọn plugin theo nhóm (sau). Hạn chế: văn bản có trước khi cộng tác không có tác giả; nhật ký ghi sau 30s ngừng gõ hoặc khi đóng phòng; sửa qua REST/ngoài chỉ vào nhật ký, không gán tác giả theo ký tự.
 
 ### Nhật ký tiến độ
+- 2026-11-01 — M32.1b: màn hình quản trị Users & access (AccessSettings.tsx) dùng API /api/admin.
 - 2026-11-01 — M32.6: nhật ký sửa (edit_log, blame, history, menu "Who changed this?").
 - 2026-11-01 — M32.5: `services/collab.ts` (phòng Yjs, sync+awareness, lưu trạng thái, merge ngoài/REST), `lib/textdiff.ts`, `/collab` WS + `GET /api/collab/access`, client `lib/collab.ts` + Editor/StatusBar. 218 test đạt.
 - 2026-06-27 (security fix — leo thang quyền qua token share): `verifyToken()` (server/src/services/auth.ts)
