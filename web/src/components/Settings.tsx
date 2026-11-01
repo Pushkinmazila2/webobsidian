@@ -3,20 +3,25 @@ import { useStore } from '../lib/store';
 import { api } from '../lib/api';
 import Icon from './Icon';
 import VaultsSettings from './VaultsSettings';
+import AccessSettings from './AccessSettings';
 import { syncPlugins } from '../lib/plugins';
 import { pluginHost, usePluginHost } from '../lib/pluginHost';
 import PluginBrowser, { CompatBadge } from './PluginBrowser';
 
-type Section = 'vaults' | 'git' | 'api' | 'sharing' | 'plugins' | 'appearance' | 'account' | 'about';
+type Section = 'users' | 'vaults' | 'git' | 'api' | 'sharing' | 'plugins' | 'appearance' | 'account' | 'about';
 
 export default function Settings() {
   const open = useStore((s) => s.settingsOpen);
   const setOpen = useStore((s) => s.setSettings);
   const [section, setSection] = useState<Section>('vaults');
   const [settings, setSettings] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    if (open) api.getSettings().then(setSettings).catch(() => {});
+    if (open) {
+      api.getSettings().then(setSettings).catch(() => {});
+      api.me().then((m) => setIsAdmin(Boolean(m.user?.isAdmin))).catch(() => {});
+    }
   }, [open]);
 
   if (!open) return null;
@@ -26,13 +31,14 @@ export default function Settings() {
       <div className="modal settings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="settings-layout">
           <div className="settings-nav">
-            {(['vaults', 'git', 'api', 'sharing', 'plugins', 'appearance', 'account', 'about'] as Section[]).map((s) => (
+            {(['users', 'vaults', 'git', 'api', 'sharing', 'plugins', 'appearance', 'account', 'about'] as Section[]).filter((s) => s !== 'users' || isAdmin).map((s) => (
               <button key={s} className={section === s ? 'active' : ''} onClick={() => setSection(s)}>
                 {labels[s]}
               </button>
             ))}
           </div>
           <div className="settings-content">
+            {isAdmin && section === 'users' && <AccessSettings />}
             {settings && section === 'vaults' && <VaultsSettings s={settings} reload={() => api.getSettings().then(setSettings)} />}
             {settings && section === 'git' && <GitSettings s={settings} reload={() => api.getSettings().then(setSettings)} />}
             {section === 'api' && <ApiKeys />}
@@ -49,6 +55,7 @@ export default function Settings() {
 }
 
 const labels: Record<Section, string> = {
+  users: 'Users & access',
   vaults: 'Vaults',
   git: 'GitHub Sync',
   api: 'API Keys',

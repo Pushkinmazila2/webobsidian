@@ -254,6 +254,10 @@ export const api = {
   storageTestGit: (git: any, extra?: { vault?: string; tokenEnv?: string }) =>
     req<any>('/api/settings/storage/test', { method: 'POST', body: JSON.stringify({ git, ...extra }) }),
 
+  /** Administration (users, groups, access rules, SSO). Administrators only. */
+  admin: (path: string, method = 'GET', body?: unknown) =>
+    req<any>(`/api/admin${path}`, { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) }),
+
   /** Whether `path` is co-edited in real time, and whether this person may type in it. */
   collabAccess: (path: string) => req<{ enabled: boolean; canWrite: boolean }>(`/api/collab/access?path=${encodeURIComponent(path)}`),
 
