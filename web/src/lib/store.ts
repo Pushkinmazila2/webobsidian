@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { isCollabActive } from './collab';
 import { api, type TreeNode, type ShareRecord } from './api';
 import { findNode } from './tree';
 
@@ -528,6 +529,8 @@ export const useStore = create<AppState>()(
         const { activePath, content, dirty } = get();
         if (!activePath || !dirty) return;
         if (!TEXT_RE.test(activePath)) return;
+        // A note edited together is saved by the server; writing this tab's copy would undo other people's typing.
+        if (isCollabActive(activePath)) { set({ dirty: false }); return; }
         await api.write(activePath, content);
         set({ dirty: false });
       },

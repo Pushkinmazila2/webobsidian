@@ -2,6 +2,7 @@ import path from 'node:path';
 import type { VaultStorage } from '../storage/types.js';
 import { currentVault, overrideDefaultStorage } from './vaultals.js';
 import * as acl from './acl.js';
+import { collabHooks } from './collabhooks.js';
 // Installs the vault registry (default-vault provider) as a side effect.
 import './vaults.js';
 
@@ -91,10 +92,14 @@ const writing = <A extends unknown[], R>(fn: (rel: string, ...a: A) => Promise<R
   acl.assertWrite(rel);
   return fn(rel, ...a);
 };
-export const readFileText = reading((rel: string) => getStorage().readText(rel));
+// A file that people are editing together lives in a room first: readers see its live text, writers are merged into it.
+export const readFileText = reading(async (rel: string) => collabHooks?.peek(currentVault().id, rel) ?? getStorage().readText(rel));
 export const readFileBuffer = reading((rel: string) => getStorage().readBuffer(rel));
 export const openFile = reading((rel: string) => getStorage().openFile(rel));
-export const writeFileText = writing((rel: string, content: string) => getStorage().writeText(rel, content));
+export const writeFileText = writing(async (rel: string, content: string) => {
+  if (await collabHooks?.write(currentVault().id, rel, content, acl.currentPrincipal()?.userId ?? null)) return;
+  return getStorage().writeText(rel, content);
+});
 export const writeFileBuffer = writing((rel: string, buf: Buffer) => getStorage().writeBuffer(rel, buf));
 
 // structure
@@ -103,7 +108,9 @@ export const resolveDirCaseInsensitive = (rel: string) => getStorage().resolveDi
 export const rename = async (from: string, to: string) => {
   acl.assertWrite(from);
   acl.assertWrite(to);
-  return getStorage().rename(from, to);
+  const r = await getStorage().rename(from, to);
+  collabHooks?.gone(currentVault().id, from);
+  return r;
 };
 export const copy = async (from: string, to: string) => {
   acl.assertRead(from);
@@ -111,10 +118,17 @@ export const copy = async (from: string, to: string) => {
   return getStorage().copy(from, to);
 };
 /** Permanently delete a file or folder (no trash). */
-export const remove = writing((rel: string) => getStorage().remove(rel));
+export const remove = writing(async (rel: string) => {
+  await getStorage().remove(rel);
+  collabHooks?.gone(currentVault().id, rel);
+});
 
 // trash
-export const trash = writing((rel: string) => getStorage().trash(rel));
+export const trash = writing(async (rel: string) => {
+  const r = await getStorage().trash(rel);
+  collabHooks?.gone(currentVault().id, rel);
+  return r;
+});
 export const listTrash = async () => {
   const items = await getStorage().listTrash();
   const p = acl.currentPrincipal();

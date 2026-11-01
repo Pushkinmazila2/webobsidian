@@ -895,6 +895,8 @@ body.wo-col-resizing .sidebar, body.wo-col-resizing .right-sidebar { transition:
 }
 .status-bar .clickable { cursor: pointer; display: flex; align-items: center; gap: 5px; }
 .status-bar .clickable:hover { color: var(--text-normal); }
+.collab-presence { display: flex; align-items: center; gap: 4px; }
+.collab-peer { width: 18px; height: 18px; border-radius: 50%; color: #fff; font-size: 10px; display: inline-flex; align-items: center; justify-content: center; }
 
 /* Modal / palette */
 .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: grid; place-items: start center;

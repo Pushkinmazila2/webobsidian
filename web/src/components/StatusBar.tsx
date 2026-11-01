@@ -3,6 +3,7 @@ import { useStore } from '../lib/store';
 import { api } from '../lib/api';
 import Icon from './Icon';
 import { pluginHost, usePluginHost } from '../lib/pluginHost';
+import { usePresence } from '../lib/collab';
 
 /** Mounts a DOM element created by a plugin (addStatusBarItem) into the status bar. */
 function HostedEl({ el }: { el: HTMLElement }) {
@@ -18,6 +19,7 @@ export default function StatusBar() {
   const [git, setGit] = useState<any>(null);
   const [syncing, setSyncing] = useState(false);
   usePluginHost();
+  const presence = usePresence();
 
   const refresh = () => api.gitStatus().then(setGit).catch(() => setGit(null));
   useEffect(() => {
@@ -62,7 +64,17 @@ export default function StatusBar() {
   return (
     <div className="status-bar">
       {pluginHost.status().map((x, i) => <HostedEl key={i} el={x.el} />)}
-      {dirty && <span>Saving…</span>}
+      {presence.path && presence.path === activePath && (
+        <span className="collab-presence" title={presence.status === 'offline' ? 'Offline — your edits will sync when the connection is back' : presence.canWrite ? 'Editing together' : 'View only'}>
+          {presence.status === 'offline' && <span>Offline</span>}
+          {!presence.canWrite && <span>View only</span>}
+          {presence.peers.slice(0, 8).map((p) => (
+            <span key={p.id} className="collab-peer" title={p.name} style={{ background: p.color }}>{p.name.slice(0, 1).toUpperCase()}</span>
+          ))}
+          {presence.peers.length > 8 && <span>+{presence.peers.length - 8}</span>}
+        </span>
+      )}
+      {dirty && !presence.path && <span>Saving…</span>}
       {isText && <span>{words} words</span>}
       {isText && <span>{content.length} characters</span>}
       <span className="clickable" title={gh ? (git.lastError ? `Click to retry: ${git.lastError}` : 'Click to save to GitHub now') : 'Git sync'} onClick={sync}>

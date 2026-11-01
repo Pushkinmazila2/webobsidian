@@ -254,6 +254,9 @@ export const api = {
   storageTestGit: (git: any, extra?: { vault?: string; tokenEnv?: string }) =>
     req<any>('/api/settings/storage/test', { method: 'POST', body: JSON.stringify({ git, ...extra }) }),
 
+  /** Whether `path` is co-edited in real time, and whether this person may type in it. */
+  collabAccess: (path: string) => req<{ enabled: boolean; canWrite: boolean }>(`/api/collab/access?path=${encodeURIComponent(path)}`),
+
   // vaults
   listVaults: () => req<{ vaults: VaultInfo[] }>('/api/vaults'),
   getVault: (id: string) => req<{ vault: any }>(`/api/vaults/${id}`),

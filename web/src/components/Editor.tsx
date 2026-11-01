@@ -46,6 +46,8 @@ import {
 import { renderMarkdown } from '../lib/markdown';
 import { setActiveEditor } from '../lib/activeEditor';
 import { api } from '../lib/api';
+import { yCollab, yUndoManagerKeymap } from 'y-codemirror.next';
+import { startCollab, usePresence, type CollabSession } from '../lib/collab';
 
 const titleOf = (path: string | null) =>
   path ? (path.split('/').pop() ?? path).replace(/\.(md|markdown)$/i, '') : '';
@@ -67,6 +69,9 @@ export default function Editor() {
   const pluginExtVersion = useEditorExtensionsVersion();
   const procVersion = useMarkdownProcessorsVersion();
   const applyingExternal = useRef(false);
+  /** The room this editor is typing into (null = ordinary single-user editing). */
+  const collabRef = useRef<CollabSession | null>(null);
+  const presence = usePresence();
   const activePath = useStore((s) => s.activePath);
   const content = useStore((s) => s.content);
   const setContent = useStore((s) => s.setContent);
@@ -76,6 +81,7 @@ export default function Editor() {
   const openContextMenu = useStore((s) => s.openContextMenu);
   const setLeftPanel = useStore((s) => s.setLeftPanel);
   const tree = useStore((s) => s.tree);
+  const collabReadOnly = presence.path === activePath && presence.path !== null && !presence.canWrite;
 
   useEffect(() => {
     setLivePreviewLinkHandler(openWikilink);
@@ -256,11 +262,12 @@ export default function Editor() {
     // Place the caret after the frontmatter so Properties render immediately.
     const fmMatch = isMd ? content.match(/^---\r?\n[\s\S]*?\r?\n---[ \t]*\r?\n?/) : null;
     const initPos = Math.min(fmMatch ? fmMatch[0].length : 0, content.length);
-    const buildState = (withPlugins: boolean) => EditorState.create({
-      doc: content,
-      selection: { anchor: initPos },
+    const buildState = (withPlugins: boolean, collab: CollabSession | null, caret?: { anchor: number; head: number }) => EditorState.create({
+      doc: collab ? collab.ytext.toString() : content,
+      selection: caret ?? { anchor: initPos },
       extensions: [
-        history(),
+        // Together with others, undo only takes back this person's own edits (Yjs), never someone else's typing.
+        collab ? yCollab(collab.ytext, collab.awareness, { undoManager: collab.undoManager }) : history(),
         drawSelection(),
         highlightActiveLine(),
         // Obsidian default hotkeys (§4) win over CodeMirror's defaults.
@@ -276,7 +283,7 @@ export default function Editor() {
         ),
         // In-document Find/Replace (⌘F / ⌘⇧F open the panel; ⌘G next).
         search({ top: true }),
-        keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, indentWithTab]),
+        keymap.of([...defaultKeymap, ...(collab ? yUndoManagerKeymap : historyKeymap), ...searchKeymap, indentWithTab]),
         // GFM base so Strikethrough/Table/TaskList nodes exist (Obsidian dialect);
         // codeLanguages lazy-loads grammars for fenced blocks (Obsidian: Prism).
         markdown({ base: markdownLanguage, codeLanguages: languages }),
@@ -288,7 +295,7 @@ export default function Editor() {
         // Live Preview drives BOTH live and reading; reading is just read-only.
         livePreviewState.init(() => isMd && viewMode !== 'source'),
         livePreviewReadonly.init(() => viewMode === 'reading'),
-        readonlyComp.of(readonlyExt(viewMode === 'reading')),
+        readonlyComp.of(readonlyExt(viewMode === 'reading' || (collab ? !collab.canWrite() : false))),
         // Extensions registered by community plugins (registerEditorExtension).
         pluginExtComp.of(withPlugins ? safePluginExtensions() : []),
         noteTitleField.init(() => titleOf(activePath)),
@@ -308,21 +315,54 @@ export default function Editor() {
         editorClickFix,
         EditorView.updateListener.of((u) => {
           // Ignore doc changes we applied programmatically (external content sync)
-          if (u.docChanged && !applyingExternal.current) setContent(u.state.doc.toString());
+          if (u.docChanged && !applyingExternal.current) {
+            setContent(u.state.doc.toString());
+            if (collab) useStore.setState({ dirty: false }); // the server saves it
+          }
         }),
       ],
     });
-    // A plugin extension that throws while the state is built must not leave a white screen: retry without plugin extensions.
-    let state: EditorState;
-    try { state = buildState(true); }
-    catch (e) { console.warn('[plugin] editor extensions rejected while opening the note; opening without them:', e); state = buildState(false); }
-    const v = new EditorView({ state, parent: host.current });
-    view.current = v;
-    setActiveEditor(v);
-    v.focus();
+    let cancelled = false;
+    let session: CollabSession | null = null;
+    const mount = (collab: CollabSession | null) => {
+      const old = view.current;
+      const hadFocus = !old || old.hasFocus;
+      const sel = old && collab ? old.state.selection.main : null;
+      const doc = collab ? collab.ytext.toString() : content;
+      const caret = sel ? { anchor: Math.min(sel.anchor, doc.length), head: Math.min(sel.head, doc.length) } : undefined;
+      old?.destroy();
+      collabRef.current = collab;
+      // A plugin extension that throws while the state is built must not leave a white screen: retry without plugin extensions.
+      let state: EditorState;
+      try { state = buildState(true, collab, caret); }
+      catch (e) { console.warn('[plugin] editor extensions rejected while opening the note; opening without them:', e); state = buildState(false, collab, caret); }
+      const v = new EditorView({ state, parent: host.current! });
+      view.current = v;
+      setActiveEditor(v);
+      if (hadFocus) v.focus();
+    };
+    mount(null);
+
+    // Notes that several people may edit join a room: the editor is rebuilt around the shared document once it has arrived.
+    if (activePath && /\.(md|markdown|txt)$/i.test(activePath)) {
+      void api.collabAccess(activePath).then((acc) => {
+        if (cancelled || !acc.enabled) return;
+        const s = startCollab(activePath);
+        session = s;
+        let first = true;
+        s.onSynced(() => {
+          if (cancelled || !first) return;
+          first = false;
+          mount(s);
+        });
+      }).catch(() => { /* no co-editing: the note keeps working on its own */ });
+    }
     return () => {
+      cancelled = true;
+      collabRef.current = null;
+      session?.destroy();
       setActiveEditor(null);
-      v.destroy();
+      view.current?.destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePath]);
@@ -333,7 +373,7 @@ export default function Editor() {
   // already equals content, so this is a no-op.)
   useEffect(() => {
     const v = view.current;
-    if (!v) return;
+    if (!v || collabRef.current) return; // in a room the shared document is the truth, not the store's copy
     const current = v.state.doc.toString();
     if (current === content) return;
     applyingExternal.current = true;
@@ -353,11 +393,11 @@ export default function Editor() {
       effects: [
         setLivePreviewEnabled.of(isMd && viewMode !== 'source'),
         setLivePreviewReadonly.of(viewMode === 'reading'),
-        readonlyComp.reconfigure(readonlyExt(viewMode === 'reading')),
+        readonlyComp.reconfigure(readonlyExt(viewMode === 'reading' || collabReadOnly)),
         setNoteTitle.of(titleOf(activePath)),
       ],
     });
-  }, [viewMode, activePath]);
+  }, [viewMode, activePath, collabReadOnly]);
 
   // A plugin registered/changed editor extensions (or called workspace.updateOptions()).
   useEffect(() => {
@@ -372,7 +412,7 @@ export default function Editor() {
     view.current?.dispatch({ effects: pluginBlocksChanged.of(procVersion) });
   }, [procVersion]);
 
-  // Debounced autosave.
+  // Debounced autosave (a note in a room is saved by the server instead — store.save() skips it).
   useEffect(() => {
     const id = window.setTimeout(() => save(), 900);
     return () => window.clearTimeout(id);

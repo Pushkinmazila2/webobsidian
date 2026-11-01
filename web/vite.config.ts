@@ -58,6 +58,7 @@ export default defineConfig({
       '/public': 'http://localhost:8787',
       '/share': 'http://localhost:8787', // SSR share page is server-rendered even in dev
       '/ws': { target: 'ws://localhost:8787', ws: true },
+      '/collab': { target: 'ws://localhost:8787', ws: true },
     },
   },
 });

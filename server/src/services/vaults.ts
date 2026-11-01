@@ -13,6 +13,7 @@ import { QmdEngine, initSearch } from './search.js';
 import { buildLinkGraph, updateLinkGraphForFile } from './links.js';
 import { buildFileIndex, indexFile, unindexFile } from './fileindex.js';
 import { broadcast } from './realtime.js';
+import { collabHooks } from './collabhooks.js';
 
 /**
  * Vault registry. The main vault ("default") is built from `settings.vault` + `settings.storage`;
@@ -170,6 +171,7 @@ async function watch(ctx: VaultCtx): Promise<() => void> {
           await updateLinkGraphForFile(rel).catch(() => {});
         }
       }
+      if (type === 'add' || type === 'change' || type === 'unlink') collabHooks?.external(ctx.id, rel, type);
       broadcast({ type: 'fs', vault: ctx.id, event: type, path: rel });
     });
   });

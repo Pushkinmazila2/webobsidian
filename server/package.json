@@ -17,11 +17,13 @@
     "chokidar": "^3.6.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "diff-match-patch": "^1.0.5",
     "express": "^4.21.1",
     "gray-matter": "^4.0.3",
     "helmet": "^8.2.0",
     "js-yaml": "^4.3.2",
     "jsonwebtoken": "^9.0.2",
+    "lib0": "^0.2.119",
     "minisearch": "^7.1.0",
     "multer": "^2.1.1",
     "openid-client": "^6.8.8",
@@ -35,11 +37,14 @@
     "simple-git": "^3.27.0",
     "unified": "^11.0.5",
     "ws": "^8.18.0",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.33",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.7",
     "@types/cors": "^2.8.17",
+    "@types/diff-match-patch": "^1.0.36",
     "@types/express": "^4.17.21",
     "@types/js-yaml": "^4.0.9",
     "@types/jsonwebtoken": "^9.0.7",
@@ -50,6 +55,7 @@
     "jose": "^6.2.13",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
-    "xml-crypto": "^6.4.0"
+    "xml-crypto": "^6.4.0",
+    "y-websocket": "^3.1.0"
   }
 }

@@ -18,7 +18,7 @@ import { errorHandler } from './middleware/error.js';
 import { COOKIE_NAME } from './middleware/auth.js';
 import { authenticateToken, ensureBootstrapAdmin } from './services/auth.js';
 import { initDb, closeDb, getUserStore, levelNum } from './db/index.js';
-import { refreshAcl, principalFor, levelFor, type Principal } from './services/acl.js';
+import { refreshAcl, principalFor, levelFor, vaultAccessible, type Principal } from './services/acl.js';
 import { authRouter } from './routes/auth.js';
 import { filesRouter } from './routes/files.js';
 import { searchRouter } from './routes/search.js';
@@ -34,7 +34,9 @@ import { vaultsRouter, vaultMiddleware } from './routes/vaults.js';
 import { adminRouter } from './routes/admin.js';
 import { ssoRouter } from './routes/sso.js';
 import { scimRouter } from './routes/scim.js';
-import { ensureReady, envVaultList, flushAll, getDefaultContext } from './services/vaults.js';
+import { collabRouter } from './routes/collab.js';
+import { join as joinCollab, startCollab, stopCollab } from './services/collab.js';
+import { ensureReady, envVaultList, flushAll, getDefaultContext, getVaultContext } from './services/vaults.js';
 import { setBroadcaster, broadcast } from './services/realtime.js';
 import { startAutoSync } from './services/autosync.js';
 import { runInVault } from './services/vaultals.js';
@@ -134,6 +136,7 @@ async function main() {
   app.use('/api', vaultMiddleware); // picks the vault of the request (X-Vault / ?vault=)
   app.use('/api/v1', agentRouter); // agent API (api-key auth)
   app.use('/api/files', filesRouter);
+  app.use('/api/collab', collabRouter);
   app.use('/api/settings', settingsRouter);
   app.use('/api/git', gitRouter);
   app.use('/api/keys', keysRouter);
@@ -168,6 +171,7 @@ async function main() {
   const server = http.createServer(app);
   setupWebsocket(server);
   startAutoSync();
+  startCollab();
 
   // Remote storage buffers edits (write-behind): commit them before the process exits.
   let stopping = false;
@@ -176,7 +180,9 @@ async function main() {
     stopping = true;
     console.log(`[boot] ${sig}: saving buffered changes...`);
     const done = () => process.exit(0);
-    flushAll()
+    stopCollab()
+      .catch(() => {})
+      .then(() => flushAll())
       .catch((e) => console.error('[boot] could not save buffered changes:', e?.message ?? e))
       .then(() => closeDb())
       .catch(() => {})
@@ -215,6 +221,7 @@ function setupWebsocket(server: http.Server) {
     } catch {
       pathname = '';
     }
+    if (pathname === '/collab' || pathname.startsWith('/collab/')) return upgradeCollab(req, socket, head);
     if (pathname !== '/ws') {
       socket.destroy();
       return;
@@ -239,6 +246,30 @@ function setupWebsocket(server: http.Server) {
   wss.on('connection', (ws) => {
     ws.send(JSON.stringify({ type: 'hello' }));
   });
+
+  // Co-editing: one binary Yjs socket per open note (/collab?vault=&path=). Same session rules as /ws, plus read access to the note.
+  const collabWss = new WebSocketServer({ noServer: true, maxPayload: 8 * 1024 * 1024 });
+  function upgradeCollab(req: http.IncomingMessage, socket: import('node:stream').Duplex, head: Buffer) {
+    const refuse = (line: string) => {
+      socket.write(`HTTP/1.1 ${line}\r\nConnection: close\r\n\r\n`);
+      socket.destroy();
+    };
+    const token = cookieValue(req.headers.cookie, COOKIE_NAME) ?? bearerToken(req.headers.authorization);
+    const q = new URL(req.url ?? '', 'http://localhost').searchParams;
+    const vaultId = (q.get('vault') || 'default').trim();
+    const rel = q.get('path') ?? '';
+    void (async () => {
+      const user = token ? await authenticateToken(token) : null;
+      if (!token || !user) return refuse('401 Unauthorized');
+      const principal = await principalFor(user);
+      if (!vaultAccessible(principal, vaultId)) return refuse('404 Not Found');
+      const ctx = await getVaultContext(vaultId);
+      if (!ctx) return refuse('404 Not Found');
+      if (levelFor(principal, ctx.id, rel) < READ_LEVEL || !/\.(md|markdown|txt)$/i.test(rel)) return refuse('403 Forbidden');
+      await ensureReady(ctx);
+      collabWss.handleUpgrade(req, socket, head, (ws) => void joinCollab(ws, ctx, rel, { token, user, principal }));
+    })().catch(() => refuse('500 Internal Server Error'));
+  }
 
   // A signed-out, revoked or disabled person's open sockets must not keep receiving events, and permission
   // changes apply to sockets that are already open.
