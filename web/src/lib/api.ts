@@ -257,6 +257,13 @@ export const api = {
   /** Whether `path` is co-edited in real time, and whether this person may type in it. */
   collabAccess: (path: string) => req<{ enabled: boolean; canWrite: boolean }>(`/api/collab/access?path=${encodeURIComponent(path)}`),
 
+  /** Who wrote the characters [from, to) of a co-edited note. `user: null` = text from before co-editing. */
+  collabBlame: (path: string, from: number, to: number) =>
+    req<{ segments: { from: number; to: number; user: { id: string; name: string } | null }[] }>(`/api/collab/blame?path=${encodeURIComponent(path)}&from=${from}&to=${to}`),
+  collabHistory: (path: string, limit = 50) =>
+    req<{ entries: { userId: string | null; userName: string; kind: 'edit' | 'rest' | 'external'; endedAt: string; inserted: number; deleted: number }[] }>(
+      `/api/collab/history?path=${encodeURIComponent(path)}&limit=${limit}`),
+
   // vaults
   listVaults: () => req<{ vaults: VaultInfo[] }>('/api/vaults'),
   getVault: (id: string) => req<{ vault: any }>(`/api/vaults/${id}`),

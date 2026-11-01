@@ -198,6 +198,31 @@ export default function Editor() {
     if (v) v.dispatch({ selection: { anchor: 0, head: v.state.doc.length } });
   };
 
+  // "Who changed this?" — traces the selected text to the people who typed it, with the time of their last edit.
+  const whoChanged = async () => {
+    const v = view.current;
+    const path = useStore.getState().activePath;
+    if (!v || !path) return;
+    const { from, to } = v.state.selection.main;
+    const notify = useStore.getState().notify;
+    try {
+      const [{ segments }, { entries }] = await Promise.all([api.collabBlame(path, from, to), api.collabHistory(path, 200)]);
+      const chars = new Map<string, number>();
+      for (const s of segments) {
+        const k = s.user?.name ?? 'Before co-editing';
+        chars.set(k, (chars.get(k) ?? 0) + (s.to - s.from));
+      }
+      const parts = [...chars].map(([name, n]) => {
+        const last = entries.find((x) => x.userName === name);
+        const when = last ? `, last edit ${new Date(last.endedAt).toLocaleString()}` : '';
+        return `${name}: ${n} char${n === 1 ? '' : 's'}${when}`;
+      });
+      notify(parts.length ? parts.join(' · ') : 'No author information', 9000);
+    } catch (err: any) {
+      notify(`Could not tell: ${err?.message ?? err}`);
+    }
+  };
+
   const onContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     const v = view.current;
@@ -243,6 +268,9 @@ export default function Editor() {
         { label: 'Copy', onClick: copy },
         { label: 'Paste', onClick: paste },
         { label: 'Select all', onClick: selectAll },
+        ...(sel && collabRef.current
+          ? [{ label: '', separator: true }, { label: 'Who changed this?', icon: 'user', onClick: () => void whoChanged() }]
+          : []),
         ...(sel
           ? [
               { label: '', separator: true },

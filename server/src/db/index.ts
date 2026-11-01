@@ -6,6 +6,7 @@ import { openPostgres } from './postgres.js';
 import { SqlUserStore, type UserStore } from './userstore.js';
 import { SqlAclStore, type AclStore } from './aclstore.js';
 import { SqlSsoStore, type SsoStore } from './ssostore.js';
+import { SqlEditLogStore, type EditLogStore } from './editlogstore.js';
 import type { Db } from './types.js';
 
 export type { Db } from './types.js';
@@ -17,6 +18,7 @@ let db: Db | null = null;
 let users: UserStore | null = null;
 let acl: AclStore | null = null;
 let sso: SsoStore | null = null;
+let editLog: EditLogStore | null = null;
 
 /**
  * `DATABASE_URL`: `postgres://…` / `postgresql://…`, `sqlite:<file>` (or `sqlite::memory:`), or empty =
@@ -42,6 +44,7 @@ export async function initDb(url?: string): Promise<UserStore> {
   users = new SqlUserStore(opened);
   acl = new SqlAclStore(opened);
   sso = new SqlSsoStore(opened);
+  editLog = new SqlEditLogStore(opened);
   return users;
 }
 
@@ -60,6 +63,11 @@ export function getAclStore(): AclStore {
   return acl;
 }
 
+export function getEditLogStore(): EditLogStore {
+  if (!editLog) throw new Error('Database not initialised (initDb() was not called)');
+  return editLog;
+}
+
 export function getSsoStore(): SsoStore {
   if (!sso) throw new Error('Database not initialised (initDb() was not called)');
   return sso;
@@ -72,5 +80,6 @@ export async function closeDb(): Promise<void> {
   users = null;
   acl = null;
   sso = null;
+  editLog = null;
   await d?.close();
 }

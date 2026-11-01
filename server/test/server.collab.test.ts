@@ -194,13 +194,35 @@ test('[server+collab] people edit the same note together', async () => {
     await writeFile(path.join(vault, 'Notes/a.md'), disk + 'from disk\n');
     await until(() => a.value.startsWith('TOP->') && a.value.endsWith('from disk\n') && b.value === a.value, 'outside change merged', 10000);
 
+    // who changed what: the selection is traced to the people who typed it
+    {
+      const v = a.value;
+      const at = v.indexOf('ALICE');
+      const bl = (await call(admin, `/api/collab/blame?path=Notes/a.md&from=${at}&to=${at + 5}`)).json;
+      assert.equal(bl.segments.length, 1, JSON.stringify(bl));
+      assert.equal(bl.segments[0].user?.name, 'Alice A');
+      const ad = v.indexOf('ADMIN');
+      const bl2 = (await call(alice, `/api/collab/blame?path=Notes/a.md&from=${ad}&to=${ad + 5}`)).json;
+      assert.equal(bl2.segments[0].user?.name, 'Administrator', JSON.stringify(bl2));
+      const seed = (await call(alice, `/api/collab/blame?path=Notes/a.md&from=${v.indexOf('line one') + 2}&to=${v.indexOf('line one') + 6}`)).json;
+      assert.equal(seed.segments[0].user, null, 'file text written before co-editing has no author');
+      assert.equal((await call(carol, `/api/collab/blame?path=Notes/a.md&from=0&to=3`)).status, 403);
+      assert.equal((await call(bob, '/api/collab/history?path=Notes/a.md')).status, 200);
+    }
+
     // permissions are rechecked: revoking write turns an open editor read-only
     // (rechecked every 30 s — covered by the unit of accessFor; here we only make sure the socket stays healthy)
     assert.equal(a.closed, null);
 
+    // the log is written when the typing pauses (30 s) or the room closes: closing the room flushes it
     // deleting the note closes the room
     assert.equal((await call(admin, '/api/files?path=Notes/a.md', 'DELETE')).status, 200);
     await until(() => a.closed !== null && b.closed !== null, 'sockets closed after delete');
+    await until(async () => {
+      const h = (await call(admin, '/api/collab/history?path=Notes/a.md')).json.entries ?? [];
+      return h.some((e: any) => e.userName === 'Alice A' && e.kind === 'edit' && e.inserted > 0) &&
+        h.some((e: any) => e.kind === 'rest') && h.some((e: any) => e.kind === 'external');
+    }, 'edit log entries');
   } catch (e) {
     console.error('--- server log ---\n' + s.log());
     throw e;

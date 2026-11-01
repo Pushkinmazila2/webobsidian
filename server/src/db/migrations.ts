@@ -124,6 +124,27 @@ export const MIGRATIONS: Migration[] = [
        )`,
     ],
   },
+  {
+    id: '004_edit_log',
+    up: [
+      // One row = one burst of typing by one actor in one note (merged while the typing goes on).
+      // kind: edit (an editor in a room) | rest (API / plugin write) | external (git pull, another editor).
+      `CREATE TABLE edit_log (
+         id TEXT PRIMARY KEY,
+         vault_id TEXT NOT NULL,
+         path TEXT NOT NULL,
+         user_id TEXT,
+         user_name TEXT NOT NULL,
+         kind TEXT NOT NULL,
+         started_at TEXT NOT NULL,
+         ended_at TEXT NOT NULL,
+         inserted INTEGER NOT NULL DEFAULT 0,
+         deleted INTEGER NOT NULL DEFAULT 0,
+         sample TEXT NOT NULL DEFAULT ''
+       )`,
+      `CREATE INDEX edit_log_path ON edit_log (vault_id, path, ended_at)`,
+    ],
+  },
 ];
 
 export async function migrate(db: Db, migrations: Migration[] = MIGRATIONS): Promise<string[]> {

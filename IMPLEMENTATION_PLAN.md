@@ -485,9 +485,10 @@ Cập nhật lần cuối: 2026-11-01 (M32.5 — soạn thảo cộng tác Yjs: 
 - [x] M32.3 ACL theo thư mục: `acl_rules`/`vault_defaults`, bộ đánh giá (cụ thể nhất thắng, deny chặn), kiểm tra ở facade vault theo người của request, lọc cây/search/tags/backlinks/graph/metadata/share/WS, `.obsidian` chỉ đọc, các route cấu hình chỉ admin, UI state theo người, `/api/admin/acl*`. Test: `acl.test.ts` (10), `server.acl.test.ts` (end-to-end)
 - [x] M32.4 SSO: OIDC (PKCE, state/nonce) + SAML (assertion ký bắt buộc, InResponseTo) + ánh xạ nhóm/adminGroups + SCIM 2.0 (Users/Groups, thu hồi phiên khi deactivate), nút đăng nhập SSO ở màn login. Test: `server.sso.test.ts` (IdP OIDC giả + SAML giả ký bằng xml-crypto, 2 test)
 - [x] M32.5 Realtime: endpoint `/collab` (cookie + ACL), phòng Yjs theo (vault, path), trạng thái lưu `data/collab/`, `y-codemirror.next` + presence ở status bar, ghi vào driver debounce (1s/tối đa 5s), trộn thay đổi ngoài (3-way diff-match-patch) và REST/plugin, người chỉ đọc không sửa được, server áp danh tính con trỏ. Test: `server.collab.test.ts`. Chưa kiểm chứng: trình duyệt thật (chỉ build + typecheck + client Yjs mô phỏng).
-- [ ] M32.6 Nhật ký sửa ("Ai đã sửa" trong menu ngữ cảnh), SCIM nâng cao, chọn plugin theo nhóm (sau)
+- [~] M32.6 Nhật ký sửa: [x] bảng `edit_log` (migration 004), tác giả từng ký tự theo Yjs client (lưu qua restart), `GET /api/collab/blame|history`, menu ngữ cảnh "Who changed this?". Còn lại: SCIM nâng cao, chọn plugin theo nhóm (sau). Hạn chế: văn bản có trước khi cộng tác không có tác giả; nhật ký ghi sau 30s ngừng gõ hoặc khi đóng phòng; sửa qua REST/ngoài chỉ vào nhật ký, không gán tác giả theo ký tự.
 
 ### Nhật ký tiến độ
+- 2026-11-01 — M32.6: nhật ký sửa (edit_log, blame, history, menu "Who changed this?").
 - 2026-11-01 — M32.5: `services/collab.ts` (phòng Yjs, sync+awareness, lưu trạng thái, merge ngoài/REST), `lib/textdiff.ts`, `/collab` WS + `GET /api/collab/access`, client `lib/collab.ts` + Editor/StatusBar. 218 test đạt.
 - 2026-06-27 (security fix — leo thang quyền qua token share): `verifyToken()` (server/src/services/auth.ts)
   chỉ kiểm tra chữ ký nên **mọi** token ký bằng `auth.jwtSecret` đều được chấp nhận như phiên owner. Endpoint

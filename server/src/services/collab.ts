@@ -11,6 +11,7 @@ import { config } from '../config.js';
 import { diffOps, merge3 } from '../lib/textdiff.js';
 import { asSystem, levelFor, principalFor, type Principal } from './acl.js';
 import { levelNum } from '../db/aclstore.js';
+import { getEditLogStore, getUserStore } from '../db/index.js';
 import { authenticateToken, type AuthUser } from './auth.js';
 import { runInVault, type VaultCtx } from './vaultals.js';
 import { reindex } from './indexing.js';
@@ -41,6 +42,9 @@ const IDLE_DESTROY = 30_000;
 const PING_EVERY = 30_000;
 const STATE_TTL_DAYS = 30;
 const ORIGIN_LOAD = 'collab:load';
+const LOG_IDLE = 30_000;
+const LOG_MAX_AGE = 5 * 60_000;
+const SAMPLE_CHARS = 200;
 
 const COLORS = ['#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#0aa5a5', '#d6336c', '#7f8c00', '#9a6324', '#5c6bc0', '#008080', '#c2185b'];
 const colorFor = (id: string) => COLORS[createHash('sha1').update(id).digest()[0] % COLORS.length];
@@ -62,6 +66,20 @@ interface Conn {
   ids: Set<number>;
   alive: boolean;
 }
+interface Bucket {
+  userId: string | null;
+  name: string;
+  kind: 'edit' | 'rest' | 'external';
+  started: number;
+  ended: number;
+  inserted: number;
+  deleted: number;
+  sample: string;
+}
+interface Author {
+  id: string;
+  name: string;
+}
 interface Room {
   key: string;
   ctx: VaultCtx;
@@ -80,6 +98,10 @@ interface Room {
   idle: NodeJS.Timeout | null;
   closed: boolean;
   lastError: string | null;
+  /** Who wrote which Yjs client's text (so a selection can be traced to people even after a restart). */
+  authors: Map<number, Author>;
+  buckets: Map<string, Bucket>;
+  logTimer: NodeJS.Timeout | null;
 }
 
 const rooms = new Map<string, Room>();
@@ -93,6 +115,100 @@ export function accessFor(principal: Principal, vaultId: string, rel: string): {
   if (!isEligible(rel)) return { enabled: false, canWrite: false };
   const lvl = levelFor(principal, vaultId, rel);
   return { enabled: lvl >= READ, canWrite: lvl >= WRITE };
+}
+
+// ---- who changed what ----------------------------------------------------------------
+function actorOf(room: Room, origin: unknown): { userId: string | null; name: string; kind: Bucket['kind'] } | null {
+  if (origin === ORIGIN_LOAD) return null;
+  const conn = origin as Conn | null;
+  if (conn && typeof conn === 'object' && 'user' in conn && 'ws' in conn) return { userId: conn.user.id, name: conn.user.name, kind: 'edit' };
+  const o = origin as { rest?: string | null; external?: boolean } | null;
+  if (o && typeof o === 'object' && 'rest' in o) return { userId: o.rest ?? null, name: restNames.get(o.rest ?? '') ?? 'API', kind: 'rest' };
+  if (o && typeof o === 'object' && o.external) return { userId: null, name: 'Outside change', kind: 'external' };
+  return null;
+}
+const restNames = new Map<string, string>();
+
+function noteTransaction(room: Room, tr: Y.Transaction): void {
+  const who = actorOf(room, tr.origin);
+  if (!who || !tr.changed.has(room.text as unknown as Y.AbstractType<any>)) return;
+  if (who.userId && who.kind === 'edit') {
+    for (const [client, clock] of tr.afterState) {
+      if (clock > (tr.beforeState.get(client) ?? 0)) room.authors.set(client, { id: who.userId, name: who.name });
+    }
+  }
+  let ins = 0;
+  let del = 0;
+  let sample = '';
+  for (const e of tr.changedParentTypes.get(room.text as unknown as Y.AbstractType<any>) ?? []) {
+    if (e.target !== room.text) continue;
+    for (const d of (e as Y.YTextEvent).delta) {
+      if (typeof d.insert === 'string') { ins += d.insert.length; if (sample.length < SAMPLE_CHARS) sample += d.insert; }
+      else if (d.delete) del += d.delete;
+    }
+  }
+  if (!ins && !del) return;
+  const key = `${who.kind}:${who.userId ?? ''}`;
+  const now = Date.now();
+  let b = room.buckets.get(key);
+  if (b && now - b.started > LOG_MAX_AGE) { void flushBucket(room, key); b = undefined; }
+  if (!b) {
+    b = { userId: who.userId, name: who.name, kind: who.kind, started: now, ended: now, inserted: 0, deleted: 0, sample: '' };
+    room.buckets.set(key, b);
+  }
+  b.ended = now;
+  b.inserted += ins;
+  b.deleted += del;
+  if (b.sample.length < SAMPLE_CHARS) b.sample = (b.sample + sample).slice(0, SAMPLE_CHARS);
+  if (room.logTimer) clearTimeout(room.logTimer);
+  room.logTimer = setTimeout(() => void flushLog(room), LOG_IDLE);
+  room.logTimer.unref();
+}
+
+async function flushBucket(room: Room, key: string): Promise<void> {
+  const b = room.buckets.get(key);
+  if (!b) return;
+  room.buckets.delete(key);
+  try {
+    await getEditLogStore().add({
+      vaultId: room.ctx.id, path: room.rel, userId: b.userId, userName: b.name, kind: b.kind,
+      startedAt: new Date(b.started).toISOString(), endedAt: new Date(b.ended).toISOString(),
+      inserted: b.inserted, deleted: b.deleted, sample: b.sample,
+    });
+  } catch (e: any) {
+    log('could not write the edit log:', e?.message ?? e);
+  }
+}
+
+export async function flushLog(room: Room): Promise<void> {
+  if (room.logTimer) clearTimeout(room.logTimer);
+  room.logTimer = null;
+  await Promise.all([...room.buckets.keys()].map((k) => flushBucket(room, k)));
+}
+
+/** Who wrote the characters in [from, to) of the note, plus the log of recent edits by those people. */
+export async function blame(ctx: VaultCtx, rel: string, from: number, to: number) {
+  const room = getRoom(ctx, rel);
+  await room.ready;
+  if (!room.conns.size && !room.idle) {
+    room.idle = setTimeout(() => { if (!room.conns.size) void destroyRoom(room).catch(() => {}); }, IDLE_DESTROY);
+    room.idle.unref();
+  }
+  const segs: { from: number; to: number; user: Author | null }[] = [];
+  let pos = 0;
+  for (let item = (room.text as unknown as { _start: Y.Item | null })._start; item && pos < to; item = item.right) {
+    if (item.deleted || !item.countable) continue;
+    const start = pos;
+    pos += item.length;
+    if (pos <= from) continue;
+    const a = Math.max(start, from);
+    const z = Math.min(pos, to);
+    const user = room.authors.get(item.id.client) ?? null;
+    const last = segs[segs.length - 1];
+    if (last && last.to === a && last.user?.id === user?.id) last.to = z;
+    else segs.push({ from: a, to: z, user });
+  }
+  return { segments: segs };
 }
 
 // ---- room lifecycle --------------------------------------------------------------------
@@ -125,6 +241,10 @@ function setText(room: Room, next: string, origin: unknown): void {
 
 async function loadRoom(room: Room): Promise<void> {
   const text = await inScope(room, () => room.ctx.storage.readText(room.rel));
+  try {
+    const meta = JSON.parse(await fs.readFile(`${stateBase(room.key)}.json`, 'utf8')) as { authors?: [number, Author][] };
+    for (const [c, a] of meta.authors ?? []) room.authors.set(c, a);
+  } catch { /* none yet */ }
   if (text.length > MAX_DOC_CHARS) throw Object.assign(new Error('File is too large for co-editing'), { status: 413 });
   try {
     const bin = await fs.readFile(`${stateBase(room.key)}.bin`);
@@ -147,6 +267,7 @@ function getRoom(ctx: VaultCtx, rel: string): Room {
     awareness: new awarenessProtocol.Awareness(doc),
     conns: new Map(), owners: new Map(), saved: '', ready: Promise.resolve(), chain: Promise.resolve(),
     dirtySince: 0, timer: null, idle: null, closed: false, lastError: null,
+    authors: new Map(), buckets: new Map(), logTimer: null,
   };
   room.awareness.setLocalState(null); // the server itself is not a participant
   room.awareness.on('update', ({ added, updated, removed }: { added: number[]; updated: number[]; removed: number[] }, origin: unknown) => {
@@ -165,6 +286,7 @@ function getRoom(ctx: VaultCtx, rel: string): Room {
     for (const c of room.conns.values()) if (c.ws !== (origin as Conn | null)?.ws) send(c.ws, msg);
     if (origin !== ORIGIN_LOAD) schedulePersist(room);
   });
+  doc.on('afterTransaction', (tr: Y.Transaction) => noteTransaction(room, tr));
   rooms.set(key, room);
   room.ready = loadRoom(room).catch((e) => {
     rooms.delete(key);
@@ -233,7 +355,7 @@ async function saveState(room: Room, update: Uint8Array, text: string): Promise<
     const base = stateBase(room.key);
     await fs.mkdir(path.dirname(base), { recursive: true });
     await fs.writeFile(`${base}.bin`, update);
-    await fs.writeFile(`${base}.json`, JSON.stringify({ vault: room.ctx.id, path: room.rel, fileHash: sha(text), at: Date.now() }));
+    await fs.writeFile(`${base}.json`, JSON.stringify({ vault: room.ctx.id, path: room.rel, fileHash: sha(text), at: Date.now(), authors: [...room.authors] }));
   } catch (e: any) {
     log('could not save room state:', e?.message ?? e);
   }
@@ -245,6 +367,7 @@ async function destroyRoom(room: Room, code = 1000, reason = ''): Promise<void> 
   for (const c of [...room.conns.values()]) c.ws.close(code, reason);
   room.conns.clear();
   await persist(room);
+  await flushLog(room);
   room.closed = true;
   if (rooms.get(room.key) === room) rooms.delete(room.key);
   room.awareness.destroy();
@@ -385,6 +508,10 @@ async function write(vaultId: string, rel: string, content: string, userId: stri
     return false;
   }
   if (content.length > MAX_DOC_CHARS) return false;
+  if (userId && !restNames.has(userId)) {
+    const u = await getUserStore().getUser(userId).catch(() => undefined);
+    if (u) restNames.set(userId, u.displayName || u.username);
+  }
   setText(room, content, { rest: userId });
   await persist(room);
   return true;
