@@ -151,6 +151,7 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
   const setRenamingPath = useStore((s) => s.setRenamingPath);
   const toggleBookmark = useStore((s) => s.toggleBookmark);
   const bookmarks = useStore((s) => s.bookmarks);
+  const editors = useStore((s) => s.filePresence[node.path]);
   const notify = useStore((s) => s.notify);
   const setShareDialog = useStore((s) => s.setShareDialog);
   const shares = useStore((s) => s.shares);
@@ -421,6 +422,12 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
           <Icon name="globe" size={12} className="share-globe" />
         )}
         {bookmarks.includes(node.path) && <Icon name="bookmark" size={12} className="bm-star" />}
+        {editors && editors.length > 0 && (
+          <span className="editing-now" title={`Editing now: ${editors.map((u) => u.name).join(', ')}`} style={{ color: editors[0].color }}>
+            <Icon name="users" size={13} />
+            {editors.length > 1 && <small>{editors.length}</small>}
+          </span>
+        )}
       </div>
     </div>
   );

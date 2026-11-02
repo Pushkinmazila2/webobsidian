@@ -275,9 +275,9 @@ export const api = {
 
   /** Who wrote the characters [from, to) of a co-edited note. `user: null` = text from before co-editing. */
   collabBlame: (path: string, from: number, to: number) =>
-    req<{ segments: { from: number; to: number; user: { id: string; name: string } | null }[] }>(`/api/collab/blame?path=${encodeURIComponent(path)}&from=${from}&to=${to}`),
+    req<{ segments: { from: number; to: number; text: string; user: { id: string; name: string; color: string } | null }[]; length: number }>(`/api/collab/blame?path=${encodeURIComponent(path)}&from=${from}&to=${to}`),
   collabHistory: (path: string, limit = 50) =>
-    req<{ entries: { userId: string | null; userName: string; kind: 'edit' | 'rest' | 'external'; endedAt: string; inserted: number; deleted: number }[] }>(
+    req<{ entries: { id: string; userId: string | null; userName: string; kind: 'edit' | 'rest' | 'external'; startedAt: string; endedAt: string; inserted: number; deleted: number; sample: string; deletedSample: string }[] }>(
       `/api/collab/history?path=${encodeURIComponent(path)}&limit=${limit}`),
 
   // vaults

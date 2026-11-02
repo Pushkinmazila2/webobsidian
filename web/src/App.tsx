@@ -48,6 +48,7 @@ export default function App() {
       .me()
       .then((r) => {
         setMustChangePassword(Boolean(r.mustChangePassword));
+        useStore.getState().setMeId(r.user?.id ?? null);
         setAuthed(true);
       })
       .catch((e) => {
@@ -86,6 +87,7 @@ export default function App() {
         // events of other vaults (open in other tabs) are not ours
         if (msg.vault && msg.vault !== currentVaultId()) return;
         if (!msg.vault && currentVaultId() !== 'default' && (msg.type === 'fs' || msg.type === 'uistate')) return;
+        if (msg.type === 'presence') { useStore.getState().setFilePresence(msg.path, msg.users ?? []); return; }
         if (msg.type === 'fs') {
           // coalesce bursts of fs events into a single tree refresh
           window.clearTimeout(treeTimer);

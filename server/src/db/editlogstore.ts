@@ -13,6 +13,8 @@ export interface EditLogEntry {
   inserted: number;
   deleted: number;
   sample: string;
+  /** The start of what was deleted (empty when only text was added). */
+  deletedSample: string;
 }
 
 export interface EditLogStore {
@@ -25,9 +27,9 @@ export class SqlEditLogStore implements EditLogStore {
   constructor(private readonly db: Db) {}
   async add(e: Omit<EditLogEntry, 'id'>): Promise<void> {
     await this.db.run(
-      `INSERT INTO edit_log (id, vault_id, path, user_id, user_name, kind, started_at, ended_at, inserted, deleted, sample)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [randomUUID(), e.vaultId, e.path, e.userId, e.userName, e.kind, e.startedAt, e.endedAt, e.inserted, e.deleted, e.sample],
+      `INSERT INTO edit_log (id, vault_id, path, user_id, user_name, kind, started_at, ended_at, inserted, deleted, sample, deleted_sample)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [randomUUID(), e.vaultId, e.path, e.userId, e.userName, e.kind, e.startedAt, e.endedAt, e.inserted, e.deleted, e.sample, e.deletedSample],
     );
   }
   async list(vaultId: string, path: string, limit: number): Promise<EditLogEntry[]> {
@@ -37,7 +39,7 @@ export class SqlEditLogStore implements EditLogStore {
       userId: r.user_id === null || r.user_id === undefined ? null : String(r.user_id),
       userName: String(r.user_name), kind: String(r.kind) as EditLogEntry['kind'],
       startedAt: String(r.started_at), endedAt: String(r.ended_at),
-      inserted: Number(r.inserted), deleted: Number(r.deleted), sample: String(r.sample),
+      inserted: Number(r.inserted), deleted: Number(r.deleted), sample: String(r.sample), deletedSample: String(r.deleted_sample ?? ''),
     }));
   }
 }

@@ -142,6 +142,19 @@ test('[server+collab] people edit the same note together', async () => {
       assert.ok(status === 401 || status === 403 || status === 404, `${rel} as ${cookie ? 'user' : 'nobody'}: ${status}`);
     }
 
+    // the file tree learns who is editing which note (people who may read it)
+    const events: any[] = [];
+    const spy = (cookie: string) => {
+      const w = new WebSocket(`${s.base.replace('http', 'ws')}/ws`, { headers: { cookie } });
+      const got: any[] = [];
+      w.on('message', (d) => got.push(JSON.parse(String(d))));
+      clients.push({ ws: w, awareness: { destroy() {} } } as unknown as Client);
+      return got;
+    };
+    const bobEvents = spy(bob);
+    const carolEvents = spy(carol);
+    events.push(bobEvents);
+
     // two people see the file's text and each other's typing
     const a = open(alice);
     const b = open(admin);
@@ -153,6 +166,9 @@ test('[server+collab] people edit the same note together', async () => {
     b.text.insert(b.value.length, 'ADMIN\n');
     await until(() => a.value === b.value && a.value.startsWith('ALICE line one') && a.value.endsWith('ADMIN\n'), 'convergence');
     const merged = a.value;
+    await until(() => bobEvents.some((e) => e.type === 'presence' && e.path === 'Notes/a.md' && e.users.some((u: any) => u.name === 'Alice A')), 'presence reaches readers');
+    assert.ok(!carolEvents.some((e) => e.type === 'presence'), 'people without access are not told');
+    assert.ok(bobEvents.filter((e) => e.type === 'presence').at(-1).users.every((u: any) => u.id && u.color), 'presence carries identity');
 
     // the room, not the keystroke, writes the file (debounced)
     await until(async () => (await readFile(path.join(vault, 'Notes/a.md'), 'utf8')) === merged, 'file saved');
@@ -194,6 +210,13 @@ test('[server+collab] people edit the same note together', async () => {
     await writeFile(path.join(vault, 'Notes/a.md'), disk + 'from disk\n');
     await until(() => a.value.startsWith('TOP->') && a.value.endsWith('from disk\n') && b.value === a.value, 'outside change merged', 10000);
 
+    // a deletion is remembered with the deleted words
+    {
+      const len = a.value.indexOf('line one');
+      a.text.delete(len, 5); // "line "
+      await until(() => b.value === a.value && !a.value.includes('line one'), 'deletion synced');
+    }
+
     // who changed what: the selection is traced to the people who typed it
     {
       const v = a.value;
@@ -201,10 +224,12 @@ test('[server+collab] people edit the same note together', async () => {
       const bl = (await call(admin, `/api/collab/blame?path=Notes/a.md&from=${at}&to=${at + 5}`)).json;
       assert.equal(bl.segments.length, 1, JSON.stringify(bl));
       assert.equal(bl.segments[0].user?.name, 'Alice A');
+      assert.equal(bl.segments[0].text, 'ALICE');
+      assert.match(bl.segments[0].user.color, /^#[0-9a-f]{6}$/i);
       const ad = v.indexOf('ADMIN');
       const bl2 = (await call(alice, `/api/collab/blame?path=Notes/a.md&from=${ad}&to=${ad + 5}`)).json;
       assert.equal(bl2.segments[0].user?.name, 'Administrator', JSON.stringify(bl2));
-      const seed = (await call(alice, `/api/collab/blame?path=Notes/a.md&from=${v.indexOf('line one') + 2}&to=${v.indexOf('line one') + 6}`)).json;
+      const seed = (await call(alice, `/api/collab/blame?path=Notes/a.md&from=${v.indexOf('line two') + 2}&to=${v.indexOf('line two') + 6}`)).json;
       assert.equal(seed.segments[0].user, null, 'file text written before co-editing has no author');
       assert.equal((await call(carol, `/api/collab/blame?path=Notes/a.md&from=0&to=3`)).status, 403);
       assert.equal((await call(bob, '/api/collab/history?path=Notes/a.md')).status, 200);
@@ -223,6 +248,9 @@ test('[server+collab] people edit the same note together', async () => {
       return h.some((e: any) => e.userName === 'Alice A' && e.kind === 'edit' && e.inserted > 0) &&
         h.some((e: any) => e.kind === 'rest') && h.some((e: any) => e.kind === 'external');
     }, 'edit log entries');
+    const hist = (await call(admin, '/api/collab/history?path=Notes/a.md')).json.entries;
+    assert.ok(hist.some((e: any) => e.userName === 'Alice A' && e.deleted >= 5 && e.deletedSample.includes('line')), JSON.stringify(hist));
+    assert.deepEqual(bobEvents.filter((e) => e.type === 'presence' && e.path === 'Notes/a.md').at(-1).users, [], 'presence cleared when the note closes');
   } catch (e) {
     console.error('--- server log ---\n' + s.log());
     throw e;

@@ -85,6 +85,11 @@ interface AppState {
   authed: boolean;
   setAuthed: (v: boolean) => void;
   mustChangePassword: boolean;
+  /** Who is editing which note right now (other people only), by path. */
+  filePresence: Record<string, { id: string; name: string; color: string }[]>;
+  setFilePresence: (path: string, users: { id: string; name: string; color: string }[]) => void;
+  meId: string | null;
+  setMeId: (id: string | null) => void;
   setMustChangePassword: (v: boolean) => void;
 
   tree: TreeNode | null;
@@ -306,6 +311,15 @@ export const useStore = create<AppState>()(
       authed: false,
       setAuthed: (v) => set({ authed: v }),
       mustChangePassword: false,
+      filePresence: {},
+      setFilePresence: (path, users) => set((st) => {
+        const next = { ...st.filePresence };
+        const others = users.filter((u) => u.id !== st.meId);
+        if (others.length) next[path] = others; else delete next[path];
+        return { filePresence: next };
+      }),
+      meId: null,
+      setMeId: (id) => set({ meId: id }),
       setMustChangePassword: (v) => set({ mustChangePassword: v }),
 
       tree: null,

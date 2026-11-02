@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { editorInfoField } from '../lib/obsidianApi';
 import { editorSuggestExtension } from '../lib/editorSuggestExt';
 import { pluginHost, useEditorExtensionsVersion, useMarkdownProcessorsVersion } from '../lib/pluginHost';
@@ -48,6 +48,8 @@ import { setActiveEditor } from '../lib/activeEditor';
 import { api } from '../lib/api';
 import { yCollab, yUndoManagerKeymap } from 'y-codemirror.next';
 import { startCollab, usePresence, type CollabSession } from '../lib/collab';
+import { authorshipField, setAuthorship } from '../lib/authorship';
+import ChangesDialog from './ChangesDialog';
 
 const titleOf = (path: string | null) =>
   path ? (path.split('/').pop() ?? path).replace(/\.(md|markdown)$/i, '') : '';
@@ -72,6 +74,8 @@ export default function Editor() {
   /** The room this editor is typing into (null = ordinary single-user editing). */
   const collabRef = useRef<CollabSession | null>(null);
   const presence = usePresence();
+  const [showAuthors, setShowAuthors] = useState(false);
+  const [dialog, setDialog] = useState<{ range: { from: number; to: number } | null } | null>(null);
   const activePath = useStore((s) => s.activePath);
   const content = useStore((s) => s.content);
   const setContent = useStore((s) => s.setContent);
@@ -198,29 +202,11 @@ export default function Editor() {
     if (v) v.dispatch({ selection: { anchor: 0, head: v.state.doc.length } });
   };
 
-  // "Who changed this?" — traces the selected text to the people who typed it, with the time of their last edit.
-  const whoChanged = async () => {
+  const whoChanged = () => {
     const v = view.current;
-    const path = useStore.getState().activePath;
-    if (!v || !path) return;
+    if (!v) return;
     const { from, to } = v.state.selection.main;
-    const notify = useStore.getState().notify;
-    try {
-      const [{ segments }, { entries }] = await Promise.all([api.collabBlame(path, from, to), api.collabHistory(path, 200)]);
-      const chars = new Map<string, number>();
-      for (const s of segments) {
-        const k = s.user?.name ?? 'Before co-editing';
-        chars.set(k, (chars.get(k) ?? 0) + (s.to - s.from));
-      }
-      const parts = [...chars].map(([name, n]) => {
-        const last = entries.find((x) => x.userName === name);
-        const when = last ? `, last edit ${new Date(last.endedAt).toLocaleString()}` : '';
-        return `${name}: ${n} char${n === 1 ? '' : 's'}${when}`;
-      });
-      notify(parts.length ? parts.join(' · ') : 'No author information', 9000);
-    } catch (err: any) {
-      notify(`Could not tell: ${err?.message ?? err}`);
-    }
+    setDialog({ range: { from, to } });
   };
 
   const onContextMenu = (e: React.MouseEvent) => {
@@ -268,8 +254,13 @@ export default function Editor() {
         { label: 'Copy', onClick: copy },
         { label: 'Paste', onClick: paste },
         { label: 'Select all', onClick: selectAll },
-        ...(sel && collabRef.current
-          ? [{ label: '', separator: true }, { label: 'Who changed this?', icon: 'user', onClick: () => void whoChanged() }]
+        ...(collabRef.current
+          ? [
+              { label: '', separator: true },
+              ...(sel ? [{ label: 'Who changed this?', icon: 'user', onClick: whoChanged }] : []),
+              { label: showAuthors ? 'Hide authors' : 'Show authors', icon: 'users', onClick: () => setShowAuthors(!showAuthors) },
+              { label: 'Edit history…', icon: 'history', onClick: () => setDialog({ range: null }) },
+            ]
           : []),
         ...(sel
           ? [
@@ -334,6 +325,7 @@ export default function Editor() {
         mermaidField,
         pluginBlockField,
         editorInfoField,
+        authorshipField,
         htmlRenderedState,
         htmlPreviewField,
         calloutFoldState,
@@ -440,6 +432,31 @@ export default function Editor() {
     view.current?.dispatch({ effects: pluginBlocksChanged.of(procVersion) });
   }, [procVersion]);
 
+  // "Show authors": shade every stretch of text in its writer's colour (refreshed while on; typing in between is followed).
+  useEffect(() => {
+    const v = view.current;
+    if (!v) return;
+    const inRoom = presence.path !== null && presence.path === activePath;
+    if (!showAuthors || !inRoom || !activePath) {
+      v.dispatch({ effects: setAuthorship.of([]) });
+      return;
+    }
+    let stop = false;
+    const refresh = async () => {
+      const cur = view.current;
+      if (!cur || stop) return;
+      try {
+        const r = await api.collabBlame(activePath, 0, cur.state.doc.length);
+        if (!stop && view.current === cur) {
+          cur.dispatch({ effects: setAuthorship.of(r.segments.filter((s) => s.user).map((s) => ({ from: s.from, to: s.to, name: s.user!.name, color: s.user!.color }))) });
+        }
+      } catch { /* leave what is shown */ }
+    };
+    void refresh();
+    const t = window.setInterval(refresh, 4000);
+    return () => { stop = true; window.clearInterval(t); };
+  }, [showAuthors, presence.path, activePath]);
+
   // Debounced autosave (a note in a room is saved by the server instead — store.save() skips it).
   useEffect(() => {
     const id = window.setTimeout(() => save(), 900);
@@ -457,5 +474,10 @@ export default function Editor() {
     viewMode !== 'source' ? 'is-live-preview live-preview' : '',
     viewMode === 'reading' ? 'is-reading-mode' : '',
   ].join(' ');
-  return <div className={cls} ref={host} onContextMenu={onContextMenu} />;
+  return (
+    <>
+      <div className={cls} ref={host} onContextMenu={onContextMenu} />
+      {dialog && activePath && <ChangesDialog path={activePath} range={dialog.range} onClose={() => setDialog(null)} />}
+    </>
+  );
 }

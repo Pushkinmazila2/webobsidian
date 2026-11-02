@@ -16,6 +16,7 @@ import { authenticateToken, type AuthUser } from './auth.js';
 import { runInVault, type VaultCtx } from './vaultals.js';
 import { reindex } from './indexing.js';
 import { setCollabHooks } from './collabhooks.js';
+import { broadcast } from './realtime.js';
 
 /**
  * Real-time co-editing of notes (Yjs).
@@ -75,6 +76,7 @@ interface Bucket {
   inserted: number;
   deleted: number;
   sample: string;
+  deletedSample: string;
 }
 interface Author {
   id: string;
@@ -117,6 +119,20 @@ export function accessFor(principal: Principal, vaultId: string, rel: string): {
   return { enabled: lvl >= READ, canWrite: lvl >= WRITE };
 }
 
+// ---- who is in which note --------------------------------------------------------------
+const writersOf = (room: Room) => {
+  const seen = new Map<string, Identity>();
+  for (const c of room.conns.values()) if (c.canWrite && !seen.has(c.user.id)) seen.set(c.user.id, c.user);
+  return [...seen.values()];
+};
+/** Tell everyone's file tree who is editing this note (the receiving side filters by read access). */
+function announce(room: Room): void {
+  broadcast({ type: 'presence', vault: room.ctx.id, path: room.rel, users: room.closed ? [] : writersOf(room) });
+}
+/** Every note somebody is editing right now (sent to a socket when it connects). */
+export const presenceSnapshot = () =>
+  [...rooms.values()].map((r) => ({ vault: r.ctx.id, path: r.rel, users: writersOf(r) })).filter((x) => x.users.length);
+
 // ---- who changed what ----------------------------------------------------------------
 function actorOf(room: Room, origin: unknown): { userId: string | null; name: string; kind: Bucket['kind'] } | null {
   if (origin === ORIGIN_LOAD) return null;
@@ -148,18 +164,25 @@ function noteTransaction(room: Room, tr: Y.Transaction): void {
     }
   }
   if (!ins && !del) return;
+  let delText = '';
+  if (del) {
+    Y.iterateDeletedStructs(tr, tr.deleteSet, (st) => {
+      if (delText.length < SAMPLE_CHARS && st instanceof Y.Item && st.parent === room.text && st.content instanceof Y.ContentString) delText += st.content.str;
+    });
+  }
   const key = `${who.kind}:${who.userId ?? ''}`;
   const now = Date.now();
   let b = room.buckets.get(key);
   if (b && now - b.started > LOG_MAX_AGE) { void flushBucket(room, key); b = undefined; }
   if (!b) {
-    b = { userId: who.userId, name: who.name, kind: who.kind, started: now, ended: now, inserted: 0, deleted: 0, sample: '' };
+    b = { userId: who.userId, name: who.name, kind: who.kind, started: now, ended: now, inserted: 0, deleted: 0, sample: '', deletedSample: '' };
     room.buckets.set(key, b);
   }
   b.ended = now;
   b.inserted += ins;
   b.deleted += del;
   if (b.sample.length < SAMPLE_CHARS) b.sample = (b.sample + sample).slice(0, SAMPLE_CHARS);
+  if (b.deletedSample.length < SAMPLE_CHARS) b.deletedSample = (b.deletedSample + delText).slice(0, SAMPLE_CHARS);
   if (room.logTimer) clearTimeout(room.logTimer);
   room.logTimer = setTimeout(() => void flushLog(room), LOG_IDLE);
   room.logTimer.unref();
@@ -173,7 +196,7 @@ async function flushBucket(room: Room, key: string): Promise<void> {
     await getEditLogStore().add({
       vaultId: room.ctx.id, path: room.rel, userId: b.userId, userName: b.name, kind: b.kind,
       startedAt: new Date(b.started).toISOString(), endedAt: new Date(b.ended).toISOString(),
-      inserted: b.inserted, deleted: b.deleted, sample: b.sample,
+      inserted: b.inserted, deleted: b.deleted, sample: b.sample, deletedSample: b.deletedSample,
     });
   } catch (e: any) {
     log('could not write the edit log:', e?.message ?? e);
@@ -194,7 +217,8 @@ export async function blame(ctx: VaultCtx, rel: string, from: number, to: number
     room.idle = setTimeout(() => { if (!room.conns.size) void destroyRoom(room).catch(() => {}); }, IDLE_DESTROY);
     room.idle.unref();
   }
-  const segs: { from: number; to: number; user: Author | null }[] = [];
+  const segs: { from: number; to: number; user: (Author & { color: string }) | null; text: string }[] = [];
+  const full = room.text.toString();
   let pos = 0;
   for (let item = (room.text as unknown as { _start: Y.Item | null })._start; item && pos < to; item = item.right) {
     if (item.deleted || !item.countable) continue;
@@ -203,12 +227,14 @@ export async function blame(ctx: VaultCtx, rel: string, from: number, to: number
     if (pos <= from) continue;
     const a = Math.max(start, from);
     const z = Math.min(pos, to);
-    const user = room.authors.get(item.id.client) ?? null;
+    const au = room.authors.get(item.id.client);
+    const user = au ? { ...au, color: colorFor(au.id) } : null;
     const last = segs[segs.length - 1];
     if (last && last.to === a && last.user?.id === user?.id) last.to = z;
-    else segs.push({ from: a, to: z, user });
+    else segs.push({ from: a, to: z, user, text: '' });
   }
-  return { segments: segs };
+  for (const sg of segs) sg.text = full.slice(sg.from, Math.min(sg.to, sg.from + 300));
+  return { segments: segs, length: full.length };
 }
 
 // ---- room lifecycle --------------------------------------------------------------------
@@ -369,6 +395,7 @@ async function destroyRoom(room: Room, code = 1000, reason = ''): Promise<void> 
   await persist(room);
   await flushLog(room);
   room.closed = true;
+  announce(room);
   if (rooms.get(room.key) === room) rooms.delete(room.key);
   room.awareness.destroy();
   room.doc.destroy();
@@ -376,6 +403,7 @@ async function destroyRoom(room: Room, code = 1000, reason = ''): Promise<void> 
 
 function dropConn(room: Room, conn: Conn): void {
   if (!room.conns.delete(conn.ws)) return;
+  announce(room);
   awarenessProtocol.removeAwarenessStates(room.awareness, [...conn.ids], null);
   for (const id of conn.ids) room.owners.delete(id);
   if (!room.conns.size && !room.closed) {
@@ -466,6 +494,7 @@ export async function join(ws: WebSocket, ctx: VaultCtx, rel: string, who: { tok
   const name = who.user.displayName || who.user.username;
   const conn: Conn = { ws, token: who.token, user: { id: who.user.id, name, color: colorFor(who.user.id) }, canWrite: acc.canWrite, ids: new Set(), alive: true };
   room.conns.set(ws, conn);
+  announce(room);
   attached = (raw) => {
     try {
       onMessage(room, conn, new Uint8Array(raw));
@@ -566,6 +595,7 @@ export function startCollab(): void {
         if (!acc.enabled) return void c.ws.close(4403, 'no access');
         if (acc.canWrite !== c.canWrite) {
           c.canWrite = acc.canWrite;
+          announce(room);
           sendAccess(c.ws, acc.canWrite);
         }
       })().catch(() => {});

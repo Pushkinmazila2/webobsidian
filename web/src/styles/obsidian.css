@@ -1340,6 +1340,8 @@ body.wo-col-resizing .sidebar, body.wo-col-resizing .right-sidebar { transition:
 }
 
 /* ---- Share dialog + shared-note badge (FR-10) ---- */
+.editing-now { margin-left: 4px; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.editing-now small { font-size: 10px; }
 .share-globe { color: var(--interactive-accent); margin-left: 4px; flex-shrink: 0; }
 .share-dialog { width: 480px; max-width: calc(100vw - 32px); padding: 18px 20px; }
 .share-dialog-head { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; color: var(--text-normal); }

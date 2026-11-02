@@ -35,7 +35,7 @@ import { adminRouter } from './routes/admin.js';
 import { ssoRouter } from './routes/sso.js';
 import { scimRouter } from './routes/scim.js';
 import { collabRouter } from './routes/collab.js';
-import { join as joinCollab, startCollab, stopCollab } from './services/collab.js';
+import { join as joinCollab, startCollab, stopCollab, presenceSnapshot } from './services/collab.js';
 import { ensureReady, envVaultList, flushAll, getDefaultContext, getVaultContext } from './services/vaults.js';
 import { setBroadcaster, broadcast } from './services/realtime.js';
 import { startAutoSync } from './services/autosync.js';
@@ -245,6 +245,11 @@ function setupWebsocket(server: http.Server) {
 
   wss.on('connection', (ws) => {
     ws.send(JSON.stringify({ type: 'hello' }));
+    const c = clients.get(ws);
+    if (!c) return;
+    for (const p of presenceSnapshot()) {
+      if (levelFor(c.principal, p.vault, p.path) >= READ_LEVEL) ws.send(JSON.stringify({ type: 'presence', ...p }));
+    }
   });
 
   // Co-editing: one binary Yjs socket per open note (/collab?vault=&path=). Same session rules as /ws, plus read access to the note.
@@ -289,7 +294,7 @@ function setupWebsocket(server: http.Server) {
     const data = JSON.stringify(msg);
     for (const [client, c] of clients) {
       if (client.readyState !== 1) continue;
-      if (m.type === 'fs' && typeof m.path === 'string') {
+      if ((m.type === 'fs' || m.type === 'presence') && typeof m.path === 'string') {
         if (levelFor(c.principal, m.vault ?? 'default', m.path) < READ_LEVEL) continue;
       } else if (m.type === 'uistate') {
         if (m.userId !== c.userId) continue;

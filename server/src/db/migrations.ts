@@ -145,6 +145,10 @@ export const MIGRATIONS: Migration[] = [
       `CREATE INDEX edit_log_path ON edit_log (vault_id, path, ended_at)`,
     ],
   },
+  {
+    id: '005_edit_log_deleted',
+    up: [`ALTER TABLE edit_log ADD COLUMN deleted_sample TEXT NOT NULL DEFAULT ''`],
+  },
 ];
 
 export async function migrate(db: Db, migrations: Migration[] = MIGRATIONS): Promise<string[]> {
